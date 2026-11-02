@@ -1,0 +1,6 @@
+/* Phone-app only: keep the header clear of the notch / status bar, and never
+   show the desktop layout's hover states on touch. */
+.top { padding-top: calc(.4rem + env(safe-area-inset-top, 0px)); }
+.top, .tabs { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+html.native, html.native body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+html.native input, html.native textarea, html.native .row { -webkit-user-select: text; user-select: text; }
