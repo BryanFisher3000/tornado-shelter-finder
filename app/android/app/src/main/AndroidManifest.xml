@@ -36,6 +36,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <queries>
+        <!-- maps apps the Settings page can offer for Directions -->
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="geo" /></intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />

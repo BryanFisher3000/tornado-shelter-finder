@@ -309,7 +309,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       <ol class="list" id="saved" aria-label="Saved shelters" hidden></ol>
       <div class="settings" id="settings" hidden>
         <div class="set-row"><label for="set-loc">My location</label><span class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></span></div>
-        <div class="set-row"><label for="set-map">Map</label><select id="set-map"><option value="google">Google Maps</option><option value="apple">Apple Maps</option></select></div>
+        <div class="set-row"><label for="set-map">Directions app</label><select id="set-map"></select></div>
         <div class="set-row sep"><span>My device</span><span class="v" id="set-device"></span></div>
         <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
         <div class="set-row"><span>App version</span><span class="v" id="set-version">1.0 prototype (web)</span></div>
@@ -404,7 +404,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   var state = {
     store: null, origin: null, results: [], selected: null,
     filters: { ada: false, pets: false, always: false },
-    saved: load("saved", []), provider: load("provider", /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? "apple" : "google"),
+    saved: load("saved", []), provider: load("provider", null),
     useLocation: load("useLocation", false), view: "list"
   };
 
@@ -764,7 +764,18 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     $("#fb-copied").textContent = "Copying isn't allowed here. The message is selected; copy it with your keyboard.";
   }
 
-  $("#set-map").value = state.provider;
+  // Directions app: only the maps apps this device can open. The phone app asks the device
+  // (SAS_APP.mapApps); a browser gets Google Maps and Waze, plus Apple Maps on Apple devices.
+  function setMapApps(ids) {
+    ids = (ids || []).filter(function (id) { return C.MAP_APPS[id]; });
+    if (!ids.length) ids = C.webMapApps(navigator.userAgent);
+    $("#set-map").innerHTML = ids.map(function (id) { return '<option value="' + id + '">' + esc(C.MAP_APPS[id]) + "</option>"; }).join("");
+    if (ids.indexOf(state.provider) < 0) state.provider = ids[0];
+    $("#set-map").value = state.provider;
+    renderResults(); renderSaved();
+  }
+  setMapApps(C.webMapApps(navigator.userAgent));
+  if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderResults(); renderSaved(); });
   if (APP.version) $("#set-version").textContent = APP.version;
   $("#set-loc").checked = state.useLocation;
