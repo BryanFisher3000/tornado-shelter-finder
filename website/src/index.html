@@ -316,7 +316,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
         <div class="set-row sep" style="display:block">
           <label for="set-fb" style="display:block;margin-bottom:.6rem">Feedback</label>
           <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
-          <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button><button class="btn grey" type="button" id="set-cancel">Cancel</button></div>
+          <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
         </div>
         <p class="fine">By using this site you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
       </div>
@@ -353,7 +353,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
         </fieldset>
         <label class="sr" for="fb-text">Comments</label>
         <textarea id="fb-text" placeholder="Anything else, such as the correct address or hours."></textarea>
-        <div class="btns"><button class="btn red" type="submit">Send</button><button class="btn grey" type="button" id="fb-cancel">Cancel</button></div>
+        <div class="btns"><button class="btn red" type="submit">Send</button></div>
       </div>
     </div>
     <div id="fb-ready" hidden>
@@ -748,7 +748,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     }
   });
   function closeFb() { $("#fb-dialog").close(); }
-  $("#fb-cancel").addEventListener("click", closeFb);
   $("#fb-done").addEventListener("click", closeFb);
   $("#fb-back").addEventListener("click", function () { if (!$("#fb-ready").hidden && fbShelter) showFbStep("compose"); else closeFb(); });
   $("#fb-copy").addEventListener("click", function () {
@@ -788,7 +787,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     showReady(C.buildReport(null, [], text, deviceLabel()));
     $("#set-fb").value = "";
   });
-  $("#set-cancel").addEventListener("click", function () { $("#set-fb").value = ""; });
 
   // first-run disclaimer, as on the app's startup screen
   if (!load("agreed", false)) {
