@@ -51,7 +51,7 @@ def main(src, dst):
     col = {name: head.index(name) for name in
            ["Latitude", "Longitude", "Name", "Address", "City", "County", "State", "Zip",
             "Capacity", "ADA", "Pets", "Open", "Note"]}
-    out, seen, skipped = [], set(), 0
+    out, seen, ids_used, skipped = [], set(), set(), 0
     for r in rows[1:]:
         g = lambda k: clean(r[col[k]]) if col[k] < len(r) else ""
         try:
@@ -64,10 +64,15 @@ def main(src, dst):
             continue
         name, addr, city, state = g("Name"), g("Address"), g("City"), g("State").upper()
         key = f"{name}|{addr}|{city}|{state}".lower()
-        if key in seen:  # exact duplicate rows
+        # Only drop a row that repeats another one at the same pin. Two shelters can share a
+        # name and address, e.g. the eastbound and westbound Hedley Storm Shelters on US 287.
+        spot = f"{key}|{lat:.6f},{lng:.6f}"
+        if spot in seen:
             skipped += 1
             continue
-        seen.add(key)
+        seen.add(spot)
+        id_key = key if key not in ids_used else spot  # the first keeps its old id, so saved lists still match
+        ids_used.add(key)
         cap = g("Capacity")
         cap = "" if cap.lower() in UNKNOWN else cap
         # the cleaned Location tab has a numeric Capacity plus a "Capacity Display" bucket (50+, <50, Unknown)
@@ -76,7 +81,7 @@ def main(src, dst):
         avail = g("Open").lower()
         note = g("Note")
         out.append({
-            "id": hashlib.sha1(key.encode()).hexdigest()[:12],
+            "id": hashlib.sha1(id_key.encode()).hexdigest()[:12],
             "name": name,
             "location": {"lat": round(lat, 6), "lng": round(lng, 6)},
             "address": {"line": addr, "city": city, "county": g("County"), "state": state,
