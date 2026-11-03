@@ -1465,7 +1465,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
     var data = res[0];
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
-    $("#set-count").textContent = data.count.toLocaleString("en-US") + " from " + data.source;
+    $("#set-count").textContent = data.count.toLocaleString("en-US");
     if (window.L) initMap(res[1]); else $("#map").innerHTML = '<p class="fine" style="padding:1rem">The map didn\'t load. The list still works.</p>';
     drawAllDots();
     if (map) buildCities();
