@@ -1,0 +1,818 @@
+<title>Tornado Shelter Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow+Semi+Condensed:wght@300;400;500;600&display=swap">
+<style>{{LEAFLET_CSS}}</style>
+<style>
+/* Version 2 (phone app): one screen modeled on the Google Maps app. The map fills the
+   screen, one search bar floats on top, and results live in a bottom sheet you drag
+   between peek, half and full. Shares shelter-core.js and the data with the website. */
+:root {
+  --red: #EA2627; --red-deep: #9E1F23; --on-red: #fff;
+  --bg: #F3F2F0; --card: #FFFFFF; --ink: #1A1815; --ink-2: #4E4748; --muted: #6E6A6A;
+  --line: #E0DDD9; --line-2: #CDC8C3; --chip: #ECEAE7; --chip-on: #F8D6D6;
+  --land: #EFEDE9; --county: #DDD8D2; --state: #A89F97; --water: #DCE3E6; --dot: #C2282A;
+  --you: #1A73E8; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --red: #F0393A; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
+    --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324;
+    --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #F0393A;
+    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --red: #F0393A; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
+  --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324;
+  --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #F0393A;
+  --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 1rem/1.35 var(--f-body); overflow: hidden; -webkit-text-size-adjust: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--red); }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
+
+#map { position: fixed; inset: 0; z-index: 0; background: var(--water); }
+
+/* search bar */
+.searchbar {
+  position: fixed; z-index: 20; left: 12px; right: 12px; top: calc(var(--safe-top) + 10px);
+  display: flex; align-items: center; gap: .25rem; height: 3.1rem; padding: 0 .35rem 0 .9rem;
+  background: var(--card); border-radius: 999px; box-shadow: var(--shadow);
+}
+.searchbar .logo { width: 1.6rem; height: 1.6rem; flex: none; }
+body.searching .searchbar { z-index: 41; }
+.searchbar input { flex: 1; min-width: 0; border: 0; background: none; outline: 0; font-size: 1.12rem; padding: .4rem .3rem; }
+.searchbar input::placeholder { color: var(--muted); }
+.searchbar input::-webkit-search-cancel-button { display: none; }
+.icon-btn { border: 0; background: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); flex: none; }
+.icon-btn:active { background: var(--chip); }
+.icon-btn.filled { background: var(--chip); }
+
+/* suggestions: full screen under the search bar while typing */
+.suggest { position: fixed; z-index: 40; inset: 0; background: var(--card); padding: calc(var(--safe-top) + 4.4rem) 0 var(--safe-bottom); overflow: auto; }
+.suggest[hidden] { display: none; }
+.suggest ul { list-style: none; margin: 0; padding: 0; }
+.suggest button { width: 100%; display: flex; gap: .9rem; align-items: center; border: 0; background: none; padding: .8rem 16px; text-align: left; cursor: pointer; }
+.suggest button:active { background: var(--chip); }
+.suggest .ic { width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--chip); display: grid; place-items: center; color: var(--ink-2); flex: none; }
+.suggest .t { font-size: 1.05rem; }
+.suggest .s { font-size: .88rem; color: var(--muted); }
+
+/* menu */
+.menu { position: fixed; z-index: 45; right: 12px; top: calc(var(--safe-top) + 4.2rem); background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
+.menu[hidden] { display: none; }
+.menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
+.menu button:active { background: var(--chip); }
+
+/* locate button floats above the sheet */
+.fab { position: fixed; z-index: 5; right: 14px; width: 3.3rem; height: 3.3rem; border-radius: 16px; border: 0; background: var(--card); box-shadow: var(--shadow); display: grid; place-items: center; cursor: pointer; color: var(--you); transition: opacity .15s; }
+.fab[aria-busy="true"] svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* bottom sheet */
+.sheet {
+  position: fixed; z-index: 22; left: 0; right: 0; top: 0; height: 100%;
+  background: var(--card); border-radius: 22px 22px 0 0; box-shadow: 0 -2px 14px rgba(0,0,0,.16);
+  display: flex; flex-direction: column; will-change: transform;
+}
+.sheet.anim { transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+.sheet-head { flex: none; padding: .45rem 16px .2rem; touch-action: none; cursor: grab; }
+.grab { width: 2.6rem; height: .3rem; border-radius: 99px; background: var(--line-2); margin: 0 auto .5rem; border: 0; padding: 0; display: block; }
+.title-row { display: flex; align-items: center; gap: .5rem; min-height: 2.6rem; }
+.title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.45rem; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { margin: .1rem 0 .3rem; color: var(--muted); font-size: .95rem; }
+.sub.error { color: var(--red); }
+.chips { display: flex; gap: .5rem; overflow-x: auto; padding: .35rem 0 .55rem; scrollbar-width: none; touch-action: pan-x; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line-2); background: var(--card); border-radius: 10px; padding: .42rem .85rem; font-size: .98rem; cursor: pointer; display: inline-flex; gap: .35rem; align-items: center; }
+.chip[aria-pressed="true"] { background: var(--chip-on); border-color: transparent; }
+.chip[aria-pressed="true"]::before { content: "✓"; font-size: .9em; }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); touch-action: none; }
+.sheet[data-snap="full"] .sheet-body { touch-action: pan-y; }
+.pane[hidden] { display: none; }
+
+/* result card, per the Goddard example: pin + distance + Directions + Edit on the left */
+.results { list-style: none; margin: 0; padding: 0; }
+.card { display: grid; grid-template-columns: 5.4rem 1fr; gap: .2rem .6rem; padding: 1rem 16px 1rem 6px; border-bottom: 8px solid var(--bg); cursor: pointer; }
+.card.sel { background: color-mix(in srgb, var(--red) 6%, var(--card)); }
+.c-left { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .15rem; }
+.c-left .dist { font-size: .95rem; color: var(--ink-2); }
+.c-left a, .c-left button { color: var(--red); text-decoration: none; border: 0; background: none; padding: .3rem .2rem; font-size: .98rem; cursor: pointer; }
+.c-left .edit { margin-top: auto; }
+.c-main h3 { margin: 0 0 .1rem; font-weight: 500; font-size: 1.22rem; line-height: 1.2; }
+.c-main address { font-style: italic; color: var(--ink-2); font-size: 1rem; margin-bottom: .45rem; }
+.facts { margin: 0; display: grid; gap: .15rem; font-size: .92rem; }
+.facts div { display: flex; gap: .3rem; flex-wrap: wrap; align-items: baseline; }
+.facts dt { color: var(--ink-2); }
+.facts dd { margin: 0; font-size: 1.04rem; color: var(--ink); }
+.facts dd.unk { color: var(--muted); font-size: .95rem; }
+
+/* numbered pin (list + map) */
+.npin { position: relative; display: block; width: 2rem; height: 2.5rem; flex: none; }
+.npin::before { content: ""; position: absolute; left: .1rem; top: 0; width: 1.8rem; height: 1.8rem; background: #C0392B; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); transform-origin: 50% 50%; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.npin span { position: absolute; left: 0; right: 0; top: .32rem; text-align: center; color: #fff; font-weight: 600; font-size: .88rem; line-height: 1; }
+.npin.sel::before { background: var(--red-deep); }
+.map-pin { width: 2rem; height: 2.5rem; }
+.map-pin .npin { transform-origin: 50% 100%; }
+.map-pin.sel .npin { transform: scale(1.25); }
+.map-pin.sel .npin::before { background: var(--red); box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,.4); }
+.you-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--you); border: 3px solid #fff; box-shadow: 0 0 0 10px rgba(26,115,232,.18), 0 1px 3px rgba(0,0,0,.35); }
+
+/* detail pane */
+.detail { padding: .2rem 16px 1.4rem; }
+.detail address { font-style: italic; color: var(--ink-2); margin: 0 0 .7rem; font-size: 1.05rem; }
+.detail .dist { color: var(--muted); }
+.actions { display: flex; gap: .55rem; overflow-x: auto; padding: .2rem 0 .9rem; scrollbar-width: none; }
+.actions::-webkit-scrollbar { display: none; }
+.pill { flex: none; display: inline-flex; gap: .45rem; align-items: center; border: 0; border-radius: 999px; padding: .62rem 1.05rem; background: var(--chip-on); color: var(--red-deep); text-decoration: none; font-size: 1rem; font-weight: 500; cursor: pointer; }
+.pill.primary { background: var(--red); color: var(--on-red); --dir-arrow: var(--red); }
+.pill svg { width: 1.15rem; height: 1.15rem; }
+.detail .facts { font-size: 1rem; gap: .35rem; padding: .8rem 0; border-top: 1px solid var(--line); }
+.detail .facts dd { font-size: 1.08rem; }
+.note { margin: .3rem 0 0; padding: .8rem .9rem; background: var(--bg); border-radius: 12px; color: var(--ink-2); }
+.tag { display: inline-block; margin: .1rem .3rem .1rem 0; padding: .15rem .5rem; border-radius: 6px; background: var(--chip); font-size: .85rem; color: var(--ink-2); }
+
+/* intro / empty */
+.intro { padding: 1.2rem 16px 2rem; display: grid; gap: .9rem; justify-items: start; }
+.intro p { margin: 0; color: var(--ink-2); font-size: 1.05rem; }
+.intro img { height: 2.6rem; width: auto; margin-top: .6rem; }
+
+/* settings */
+.settings { padding: 0 16px 2rem; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
+.set-row .v { color: var(--ink-2); text-align: right; }
+.set-row select { background: var(--card); border: 1px solid var(--line-2); border-radius: 8px; padding: .4rem .5rem; max-width: 60%; }
+.switch { position: relative; width: 3rem; height: 1.7rem; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line-2); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: .2rem; left: .2rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked + span { background: var(--red); }
+.switch input:checked + span::after { transform: translateX(1.3rem); }
+textarea { width: 100%; min-height: 6.5rem; resize: vertical; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; padding: .6rem; }
+.fine { font-size: .85rem; color: var(--muted); line-height: 1.4; }
+.btn { border: 0; border-radius: 999px; padding: .62rem 1.4rem; cursor: pointer; font-weight: 500; font-size: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: .45rem; }
+.btn.red { background: var(--red); color: var(--on-red); }
+.btn.plain { background: var(--chip); color: var(--ink); }
+.btns { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+/* map */
+.leaflet-container { font-family: var(--f-body); background: var(--water); }
+.leaflet-control-attribution { font-size: .62rem; background: color-mix(in srgb, var(--card) 75%, transparent) !important; color: var(--muted); }
+.leaflet-control-attribution a { color: var(--ink-2); }
+.city-label { white-space: nowrap; font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); text-shadow: 0 0 3px var(--land), 0 0 3px var(--land); pointer-events: none; transform: translate(-50%, 6px); width: max-content; }
+
+/* feedback (Edit) dialog */
+dialog { border: 0; padding: 0; background: var(--card); color: var(--ink); border-radius: 18px; box-shadow: var(--shadow); width: min(30rem, calc(100vw - 24px)); max-height: calc(100% - 24px); }
+dialog::backdrop { background: rgba(26,24,21,.55); }
+.fb { padding: 1rem 1.1rem 1.3rem; display: grid; gap: .8rem; }
+.fb header { display: flex; align-items: center; gap: .4rem; }
+.fb h2 { margin: 0; font-weight: 500; font-size: 1.35rem; }
+.fb .summary { background: var(--bg); border-radius: 12px; padding: .7rem .85rem; font-size: .95rem; }
+.fb .summary p { margin: 0; }
+.fb fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .45rem; }
+.fb legend { font-size: 1.05rem; padding: 0 0 .35rem; }
+.fb label.chk { display: flex; gap: .6rem; align-items: center; cursor: pointer; }
+.fb label.chk input { width: 1.15rem; height: 1.15rem; accent-color: var(--red); margin: 0; }
+.fb .mail { background: var(--bg); border-radius: 12px; padding: .7rem .85rem; font-size: .9rem; }
+.fb .mail pre { margin: .4rem 0 0; white-space: pre-wrap; font-family: inherit; max-height: 11rem; overflow: auto; }
+
+/* first-run disclaimer */
+.splash { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: rgba(26,24,21,.6); padding: 16px; }
+.splash[hidden] { display: none; }
+.splash-card { background: var(--card); width: min(23rem, 100%); padding: 1.6rem 1.4rem 1.4rem; display: grid; gap: 1rem; justify-items: center; text-align: center; box-shadow: var(--shadow); border-radius: 18px; }
+.splash h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: clamp(2.4rem, 10vw, 3.2rem); line-height: .88; color: var(--red); text-transform: uppercase; }
+.splash p { margin: 0; color: var(--ink-2); }
+.splash img { height: 2.8rem; width: auto; }
+@media (prefers-reduced-motion: reduce) { .sheet.anim { transition: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M12 2v3.2M12 18.8V22M2 12h3.2M18.8 12H22"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="currentColor"/><path d="M8.5 14.5v-2.5a1.5 1.5 0 0 1 1.5-1.5h4.5M13 8.5l2 2-2 2" fill="none" style="stroke:var(--dir-arrow,#fff)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="currentColor"/></symbol>
+  <symbol id="i-star-o" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 8h14l-1 13H6z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3"/></symbol>
+  <symbol id="i-city" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+  <symbol id="i-shelter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+</svg>
+
+<div id="map" role="region" aria-label="Shelter map"></div>
+
+<form class="searchbar" id="search-form" role="search">
+  <svg class="i logo" aria-hidden="true" style="color:var(--red)"><use href="#i-search"/></svg>
+  <label class="sr" for="q">Search a city, state, ZIP or shelter</label>
+  <input id="q" type="search" placeholder="Search city, state or ZIP" autocomplete="off" enterkeyhint="search">
+  <button type="button" class="icon-btn" id="q-clear" aria-label="Clear search" hidden><svg class="i"><use href="#i-x"/></svg></button>
+  <button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
+</form>
+
+<div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
+
+<div class="menu" id="menu" role="menu" hidden>
+  <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved shelters</button>
+  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm store</button>
+  <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; feedback</button>
+</div>
+
+<button type="button" class="fab" id="locate" aria-label="Show shelters near my location"><svg class="i"><use href="#i-locate"/></svg></button>
+
+<section class="sheet" id="sheet" aria-label="Shelters" data-snap="half">
+  <div class="sheet-head" id="sheet-head">
+    <button type="button" class="grab" id="grab" aria-label="Expand or shrink the list"></button>
+    <div class="title-row">
+      <button type="button" class="icon-btn" id="back" aria-label="Back" hidden><svg class="i"><use href="#i-back"/></svg></button>
+      <h2 id="title">Tornado shelters</h2>
+      <button type="button" class="icon-btn filled" id="close" aria-label="Close" hidden><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <p class="sub" id="sub" aria-live="polite">Loading shelters…</p>
+    <div class="chips" id="chips" role="group" aria-label="Filters" hidden>
+      <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair accessible</button>
+      <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
+      <button type="button" class="chip" data-filter="always" aria-pressed="false">Open year-round</button>
+    </div>
+  </div>
+  <div class="sheet-body" id="body">
+    <div class="pane intro" id="pane-intro">
+      <p>Find the tornado shelters nearest you, or search a city, state or ZIP.</p>
+      <button type="button" class="btn red" id="intro-locate"><svg class="i"><use href="#i-locate"/></svg>Use my location</button>
+      <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+    </div>
+    <ol class="pane results" id="pane-list" hidden></ol>
+    <div class="pane detail" id="pane-detail" hidden></div>
+    <ol class="pane results" id="pane-saved" hidden></ol>
+    <div class="pane settings" id="pane-settings" hidden>
+      <div class="set-row"><label for="set-map">Directions app</label><select id="set-map"></select></div>
+      <div class="set-row"><label for="set-loc">Find shelters near me when the app opens</label><span class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></span></div>
+      <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
+      <div class="set-row"><span>My device</span><span class="v" id="set-device"></span></div>
+      <div class="set-row"><span>App version</span><span class="v" id="set-version">2.0 (web)</span></div>
+      <div style="padding:1rem 0 .6rem">
+        <label for="set-fb" style="display:block;margin-bottom:.5rem">Feedback about the app</label>
+        <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
+        <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
+      </div>
+      <p class="fine">By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
+    </div>
+  </div>
+</section>
+
+<dialog id="fb-dialog" aria-labelledby="fb-title">
+  <form class="fb" id="fb-form" method="dialog">
+    <header><button type="button" class="icon-btn" id="fb-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button><h2 id="fb-title">Suggest an edit</h2></header>
+    <div id="fb-compose" style="display:grid;gap:.8rem">
+      <div class="summary" id="fb-summary"></div>
+      <fieldset>
+        <legend>What would you like us to know?</legend>
+        <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
+        <label class="chk"><input type="checkbox" id="fb-r2" value="no_shelter">No shelter at this location</label>
+        <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
+      </fieldset>
+      <label class="sr" for="fb-text">Comments</label>
+      <textarea id="fb-text" placeholder="Anything else, such as the correct address, hours or capacity."></textarea>
+      <div class="btns"><button class="btn red" type="submit">Send</button></div>
+    </div>
+    <div id="fb-ready" hidden style="display:grid;gap:.8rem">
+      <p style="margin:0">Your note is ready. Send it from your email app to <strong id="fb-to">app@survive-a-storm.com</strong>.</p>
+      <div class="mail"><div><strong>Subject:</strong> <span id="fb-subject"></span></div><pre id="fb-body"></pre></div>
+      <div class="btns">
+        <a class="btn red" id="fb-mailto" href="#"><svg class="i"><use href="#i-mail"/></svg>Open email app</a>
+        <button class="btn plain" type="button" id="fb-copy">Copy</button>
+        <button class="btn plain" type="button" id="fb-done">Done</button>
+      </div>
+      <p class="fine" id="fb-copied" aria-live="polite"></p>
+    </div>
+  </form>
+</dialog>
+
+<div class="splash" id="splash" hidden>
+  <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splash-title">
+    <h1 id="splash-title">Tornado Shelter Finder</h1>
+    <p>By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
+    <button class="btn red" type="button" id="agree" style="width:100%;justify-content:center">Agree</button>
+    <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="shelter-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  var C = window.ShelterCore;
+  var APP = window.SAS_APP || {};
+  var API = APP.apiBase ? String(APP.apiBase).replace(/\/$/, "") : "";
+  var RESULT_LIMIT = 40;
+  var US_CENTER = [37.5, -92.5];
+  var $ = function (s) { return document.querySelector(s); };
+  function load(k, d) { try { var v = localStorage.getItem("sas." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem("sas." + k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  var state = {
+    store: null, origin: null, here: null, results: [], selected: null, pane: "intro", prevPane: "intro",
+    filters: { ada: false, pets: false, always: false }, label: "",
+    saved: load("saved", []), provider: load("provider", null), useLocation: load("useLocation", false)
+  };
+
+  // ---------- formatting, per the result card example ----------
+  function miles(mi) { return mi == null ? "" : (mi < 100 ? mi.toFixed(2) : Math.round(mi).toLocaleString("en-US")) + " mi"; }
+  function distOf(s) { return state.origin ? C.distanceMiles(state.origin, s.location) : null; }
+  function yesNo(v) { return v === "yes" ? "Yes" : v === "no" ? "No" : null; }
+  function fact(label, val) {
+    return "<div><dt>" + label + ":</dt><dd" + (val ? "" : ' class="unk"') + ">" + esc(val || "Not listed") + "</dd></div>";
+  }
+  function facts(s) {
+    return '<dl class="facts">' +
+      fact("Open", s.availability === "always" ? "Year-round" : "During emergencies") +
+      fact("Capacity", s.capacity && s.capacity.label) +
+      fact("Wheelchair Accessible", yesNo(s.ada_accessible)) +
+      fact("Pets Allowed", yesNo(s.pets_allowed)) + "</dl>";
+  }
+  function addrHtml(s) {
+    var a = s.address;
+    return esc(a.line) + (a.line ? "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "");
+  }
+  function dirUrl(s) { return C.directionsUrl(s, state.provider, state.here); }
+  function cardHtml(s, n) {
+    return '<li class="card' + (state.selected === s.id ? " sel" : "") + '" data-id="' + s.id + '">' +
+      '<div class="c-left">' +
+        (n ? '<span class="npin"><span>' + n + "</span></span>" : '<span class="npin"><span></span></span>') +
+        '<span class="dist">' + miles(distOf(s)) + "</span>" +
+        '<a href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-act="dir">Directions</a>' +
+        '<button type="button" class="edit" data-act="edit">Edit</button>' +
+      "</div>" +
+      '<div class="c-main" data-act="open"><h3>' + esc(s.name) + "</h3><address>" + addrHtml(s) + "</address>" + facts(s) + "</div></li>";
+  }
+  function numberOf(id) { for (var i = 0; i < state.results.length; i++) if (state.results[i].id === id) return i + 1; return null; }
+  function isSaved(id) { return state.saved.indexOf(id) >= 0; }
+
+  // ---------- bottom sheet: peek / half / full, dragged by its header ----------
+  var sheet = $("#sheet"), head = $("#sheet-head"), body = $("#body"), fab = $("#locate");
+  var snapName = "half", sheetY = 0;
+  function vh() { return window.innerHeight; }
+  function snaps() {
+    var h = vh();
+    return { full: Math.max(16, safeTopPx), half: Math.round(h * 0.5), peek: Math.round(h - head.offsetHeight - 6) };
+  }
+  var safeTopPx = 0;
+  (function measureSafe() { var p = document.createElement("div"); p.style.cssText = "position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(p); safeTopPx = p.offsetHeight; p.remove(); })();
+  function placeSheet(y, animate) {
+    sheetY = y;
+    sheet.classList.toggle("anim", !!animate);
+    sheet.style.transform = "translateY(" + y + "px)";
+    // let every row scroll into view while the sheet is only partly open
+    body.style.paddingBottom = Math.max(0, y) + "px";
+    var visible = vh() - y;
+    fab.style.bottom = (visible + 14) + "px";
+    fab.style.opacity = y < vh() * 0.3 ? "0" : "1";
+    fab.style.pointerEvents = y < vh() * 0.3 ? "none" : "";
+  }
+  function snapTo(name, animate) {
+    snapName = name; sheet.dataset.snap = name;
+    placeSheet(snaps()[name], animate !== false);
+    if (name !== "full") body.scrollTop = Math.min(body.scrollTop, body.scrollHeight);
+  }
+  function visibleSheet() { return Math.max(0, vh() - sheetY); }
+  (function drag() {
+    var startY = 0, startSheet = 0, dragging = false, moved = false, pid = null, lastY = 0, lastT = 0, vel = 0;
+    function down(e) {
+      if (e.button > 0) return;
+      var inBody = body.contains(e.target);
+      if (inBody && snapName === "full") return;           // full: the list scrolls
+      if (e.target.closest(".chips") && !inBody) { /* chips scroll sideways; still allow vertical drag */ }
+      pid = e.pointerId; startY = lastY = e.clientY; startSheet = sheetY; dragging = true; moved = false; lastT = e.timeStamp; vel = 0;
+    }
+    function move(e) {
+      if (!dragging || e.pointerId !== pid) return;
+      var dy = e.clientY - startY;
+      if (!moved && Math.abs(dy) < 7) return;
+      if (!moved) { moved = true; try { sheet.setPointerCapture(pid); } catch (er) {} }
+      var s = snaps();
+      placeSheet(Math.min(s.peek, Math.max(s.full, startSheet + dy)), false);
+      var dt = e.timeStamp - lastT; if (dt > 0) vel = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = e.timeStamp;
+    }
+    function up(e) {
+      if (!dragging || e.pointerId !== pid) return;
+      dragging = false;
+      if (!moved) return;
+      var s = snaps(), y = sheetY + vel * 180, best = "half", bd = Infinity;
+      ["full", "half", "peek"].forEach(function (k) { var d = Math.abs(s[k] - y); if (d < bd) { bd = d; best = k; } });
+      snapTo(best);
+      suppressClick = true; setTimeout(function () { suppressClick = false; }, 0);
+    }
+    var suppressClick = false;
+    sheet.addEventListener("pointerdown", down);
+    sheet.addEventListener("pointermove", move);
+    sheet.addEventListener("pointerup", up);
+    sheet.addEventListener("pointercancel", function () { if (dragging) { dragging = false; if (moved) snapTo(snapName); } });
+    sheet.addEventListener("click", function (e) { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+    $("#grab").addEventListener("click", function () { snapTo(snapName === "full" ? "half" : snapName === "half" ? "full" : "half"); });
+    window.addEventListener("resize", function () { snapTo(snapName, false); });
+  })();
+
+  // ---------- panes ----------
+  function setSub(text, isError) { var el = $("#sub"); el.textContent = text || ""; el.hidden = !text; el.classList.toggle("error", !!isError); }
+  function showPane(name, opts) {
+    opts = opts || {};
+    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
+    state.pane = name;
+    ["intro", "list", "detail", "saved", "settings"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
+    var sub = true;
+    $("#chips").hidden = name !== "list";
+    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings");
+    $("#close").hidden = !(name === "list" || name === "detail");
+    if (name === "intro") { $("#title").textContent = "Tornado shelters"; }
+    else if (name === "list") { $("#title").textContent = state.label || "Shelters"; }
+    else if (name === "saved") { $("#title").textContent = "Saved shelters"; renderSaved(); sub = false; }
+    else if (name === "settings") { $("#title").textContent = "Settings"; sub = false; }
+    if (!sub) setSub("");
+    body.scrollTop = 0;
+    if (opts.snap) snapTo(opts.snap);
+    else snapTo(snapName, false);
+  }
+  function back() {
+    if (state.pane === "detail") { state.selected = null; drawPins(); }
+    var to = state.prevPane && state.prevPane !== state.pane ? state.prevPane : (state.results.length ? "list" : "intro");
+    showPane(to === "detail" ? "list" : to, { snap: "half" });
+    if (to === "list") describe();
+  }
+  function describe() {
+    if (!state.results.length) { setSub("No shelters match these filters here. Try turning a filter off.", true); return; }
+    var s = state.results[0];
+    setSub(state.results.length + " nearest shelters · closest " + miles(C.distanceMiles(state.origin, s.location)));
+  }
+
+  function renderList() {
+    $("#pane-list").innerHTML = state.results.map(function (s, i) { return cardHtml(s, i + 1); }).join("");
+  }
+  function renderSaved() {
+    var items = state.saved.map(function (id) { return state.store && state.store.getSync(id); }).filter(Boolean);
+    if (state.origin) items.sort(function (a, b) { return distOf(a) - distOf(b); });
+    $("#pane-saved").innerHTML = items.length ? items.map(function (s) { return cardHtml(s, numberOf(s.id)); }).join("")
+      : '<li class="intro"><p>Shelters you save show up here, even without a signal.</p></li>';
+  }
+  function renderDetail(s) {
+    var d = distOf(s), tags = [];
+    if (s.access === "registration_required") tags.push("Registration required");
+    if (s.access === "restricted") tags.push("Restricted access");
+    $("#title").textContent = s.name;
+    setSub("");
+    $("#pane-detail").innerHTML =
+      "<address>" + addrHtml(s) + (d != null ? ' <span class="dist">· ' + miles(d) + "</span>" : "") + "</address>" +
+      '<div class="actions">' +
+        '<a class="pill primary" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener"><svg><use href="#i-dir"/></svg>Directions</a>' +
+        '<button type="button" class="pill" data-act="save" data-id="' + s.id + '"><svg><use href="#' + (isSaved(s.id) ? "i-star" : "i-star-o") + '"/></svg>' + (isSaved(s.id) ? "Saved" : "Save") + "</button>" +
+        '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Edit</button>' +
+      "</div>" + facts(s) +
+      (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
+      (s.notes ? '<p class="note">' + esc(s.notes) + "</p>" : "") +
+      '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Edit.</p>';
+  }
+
+  // ---------- map ----------
+  var map, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function initMap(basemap) {
+    map = L.map("map", { zoomControl: false, preferCanvas: true, minZoom: 3, maxZoom: 18, attributionControl: true }).setView(US_CENTER, 5);
+    map.attributionControl.setPrefix(false).setPosition("topleft");
+    if (basemap && window.topojson) {
+      map.createPane("base"); map.getPane("base").style.zIndex = 250;
+      L.geoJSON(topojson.feature(basemap, basemap.objects.counties), { pane: "base", interactive: false, style: function () { return { fillColor: cssVar("--land"), fillOpacity: 1, color: cssVar("--county"), weight: .6 }; } }).addTo(map);
+      L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
+    }
+    var probe = new Image();
+    probe.onload = function () {
+      tilesOn = true;
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      if (cityLayer) cityLayer.clearLayers();
+    };
+    probe.src = "https://tile.openstreetmap.org/4/3/6.png";
+    dotLayer = L.layerGroup().addTo(map);
+    pinLayer = L.layerGroup().addTo(map);
+    cityLayer = L.layerGroup().addTo(map);
+    map.on("zoomend moveend", drawCities);
+    map.on("click", function () { $("#menu").hidden = true; });
+  }
+  function drawAllDots() {
+    var rad = function () { return map.getZoom() >= 10 ? 5 : map.getZoom() >= 7 ? 3.2 : 2; };
+    state.store.all().forEach(function (s) {
+      if (s.status !== "active") return;
+      L.circleMarker([s.location.lat, s.location.lng], { radius: rad(), color: "#fff", weight: 1, fillColor: cssVar("--dot"), fillOpacity: .85 })
+        .on("click", function () { openShelter(s.id, { fromMap: true }); }).addTo(dotLayer);
+    });
+    map.on("zoomend", function () { var r = rad(); dotLayer.eachLayer(function (l) { l.setRadius(r); }); });
+  }
+  function buildCities() {
+    var acc = {};
+    state.store.all().forEach(function (s) { var k = s.address.city + "|" + s.address.state; var e = acc[k] || (acc[k] = { name: s.address.city, lat: 0, lng: 0, n: 0 }); e.lat += s.location.lat; e.lng += s.location.lng; e.n++; });
+    cityList = Object.keys(acc).map(function (k) { var e = acc[k]; return { name: e.name, lat: e.lat / e.n, lng: e.lng / e.n, n: e.n }; }).sort(function (a, b) { return b.n - a.n; });
+  }
+  function drawCities() {
+    if (!cityLayer) return;
+    cityLayer.clearLayers();
+    if (tilesOn || map.getZoom() < 8) return;
+    var b = map.getBounds(), shown = [];
+    for (var i = 0; i < cityList.length && shown.length < 14; i++) {
+      var c = cityList[i]; if (!b.contains([c.lat, c.lng])) continue;
+      var pt = map.latLngToContainerPoint([c.lat, c.lng]);
+      if (shown.some(function (q) { return Math.abs(q.x - pt.x) < 90 && Math.abs(q.y - pt.y) < 22; })) continue;
+      shown.push(pt);
+      L.marker([c.lat, c.lng], { interactive: false, icon: L.divIcon({ className: "", html: '<div class="city-label">' + esc(c.name) + "</div>", iconSize: null }) }).addTo(cityLayer);
+    }
+  }
+  function pinIcon(n, sel) {
+    return L.divIcon({ className: "map-pin" + (sel ? " sel" : ""), html: '<span class="npin' + (sel ? " sel" : "") + '"><span>' + n + "</span></span>", iconSize: [32, 40], iconAnchor: [16, 38] });
+  }
+  function drawPins() {
+    if (!pinLayer) return;
+    pinLayer.clearLayers();
+    state.results.forEach(function (s, i) {
+      var sel = state.selected === s.id;
+      L.marker([s.location.lat, s.location.lng], { icon: pinIcon(i + 1, sel), zIndexOffset: sel ? 2000 : 1000 - i, keyboard: false })
+        .on("click", function () { openShelter(s.id, { fromMap: true }); }).addTo(pinLayer);
+    });
+    if (state.selected && !numberOf(state.selected)) {
+      var s = state.store.getSync(state.selected);
+      if (s) L.marker([s.location.lat, s.location.lng], { icon: pinIcon("", true), zIndexOffset: 3000 }).addTo(pinLayer);
+    }
+  }
+  function drawYou() {
+    if (!map) return;
+    if (youMarker) youMarker.remove();
+    if (state.here) youMarker = L.marker([state.here.lat, state.here.lng], { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: "", html: '<div class="you-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }) }).addTo(map);
+  }
+  function mapPad() { return { paddingTopLeft: [24, 80 + safeTopPx], paddingBottomRight: [24, visibleSheet() + 16] }; }
+  function fitResults() {
+    if (!map || !state.results.length) return;
+    var pts = state.results.slice(0, 8).map(function (s) { return [s.location.lat, s.location.lng]; });
+    if (state.origin) pts.push([state.origin.lat, state.origin.lng]);
+    var o = mapPad(); o.maxZoom = tilesOn ? 14 : 11; o.animate = true;
+    map.fitBounds(L.latLngBounds(pts), o);
+  }
+  function panToShelter(s) {
+    if (!map) return;
+    var z = Math.max(map.getZoom(), tilesOn ? 14 : 10);
+    // keep the pin centered in the part of the map the sheet doesn't cover
+    var target = map.project([s.location.lat, s.location.lng], z);
+    var offset = (visibleSheet() - (64 + safeTopPx)) / 2;
+    map.setView(map.unproject(target.add([0, offset]), z), z, { animate: true });
+  }
+
+  // ---------- search, results ----------
+  function runQuery(origin, label) {
+    state.origin = origin; state.label = label || origin.label || "";
+    state.selected = null;
+    return state.store.query({
+      lat: origin.lat, lng: origin.lng, limit: RESULT_LIMIT,
+      ada: state.filters.ada || undefined, pets: state.filters.pets || undefined,
+      availability: state.filters.always ? "always" : undefined
+    }).then(function (rows) {
+      state.results = rows;
+      renderList(); drawPins();
+      showPane("list", { snap: snapName === "full" ? "half" : snapName === "peek" ? "half" : snapName });
+      describe();
+      fitResults();
+    });
+  }
+  function search(text) {
+    text = String(text || "").trim();
+    hideSuggest();
+    if (!text) return;
+    $("#q").blur();
+    setSub("Searching for " + text + "…");
+    state.store.geocode(text).then(function (hit) {
+      if (!hit) { showPane(state.results.length ? "list" : "intro"); setSub("We couldn't find “" + text + "”. Try a city and state, like Moore, OK, or a 5-digit ZIP.", true); return; }
+      runQuery(hit, hit.label || text);
+    });
+  }
+  function locate(quiet) {
+    if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city, state or ZIP instead.", true); return; }
+    fab.setAttribute("aria-busy", "true");
+    if (!quiet) setSub("Finding your location…");
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fab.removeAttribute("aria-busy");
+      state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (!state.useLocation) { state.useLocation = true; save("useLocation", true); $("#set-loc").checked = true; }
+      drawYou();
+      $("#q").value = ""; $("#q-clear").hidden = true;
+      runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you");
+    }, function () {
+      fab.removeAttribute("aria-busy");
+      if (!quiet) { if (state.pane === "intro" || !state.results.length) showPane("intro"); setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city, state or ZIP.", true); }
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+  function openShelter(id, opts) {
+    opts = opts || {};
+    var s = state.store.getSync(id); if (!s) return;
+    state.selected = id; drawPins();
+    renderDetail(s);
+    showPane("detail", { snap: "half" });
+    $("#title").textContent = s.name;
+    setTimeout(function () { panToShelter(s); }, opts.fromMap ? 0 : 60);
+  }
+
+  // suggestions while typing: cities, ZIPs and shelter names from the data
+  var cityIndex = [];
+  function buildCityIndex() {
+    var seen = {};
+    state.store.all().forEach(function (s) {
+      var k = (s.address.city + ", " + s.address.state);
+      if (!seen[k]) { seen[k] = { label: k, n: 0 }; cityIndex.push(seen[k]); }
+      seen[k].n++;
+    });
+    cityIndex.sort(function (a, b) { return b.n - a.n; });
+  }
+  function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+  function showSuggest() {
+    var q = norm($("#q").value), items = [];
+    items.push({ kind: "here", t: "Your location", s: "Shelters nearest you" });
+    if (q && state.store) {
+      cityIndex.forEach(function (c) { if (items.length < 7 && norm(c.label).indexOf(q) === 0) items.push({ kind: "city", t: c.label, s: c.n + (c.n === 1 ? " shelter" : " shelters") }); });
+      if (/^\d{3,5}$/.test(q)) {
+        var zips = {};
+        state.store.all().forEach(function (s) { var z = s.address.zip; if (z && z.indexOf(q) === 0 && !zips[z]) zips[z] = s.address.city + ", " + s.address.state; });
+        Object.keys(zips).slice(0, 5).forEach(function (z) { items.push({ kind: "city", t: z, s: zips[z] }); });
+      }
+      var names = 0;
+      state.store.all().forEach(function (s) {
+        if (names < 6 && q.length > 2 && norm(s.name).indexOf(q) >= 0) { names++; items.push({ kind: "shelter", id: s.id, t: s.name, s: s.address.city + ", " + s.address.state }); }
+      });
+    }
+    $("#suggest-list").innerHTML = items.map(function (it, i) {
+      return '<li><button type="button" data-i="' + i + '"><span class="ic"><svg class="i"><use href="#' + (it.kind === "here" ? "i-locate" : it.kind === "shelter" ? "i-shelter" : "i-city") + '"/></svg></span><span><div class="t">' + esc(it.t) + '</div><div class="s">' + esc(it.s) + "</div></span></button></li>";
+    }).join("");
+    $("#suggest-list").onclick = function (e) {
+      var b = e.target.closest("button[data-i]"); if (!b) return;
+      var it = items[+b.dataset.i];
+      hideSuggest();
+      if (it.kind === "here") locate(false);
+      else if (it.kind === "shelter") {
+        $("#q").value = it.t;
+        var s = state.store.getSync(it.id);
+        runQuery({ lat: s.location.lat, lng: s.location.lng, label: it.s }, it.s).then(function () { openShelter(it.id); });
+      } else { $("#q").value = it.t; search(it.t); }
+    };
+    $("#suggest").hidden = false;
+    document.body.classList.add("searching");
+  }
+  function hideSuggest() { $("#suggest").hidden = true; document.body.classList.remove("searching"); }
+
+  // ---------- feedback (Edit) ----------
+  var fbShelter = null;
+  function deviceLabel() {
+    var ua = navigator.userAgent, d = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows PC" : "Computer";
+    return (APP.name || "Shelter Finder website 2.0") + " on " + d;
+  }
+  function openFeedback(s) {
+    fbShelter = s;
+    $("#fb-summary").innerHTML = "<p><strong>" + esc(s.name) + "</strong></p><p>" + addrHtml(s) + "</p>";
+    ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
+    $("#fb-text").value = "";
+    fbStep("compose");
+    $("#fb-dialog").showModal();
+  }
+  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an edit" : "Send your note"; }
+  function sendReport(report) {
+    report.submission.channel = APP.channel || "web";
+    if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
+    var outbox = load("outbox", []); outbox.push(Object.assign({ created_at: new Date().toISOString() }, report.submission)); save("outbox", outbox.slice(-50));
+    $("#fb-subject").textContent = report.email.subject;
+    $("#fb-body").textContent = report.email.body;
+    $("#fb-mailto").href = report.email.mailto;
+    fbStep("ready");
+    if (!$("#fb-dialog").open) $("#fb-dialog").showModal();
+  }
+  $("#fb-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var reasons = ["#fb-r1", "#fb-r2", "#fb-r3"].filter(function (id) { return $(id).checked; }).map(function (id) { return $(id).value; });
+    sendReport(C.buildReport(fbShelter, reasons, $("#fb-text").value.trim(), deviceLabel()));
+  });
+  $("#fb-back").addEventListener("click", function () { if (!$("#fb-ready").hidden && fbShelter) fbStep("compose"); else $("#fb-dialog").close(); });
+  $("#fb-done").addEventListener("click", function () { $("#fb-dialog").close(); });
+  $("#fb-copy").addEventListener("click", function () {
+    var text = "To: " + C.FEEDBACK_EMAIL + "\nSubject: " + $("#fb-subject").textContent + "\n\n" + $("#fb-body").textContent;
+    try { navigator.clipboard.writeText(text).then(function () { $("#fb-copied").textContent = "Copied. Paste it into an email to " + C.FEEDBACK_EMAIL + "."; }); } catch (err) {}
+  });
+
+  // ---------- events ----------
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]"); if (!t) return;
+    var card = t.closest(".card"), id = t.dataset.id || (card && card.dataset.id), act = t.dataset.act;
+    if (act === "open") openShelter(id);
+    else if (act === "edit") { e.stopPropagation(); openFeedback(state.store.getSync(id)); }
+    else if (act === "dir") e.stopPropagation();
+    else if (act === "save") {
+      if (isSaved(id)) state.saved = state.saved.filter(function (x) { return x !== id; }); else state.saved.unshift(id);
+      save("saved", state.saved);
+      renderDetail(state.store.getSync(id));
+    }
+  });
+  document.addEventListener("click", function (e) {
+    var card = e.target.closest(".card");
+    if (card && !e.target.closest("[data-act]")) openShelter(card.dataset.id);
+  });
+  var q = $("#q");
+  q.addEventListener("focus", function () { $("#menu").hidden = true; showSuggest(); });
+  q.addEventListener("input", function () { $("#q-clear").hidden = !q.value; showSuggest(); });
+  $("#search-form").addEventListener("submit", function (e) { e.preventDefault(); search(q.value); });
+  $("#q-clear").addEventListener("click", function () { q.value = ""; $("#q-clear").hidden = true; q.focus(); showSuggest(); });
+  document.addEventListener("pointerdown", function (e) {
+    if (!$("#suggest").hidden && !e.target.closest("#suggest") && !e.target.closest("#search-form")) { hideSuggest(); q.blur(); }
+    if (!$("#menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menu-btn")) $("#menu").hidden = true;
+  });
+  $("#menu-btn").addEventListener("click", function () { var m = $("#menu"); m.hidden = !m.hidden; this.setAttribute("aria-expanded", String(!m.hidden)); hideSuggest(); });
+  $("#menu").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-go]"); if (!b) return;
+    $("#menu").hidden = true;
+    if (b.dataset.go === "store") window.open(C.STORE_URL, "_blank", "noopener");
+    else showPane(b.dataset.go, { snap: "full" });
+  });
+  $("#close").addEventListener("click", function () {
+    if (state.pane === "detail") { back(); return; }
+    // close the search: clear it and go back to the start
+    q.value = ""; $("#q-clear").hidden = true;
+    state.results = []; state.selected = null; drawPins();
+    showPane("intro", { snap: "half" }); setSub("");
+  });
+  $("#back").addEventListener("click", back);
+  fab.addEventListener("click", function () { locate(false); });
+  $("#intro-locate").addEventListener("click", function () { locate(false); });
+  document.querySelectorAll(".chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var k = c.dataset.filter; state.filters[k] = !state.filters[k];
+      c.setAttribute("aria-pressed", String(state.filters[k]));
+      if (state.origin) runQuery(state.origin, state.label);
+    });
+  });
+
+  // settings
+  function setMapApps(ids) {
+    ids = (ids || []).filter(function (id) { return C.MAP_APPS[id]; });
+    if (!ids.length) ids = C.webMapApps(navigator.userAgent);
+    $("#set-map").innerHTML = ids.map(function (id) { return '<option value="' + id + '">' + esc(C.MAP_APPS[id]) + "</option>"; }).join("");
+    if (ids.indexOf(state.provider) < 0) state.provider = ids[0];
+    $("#set-map").value = state.provider;
+    if (state.results.length) renderList();
+  }
+  setMapApps(C.webMapApps(navigator.userAgent));
+  if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
+  $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderList(); });
+  $("#set-loc").checked = state.useLocation;
+  $("#set-loc").addEventListener("change", function () { state.useLocation = this.checked; save("useLocation", state.useLocation); if (this.checked) locate(false); });
+  $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
+  if (APP.version) $("#set-version").textContent = APP.version;
+  $("#set-send").addEventListener("click", function () {
+    var text = $("#set-fb").value.trim(); if (!text) { $("#set-fb").focus(); return; }
+    fbShelter = null; sendReport(C.buildReport(null, [], text, deviceLabel())); $("#set-fb").value = "";
+  });
+
+  // first-run disclaimer
+  function afterAgree() { if (state.useLocation) locate(true); }
+  if (!load("agreed", false)) {
+    $("#splash").hidden = false;
+    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
+  }
+
+  // ---------- boot ----------
+  showPane("intro"); snapTo("half", false);
+  function nominatim(text) {
+    var url = "https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=1&q=" + encodeURIComponent(text);
+    return fetch(url, { headers: { Accept: "application/json" } }).then(function (r) { return r.ok ? r.json() : []; }).then(function (j) {
+      return j && j[0] ? { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(",").slice(0, 2).join(",") } : null;
+    });
+  }
+  var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
+  var sheltersJSON = API ? getJSON(API + "/v1/shelters/snapshot").then(function (j) { return j.shelters ? j : { count: j.length, shelters: j }; }).catch(function () { return getJSON("data/shelters.json"); }) : getJSON("data/shelters.json");
+  Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
+    var data = res[0];
+    state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
+    $("#set-count").textContent = data.count.toLocaleString("en-US");
+    setSub("");
+    if (window.L) { initMap(res[1]); drawAllDots(); buildCities(); }
+    buildCityIndex();
+    if (load("agreed", false)) afterAgree();
+  }).catch(function (err) {
+    setSub("The shelter list didn't load. Close and reopen the app to try again.", true);
+    console.error(err);
+  });
+})();
+</script>

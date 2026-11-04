@@ -38,7 +38,9 @@ for (const f of fs.readdirSync(path.join(site, "data"))) fs.copyFileSync(path.jo
 fs.writeFileSync(path.join(www, "app-config.js"), fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version));
 for (const f of ["app-shell.js", "app.css"]) fs.copyFileSync(path.join(root, "src", f), path.join(www, f));
 
-let html = fs.readFileSync(path.join(site, "src/index.html"), "utf8");
+// The app ships the phone screen (src/mobile.html, version 2). SAS_PAGE=index.html builds the v1 page instead.
+const page = process.env.SAS_PAGE || "mobile.html";
+let html = fs.readFileSync(path.join(site, "src", page), "utf8");
 const logo = "data:image/png;base64," + fs.readFileSync(path.join(site, "tools/logo.png")).toString("base64");
 const swap = (from, to) => {
   if (!html.includes(from)) throw new Error("website page changed; can't find: " + from.slice(0, 80));
@@ -66,4 +68,4 @@ const bodyStart = html.indexOf('<svg width="0" height="0"');
 if (bodyStart < 0) throw new Error("website page changed; can't find the icon sprite that starts its body");
 html = head + html.slice(0, bodyStart) + '<link rel="stylesheet" href="app.css">\n</head>\n<body>\n' + html.slice(bodyStart) + "\n</body>\n</html>\n";
 fs.writeFileSync(path.join(www, "index.html"), html);
-console.log(`www/ built from ${site} (v${pkg.version})`);
+console.log(`www/ built from ${site}/src/${page} (v${pkg.version})`);
