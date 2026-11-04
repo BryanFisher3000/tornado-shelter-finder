@@ -740,14 +740,14 @@ body.searching .searchbar { z-index: 41; }
 .menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem auto .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
-.radar-bar, .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
-.map-btn { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: grid; justify-items: center; gap: 0; width: 3.4rem; padding: .35rem 0 .25rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); color: var(--ink-2); font-size: .72rem; cursor: pointer; }
+.warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
+.radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+#radar-btn { display: inline-flex; align-items: center; gap: .4rem; border: 0; background: none; padding: .55rem .75rem; font-size: .98rem; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+#radar-btn .i { width: 1.3rem; height: 1.3rem; }
+#radar-btn[aria-pressed="true"] .i { color: var(--you); }
+#radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-left: 1px solid var(--line); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
-.map-btn .i { width: 1.4rem; height: 1.4rem; }
-.map-btn[aria-pressed="true"] { background: var(--you); color: #fff; }
-.radar-bar .i { width: 1.2rem; height: 1.2rem; color: var(--you); }
-.radar-bar .icon-btn { width: 2.2rem; height: 2.2rem; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
 .warn-pop b { color: #C0392B; }
 
@@ -926,12 +926,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
-<div class="radar-bar" id="radar-bar" hidden>
-  <svg class="i"><use href="#i-radar"/></svg>
-  <span id="radar-time" aria-live="polite">Radar</span>
-  <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour"><svg class="i"><use href="#i-play"/></svg></button>
+<div class="radar-ctl" id="radar-ctl">
+  <button type="button" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span id="radar-time" aria-live="polite">Radar</span></button>
+  <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour" hidden><svg class="i"><use href="#i-play"/></svg></button>
 </div>
-<button type="button" class="map-btn" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span>Radar</span></button>
 <div class="warn-bar" id="warn-bar" hidden></div>
 <button type="button" class="area-btn" id="area-btn" hidden><svg class="i"><use href="#i-search"/></svg>Search this area</button>
 
@@ -1281,7 +1279,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function radarLabel() {
     var base = radarValid || new Date(), mins = frameMinutes(RADAR_FRAMES[radarFrame]);
     var t = new Date(base.getTime() - mins * 60000);
-    $("#radar-time").textContent = (radarTimer ? "Radar " : "Radar updated ") + fmtTime(t);
+    if (radarOn) $("#radar-time").textContent = (radarTimer ? "" : "Updated ") + fmtTime(t);
   }
   function loadRadarMeta() {
     return fetch(RADAR_META + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
@@ -1318,7 +1316,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function setRadar(on) {
     radarOn = !!on; save("radar", radarOn);
     $("#radar-btn").setAttribute("aria-pressed", String(radarOn));
-    $("#radar-bar").hidden = !radarOn; placeBars();
+    $("#radar-play").hidden = !radarOn;
+    if (!radarOn) $("#radar-time").textContent = "Radar";
+    $("#radar-btn").setAttribute("aria-label", radarOn ? "Turn off weather radar" : "Weather radar");
+    placeBars();
     clearInterval(radarRefresh); playRadar(false);
     if (!map) return;
     if (radarOn) {
@@ -1356,7 +1357,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       }).catch(function () {});
   }
   // the warning banner sits under the radar bar when both show
-  function placeBars() { $("#warn-bar").style.top = "calc(var(--band-h, 0px) + " + ($("#radar-bar").hidden ? "4.3rem" : "7.1rem") + ")"; }
+  function placeBars() { $("#warn-bar").style.top = "calc(var(--band-h, 0px) + " + (radarOn ? "7.1rem" : "4.3rem") + ")"; }
   function zoomToWarnings() {
     if (!warnLayer || !warnCount) return;
     var o = mapPad(); o.maxZoom = 10; map.fitBounds(warnLayer.getBounds(), o);
