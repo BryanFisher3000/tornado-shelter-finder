@@ -192,6 +192,36 @@ a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: v
 .switch span::after { content: ""; position: absolute; top: .2rem; left: .2rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
 .switch input:checked + span { background: var(--red); }
 .switch input:checked + span::after { transform: translateX(1.3rem); }
+/* profile and add shelter */
+.acct-status { background: var(--bg); border-radius: 8px; padding: .9rem 1rem; margin: .4rem 0 1rem; display: grid; gap: .55rem; }
+.acct-status p { margin: 0; }
+.acct-state { font-weight: 600; font-size: 1.15rem; color: var(--red); }
+.acct-state.on { color: var(--ok, #2E7D32); }
+.sso { display: grid; gap: .5rem; }
+.sso-btn { justify-content: center; background: var(--card); color: var(--ink); border: 1px solid var(--line-2); }
+.sso-btn.apple { background: #000; color: #fff; border-color: #000; }
+.sso-btn .i { width: 1.2rem; height: 1.2rem; }
+.acct-form { display: grid; gap: .75rem; padding-bottom: 1.5rem; }
+.acct-form h3 { margin: .2rem 0 0; font-size: 1.15rem; font-weight: 600; }
+.acct-form h4 { margin: .4rem 0 0; font-size: 1rem; font-weight: 600; }
+.acct-form .fine { margin: 0; }
+.acct-form label:not(.chk):not(.fld) { display: grid; gap: .3rem; font-size: .92rem; color: var(--ink-2); }
+.acct-form input:not([type=checkbox]) { width: 100%; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .6rem .65rem; font-size: 1rem; color: var(--ink); }
+.acct-form input[aria-invalid=true] { border-color: var(--red); }
+.acct-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.acct-form .row2.city { grid-template-columns: 1fr 5rem; }
+.acct-form .zip { max-width: 10rem; }
+.acct-form label.chk { display: flex; gap: .6rem; align-items: center; }
+.acct-form label.chk input { width: 1.15rem; height: 1.15rem; accent-color: var(--red); margin: 0; }
+.acct-form label.fld { display: flex; align-items: center; justify-content: space-between; }
+.acct-form label.fld select { background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .4rem .5rem; }
+.acct-form .err { color: var(--red); }
+.acct-form .err:empty { display: none; }
+.loc-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .92rem; color: var(--ink-2); }
+.btn.sm { padding: .4rem .8rem; font-size: .9rem; }
+.gate { text-align: center; padding: 1.6rem .4rem 2rem; display: grid; gap: .8rem; justify-items: center; }
+.gate h3 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+.gate p { margin: 0; color: var(--ink-2); }
 textarea { width: 100%; min-height: 6.5rem; resize: vertical; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .6rem; }
 .fine { font-size: .85rem; color: var(--muted); line-height: 1.4; }
 .btn { border: 0; border-radius: 6px; padding: .62rem 1.4rem; cursor: pointer; font-weight: 500; font-size: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: .45rem; }
@@ -249,6 +279,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-city" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
   <symbol id="i-shelter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
@@ -277,6 +309,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="menu" id="menu" role="menu" hidden>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
+  <button type="button" role="menuitem" data-go="add"><svg class="i"><use href="#i-plus"/></svg>Add Shelter</button>
+  <button type="button" role="menuitem" data-go="profile"><svg class="i"><use href="#i-user"/></svg>Profile</button>
   <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
 </div>
@@ -304,6 +338,53 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <ol class="pane results" id="pane-list" hidden></ol>
     <div class="pane detail" id="pane-detail" hidden></div>
     <ol class="pane results" id="pane-saved" hidden></ol>
+    <div class="pane settings acct" id="pane-profile" hidden>
+      <div class="acct-status">
+        <p class="acct-state" id="acct-state">Signed Out</p>
+        <p class="fine" id="acct-note">The list and map are open to everyone. Sign in to add shelters.</p>
+        <div class="sso" id="sso">
+          <button type="button" class="btn sso-btn" data-sso="google"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/></svg>Continue with Google</button>
+          <button type="button" class="btn sso-btn apple" data-sso="apple"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9a4.8 4.8 0 0 0-4.1 2.5c-1.8 3-.5 7.5 1.2 10 .8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4a10 10 0 0 0 1.4-2.8 4.3 4.3 0 0 1-2.6-4.1zM14 5.4a4.3 4.3 0 0 0 1-3.2 4.5 4.5 0 0 0-2.9 1.5 4.2 4.2 0 0 0-1 3.1 3.7 3.7 0 0 0 2.9-1.4z"/></svg>Continue with Apple</button>
+          <p class="fine" id="sso-msg" aria-live="polite" hidden></p>
+        </div>
+        <button type="button" class="btn plain" id="acct-signout" hidden>Sign Out</button>
+      </div>
+      <form class="acct-form" id="profile-form" novalidate>
+        <h3>My Details</h3>
+        <p class="fine">Saved on this phone. Used when you add a shelter or suggest an edit, so we can follow up.</p>
+        <div class="row2"><label>First Name<input id="pf-first" autocomplete="given-name" required></label><label>Last Name<input id="pf-last" autocomplete="family-name" required></label></div>
+        <label>Phone Number<input id="pf-phone" type="tel" autocomplete="tel" inputmode="tel"></label>
+        <label>Email<input id="pf-email" type="email" autocomplete="email" inputmode="email" required></label>
+        <h4>My Address</h4>
+        <label>Street Address<input id="pf-street" autocomplete="street-address"></label>
+        <div class="row2 city"><label>City<input id="pf-city" autocomplete="address-level2"></label><label>State<input id="pf-state" autocomplete="address-level1" maxlength="2" placeholder="OK"></label></div>
+        <label class="zip">ZIP<input id="pf-zip" autocomplete="postal-code" inputmode="numeric" maxlength="10"></label>
+        <p class="fine err" id="pf-msg" aria-live="polite"></p>
+        <div class="btns"><button class="btn red" type="submit">Save Profile</button></div>
+      </form>
+    </div>
+    <div class="pane settings acct" id="pane-add" hidden>
+      <div class="gate" id="add-gate">
+        <h3>Add a Shelter</h3>
+        <p>Sign in to add a shelter for your community. Viewing the list and map stays open to everyone.</p>
+        <button type="button" class="btn red" id="add-signin">Sign In to Continue</button>
+      </div>
+      <form class="acct-form" id="add-form" novalidate hidden>
+        <p class="fine">Our team reviews every new shelter before it shows up in the app.</p>
+        <label>Shelter Name<input id="as-name" required placeholder="e.g. First Baptist Church Safe Room"></label>
+        <label>Street Address<input id="as-street" required></label>
+        <div class="row2 city"><label>City<input id="as-city" required></label><label>State<input id="as-state" maxlength="2" required placeholder="OK"></label></div>
+        <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
+        <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
+        <label class="fld">Capacity<select id="as-cap"><option value="">Not Sure</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
+        <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
+        <label class="chk"><input type="checkbox" id="as-always">Open Year-Round</label>
+        <textarea id="as-note" placeholder="Anything to note"></textarea>
+        <p class="fine err" id="as-msg" aria-live="polite"></p>
+        <div class="btns"><button class="btn red" type="submit">Submit Shelter</button></div>
+      </form>
+    </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
       <div class="set-row"><label for="set-notify">Notifications<small class="hint">Tornado warnings are coming soon</small></label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
@@ -495,17 +576,19 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function setSub(text, isError) { var el = $("#sub"); el.textContent = text || ""; el.hidden = !text; el.classList.toggle("error", !!isError); }
   function showPane(name, opts) {
     opts = opts || {};
-    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
+    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "profile" || name === "add")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
     state.pane = name;
-    ["intro", "list", "detail", "saved", "settings"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
+    ["intro", "list", "detail", "saved", "settings", "profile", "add"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
     var sub = true;
     $("#chips").hidden = name !== "list";
-    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings");
+    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "profile" || name === "add");
     $("#close").hidden = !(name === "list" || name === "detail");
     if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
     else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
     else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
+    else if (name === "profile") { $("#title").textContent = "Profile"; sub = false; renderProfile(); }
+    else if (name === "add") { $("#title").textContent = "Add a Shelter"; sub = false; renderAdd(); }
     if (!sub) setSub("");
     body.scrollTop = 0;
     if (opts.snap) snapTo(opts.snap);
@@ -998,11 +1081,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send My Note"; }
   function sendReport(report) {
     report.submission.channel = APP.channel || "web";
+    var me = profile();
+    if (profileReady(me)) {
+      report.submission.submitter = { first_name: me.first, last_name: me.last, email: me.email, phone: me.phone || null, street: me.street || null, city: me.city || null, state: me.state || null, zip: me.zip || null, auth_provider: me.provider || null };
+      report.email.body += "\n\nSubmitted by: " + me.first + " " + me.last + "\nEmail: " + me.email + (me.phone ? "\nPhone: " + me.phone : "") + (me.city ? "\nFrom: " + me.city + (me.state ? ", " + me.state : "") : "");
+      report.email.mailto = "mailto:" + report.email.to + "?subject=" + encodeURIComponent(report.email.subject) + "&body=" + encodeURIComponent(report.email.body);
+    }
     if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
     var outbox = load("outbox", []); outbox.push(Object.assign({ created_at: new Date().toISOString() }, report.submission)); save("outbox", outbox.slice(-50));
     $("#fb-subject").textContent = report.email.subject;
     $("#fb-body").textContent = report.email.body;
-    $("#fb-mailto").href = report.email.mailto;
+    $("#fb-mailto").href = report.email.mailto || "mailto:" + report.email.to + "?subject=" + encodeURIComponent(report.email.subject) + "&body=" + encodeURIComponent(report.email.body);
     fbStep("ready");
     if (!$("#fb-dialog").open) $("#fb-dialog").showModal();
   }
@@ -1016,6 +1105,101 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#fb-copy").addEventListener("click", function () {
     var text = "To: " + C.FEEDBACK_EMAIL + "\nSubject: " + $("#fb-subject").textContent + "\n\n" + $("#fb-body").textContent;
     try { navigator.clipboard.writeText(text).then(function () { $("#fb-copied").textContent = "Copied. Paste it into an email to " + C.FEEDBACK_EMAIL + "."; }); } catch (err) {}
+  });
+
+  // ---------- profile and add shelter ----------
+  // Profiles live on this phone (sas.profile) until sign-in is connected. APP.auth / window.SAS_AUTH,
+  // when present, provides signIn(provider) -> Promise<{ provider, email, first, last }> and signOut().
+  var AUTH = APP.auth || window.SAS_AUTH || null;
+  var PF = ["first", "last", "phone", "email", "street", "city", "state", "zip"];
+  function profile() { return load("profile", {}); }
+  function profileReady(p) { return !!(p && p.first && p.last && p.email); }
+  function renderProfile() {
+    var p = profile(), ready = profileReady(p);
+    PF.forEach(function (k) { var el = $("#pf-" + k); el.value = p[k] || ""; el.removeAttribute("aria-invalid"); });
+    $("#pf-msg").textContent = "";
+    var st = $("#acct-state");
+    st.textContent = ready ? "Signed In" : "Signed Out"; st.classList.toggle("on", ready);
+    $("#acct-note").textContent = ready ? "Signed in as " + p.first + " " + p.last + (p.provider ? " with " + (p.provider === "apple" ? "Apple" : "Google") : "") + ". You can add shelters."
+      : "The list and map are open to everyone. Sign in to add shelters.";
+    $("#sso").hidden = ready; $("#acct-signout").hidden = !ready;
+    $("#sso-msg").hidden = true;
+  }
+  $("#profile-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var p = profile(), bad = null;
+    PF.forEach(function (k) { p[k] = $("#pf-" + k).value.trim(); });
+    p.state = p.state.toUpperCase();
+    [["first", "first name"], ["last", "last name"], ["email", "email"]].forEach(function (f) {
+      var ok = !!p[f[0]] && (f[0] !== "email" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email));
+      $("#pf-" + f[0]).setAttribute("aria-invalid", String(!ok)); if (!ok && !bad) bad = f[1];
+    });
+    if (bad) { $("#pf-msg").textContent = "Please add a valid " + bad + "."; return; }
+    p.saved_at = new Date().toISOString();
+    save("profile", p);
+    if (state.afterProfile === "add") { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; return; }
+    renderProfile(); $("#pf-msg").textContent = "";
+    setSub(""); $("#acct-note").textContent = "Profile saved. You can add shelters.";
+  });
+  $("#sso").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-sso]"); if (!b) return;
+    var provider = b.dataset.sso, msg = $("#sso-msg");
+    if (!AUTH) {
+      msg.hidden = false;
+      msg.textContent = (provider === "apple" ? "Sign in with Apple" : "Sign in with Google") + " is being set up. For now, fill in My Details below and tap Save Profile.";
+      $("#pf-first").focus();
+      return;
+    }
+    AUTH.signIn(provider).then(function (u) {
+      var p = profile();
+      ["first", "last", "email"].forEach(function (k) { if (u[k] && !p[k]) p[k] = u[k]; });
+      p.provider = provider; save("profile", p); renderProfile();
+      if (!profileReady(p)) { $("#pf-msg").textContent = "Signed in. Please finish My Details and tap Save Profile."; }
+    }, function () { msg.hidden = false; msg.textContent = "Sign-in didn't finish. Please try again."; });
+  });
+  $("#acct-signout").addEventListener("click", function () {
+    if (AUTH && AUTH.signOut) AUTH.signOut();
+    var p = profile(); delete p.provider; p.first = p.last = p.email = ""; save("profile", p); renderProfile();
+  });
+
+  var addPin = null;
+  function renderAdd() {
+    var ready = profileReady(profile());
+    $("#add-gate").hidden = ready; $("#add-form").hidden = !ready;
+    $("#as-msg").textContent = "";
+    $("#as-loc").textContent = addPin ? "Map pin: " + addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "Map pin: not set. Move the map so the shelter is in the center, then tap.";
+  }
+  $("#add-signin").addEventListener("click", function () { state.afterProfile = "add"; state.addFrom = state.prevPane; showPane("profile", { snap: "full" }); });
+  $("#as-pin").addEventListener("click", function () {
+    var c = map.getCenter(); addPin = { lat: +c.lat, lng: +c.lng }; renderAdd();
+  });
+  $("#add-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = function (id) { return $(id).value.trim(); }, bad = null;
+    [["#as-name", "shelter name"], ["#as-street", "street address"], ["#as-city", "city"], ["#as-state", "state"]].forEach(function (f) {
+      var ok = !!v(f[0]); $(f[0]).setAttribute("aria-invalid", String(!ok)); if (!ok && !bad) bad = f[1];
+    });
+    if (bad) { $("#as-msg").textContent = "Please add the " + bad + "."; return; }
+    var sh = {
+      name: v("#as-name"), address: { street: v("#as-street"), city: v("#as-city"), state: v("#as-state").toUpperCase(), zip: v("#as-zip") },
+      location: addPin, capacity_label: $("#as-cap").value || null,
+      ada_accessible: $("#as-ada").checked ? "yes" : "unknown", pets_allowed: $("#as-pets").checked ? "yes" : "unknown",
+      availability: $("#as-always").checked ? "always" : "emergencies_only"
+    };
+    var note = v("#as-note"), addr = sh.address.street + ", " + sh.address.city + ", " + sh.address.state + (sh.address.zip ? " " + sh.address.zip : "");
+    var subject = "New shelter: " + sh.name + " (" + sh.address.city + ", " + sh.address.state + ")";
+    var body = ["Shelter: " + sh.name, "Address: " + addr, "Map pin: " + (addPin ? addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "not set"),
+      "Capacity: " + (sh.capacity_label || "Not sure"), "Wheelchair Accessible: " + ($("#as-ada").checked ? "Yes" : "Not sure"),
+      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Not sure"), "Open: " + ($("#as-always").checked ? "Year-Round" : "During Emergencies"),
+      "", "Comments:", note || "(none)", "", "Sent from: " + deviceLabel()].join("\n");
+    fbShelter = null;
+    sendReport({
+      submission: { kind: "add", shelter_id: null, base_version: null, report_reasons: [], proposed_shelter: sh, proposed_changes: {}, comment: note, submitter_device: deviceLabel() },
+      email: { to: C.FEEDBACK_EMAIL, subject: subject, body: body }
+    });
+    $("#fb-title").textContent = "Send New Shelter";
+    ["#as-name", "#as-street", "#as-city", "#as-state", "#as-zip", "#as-note"].forEach(function (id) { $(id).value = ""; });
+    ["#as-ada", "#as-pets", "#as-always"].forEach(function (id) { $(id).checked = false; }); $("#as-cap").value = ""; addPin = null; renderAdd();
   });
 
   // ---------- events ----------
