@@ -43,16 +43,12 @@ a { color: var(--red); }
 svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
 
 /* the white "Brought to you by Survive-A-Storm" band, kept from version 1 */
-.band { position: fixed; z-index: 50; top: 0; left: 0; right: 0; background: var(--band); border-bottom: 1px solid var(--line); padding: calc(var(--safe-top) + .35rem) 16px .35rem; display: flex; flex-direction: column; align-items: center; gap: .1rem; }
-.band h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; line-height: 1.05; letter-spacing: .01em; color: var(--ink); }
-.band img { height: 1.55rem; width: auto; display: block; }
-.band .icon-btn { top: 50%; bottom: auto; transform: translateY(calc(-50% + var(--safe-top) / 2)); }
-.band .icon-btn { position: absolute; right: 8px; bottom: .3rem; }
-#map { position: fixed; inset: var(--band-h, 3.3rem) 0 0 0; z-index: 0; background: var(--water); }
+.band { position: fixed; z-index: 50; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--band); }
+#map { position: fixed; inset: var(--band-h, 0px) 0 0 0; z-index: 0; background: var(--water); }
 
 /* search bar */
 .searchbar {
-  position: fixed; z-index: 20; left: 12px; right: 12px; top: calc(var(--band-h, 3.3rem) + 10px);
+  position: fixed; z-index: 20; left: 12px; right: 12px; top: calc(var(--band-h, 0px) + 10px);
   display: flex; align-items: center; gap: .25rem; height: 3.1rem; padding: 0 .35rem 0 .9rem;
   background: var(--card); border-radius: 10px; box-shadow: var(--shadow);
 }
@@ -66,7 +62,7 @@ body.searching .searchbar { z-index: 41; }
 .icon-btn.filled { background: var(--chip); }
 
 /* suggestions: a dropdown under the search bar, so the map and results stay in view */
-.suggest { position: fixed; z-index: 40; left: 12px; right: 12px; top: calc(var(--band-h, 3.3rem) + 3.9rem); max-height: 45vh; overflow: auto; background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .3rem 0; }
+.suggest { position: fixed; z-index: 40; left: 12px; right: 12px; top: calc(var(--band-h, 0px) + 3.9rem); max-height: 45vh; overflow: auto; background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .3rem 0; }
 .suggest[hidden] { display: none; }
 .suggest ul { list-style: none; margin: 0; padding: 0; }
 .suggest button { width: 100%; display: flex; gap: .9rem; align-items: center; border: 0; background: none; padding: .8rem 16px; text-align: left; cursor: pointer; }
@@ -76,13 +72,16 @@ body.searching .searchbar { z-index: 41; }
 .suggest .s { font-size: .88rem; color: var(--muted); }
 
 /* menu */
-.menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 3.3rem) + 4px); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
+.menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 0px) + 4.4rem); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
+.set-brand { display: block; height: 2rem; width: auto; margin: 1.2rem auto .6rem; }
+.menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem 1rem .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
 
 /* locate button floats above the sheet */
 .locate-btn { color: var(--you); border-left: 1px solid var(--line); border-radius: 0; width: 2.9rem; }
+#menu-btn { margin-right: -.3rem; }
 .locate-btn[aria-busy="true"] svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -231,7 +230,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
-<header class="band" id="band"><h1>Tornado Shelter Finder</h1><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"><button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button></header>
+<div class="band" id="band" aria-hidden="true"></div>
 
 <div id="map" role="region" aria-label="Shelter map"></div>
 
@@ -241,11 +240,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <input id="q" type="search" placeholder="City or Zip" autocomplete="off" enterkeyhint="search">
   <button type="button" class="icon-btn" id="q-clear" aria-label="Clear search" hidden><svg class="i"><use href="#i-x"/></svg></button>
   <button type="button" class="icon-btn locate-btn" id="locate" aria-label="Show shelters near my location"><svg class="i"><use href="#i-locate"/></svg></button>
+  <button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
 </form>
 
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
 <div class="menu" id="menu" role="menu" hidden>
+  <img class="brand" alt="Brought to you by Survive-A-Storm Shelters">
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
   <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
@@ -291,6 +292,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
         <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
       </div>
+      <img class="brand set-brand" alt="Brought to you by Survive-A-Storm Shelters">
       <p class="fine">By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
     </div>
   </div>
@@ -406,7 +408,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   var safeTopPx = 0;
   function bandH() { var h = $("#band").offsetHeight; document.documentElement.style.setProperty("--band-h", h + "px"); return h; }
-  bandH(); $("#band img").addEventListener("load", function () { bandH(); snapTo(snapName, false); if (map) map.invalidateSize(); });
+  bandH();
+  // the Survive-A-Storm logo at the top of the menu reuses the one already in the page
+  $("#menu .brand").src = $(".set-brand").src = $(".splash img").src;
   (function measureSafe() { var p = document.createElement("div"); p.style.cssText = "position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(p); safeTopPx = p.offsetHeight; p.remove(); })();
   function placeSheet(y, animate) {
     sheetY = y;
