@@ -23,7 +23,7 @@ function esc(s: unknown) {
 }
 function show(v: unknown) {
   if (v === "yes") return "Yes"; if (v === "no") return "No"; if (v === "unknown" || v == null || v === "") return "Not sure";
-  if (v === "always") return "Year-Round"; if (v === "emergencies_only") return "During Emergencies";
+  if (v === "always") return "Year-Round"; if (v === "emergencies_only") return "During Emergencies"; if (v === "county_activated") return "When the County Opens It";
   return String(v);
 }
 

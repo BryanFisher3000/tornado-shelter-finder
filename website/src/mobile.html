@@ -217,6 +217,8 @@ a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: v
 .acct-form label.fld { display: flex; align-items: center; justify-content: space-between; }
 .acct-form label.fld select { background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .4rem .5rem; }
 .acct-form .err { color: var(--red); }
+.acct-form .add-lead { margin: .3rem 0 .5rem; font-size: 1rem; line-height: 1.45; color: var(--ink-2); }
+.acct-form label:not(.chk):not(.fld) select { width: 100%; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .6rem .55rem; font-size: 1rem; color: var(--ink); }
 .acct-form .err:empty { display: none; }
 .loc-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .92rem; color: var(--ink-2); }
 .btn.sm { padding: .4rem .8rem; font-size: .9rem; }
@@ -367,24 +369,24 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
     <div class="pane settings acct" id="pane-add" hidden>
       <div class="gate" id="add-gate">
-        <h3>Add a Shelter</h3>
+        <h3>Add Shelter</h3>
         <p>Sign in to add a shelter for your community. Viewing the list and map stays open to everyone.</p>
         <button type="button" class="btn red" id="add-signin">Sign In to Continue</button>
       </div>
       <form class="acct-form" id="add-form" novalidate hidden>
-        <p class="fine">Our team reviews every new shelter before it shows up in the app.</p>
+        <p class="add-lead">Our team reviews every new shelter before it shows up in the app.</p>
         <label>Shelter Name<input id="as-name" required placeholder="e.g. First Baptist Church Safe Room"></label>
         <label>Street Address<input id="as-street" required></label>
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<input id="as-state" maxlength="2" required placeholder="OK"></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
-        <label class="fld">Capacity<select id="as-cap"><option value="">Not Sure</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label>Capacity<select id="as-cap"><option value="">Not Sure</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label>Open<select id="as-open"><option value="">Not Sure</option><option value="always">Year-Round</option><option value="emergencies_only">During Emergencies</option><option value="county_activated">When the County Opens It</option></select></label>
         <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
         <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
-        <label class="chk"><input type="checkbox" id="as-always">Open Year-Round</label>
         <textarea id="as-note" placeholder="Anything to note"></textarea>
         <p class="fine err" id="as-msg" aria-live="polite"></p>
-        <div class="btns"><button class="btn red" type="submit">Submit Shelter</button></div>
+        <div class="btns"><button class="btn red" type="submit">Add</button></div>
       </form>
     </div>
     <div class="pane settings" id="pane-settings" hidden>
@@ -596,7 +598,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
     else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
     else if (name === "profile") { $("#title").textContent = "Profile"; sub = false; renderProfile(); }
-    else if (name === "add") { $("#title").textContent = "Add a Shelter"; sub = false; renderAdd(); }
+    else if (name === "add") { $("#title").textContent = "Add Shelter"; sub = false; renderAdd(); }
     if (!sub) setSub("");
     body.scrollTop = 0;
     if (opts.snap) snapTo(opts.snap);
@@ -1339,13 +1341,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       name: v("#as-name"), address: { street: v("#as-street"), city: v("#as-city"), state: v("#as-state").toUpperCase(), zip: v("#as-zip") },
       location: addPin, capacity_label: $("#as-cap").value || null,
       ada_accessible: $("#as-ada").checked ? "yes" : "unknown", pets_allowed: $("#as-pets").checked ? "yes" : "unknown",
-      availability: $("#as-always").checked ? "always" : "emergencies_only"
+      availability: $("#as-open").value || "unknown"
     };
     var note = v("#as-note"), addr = sh.address.street + ", " + sh.address.city + ", " + sh.address.state + (sh.address.zip ? " " + sh.address.zip : "");
     var subject = "New shelter: " + sh.name + " (" + sh.address.city + ", " + sh.address.state + ")";
     var body = ["Shelter: " + sh.name, "Address: " + addr, "Map pin: " + (addPin ? addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "not set"),
       "Capacity: " + (sh.capacity_label || "Not sure"), "Wheelchair Accessible: " + ($("#as-ada").checked ? "Yes" : "Not sure"),
-      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Not sure"), "Open: " + ($("#as-always").checked ? "Year-Round" : "During Emergencies"),
+      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Not sure"), "Open: " + ($("#as-open").selectedOptions[0] || {}).textContent,
       "", "Comments:", note || "(none)", "", "Sent from: " + deviceLabel()].join("\n");
     fbShelter = null;
     sendReport({
@@ -1353,7 +1355,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       email: { to: C.FEEDBACK_EMAIL, subject: subject, body: body }
     });
     ["#as-name", "#as-street", "#as-city", "#as-state", "#as-zip", "#as-note"].forEach(function (id) { $(id).value = ""; });
-    ["#as-ada", "#as-pets", "#as-always"].forEach(function (id) { $(id).checked = false; }); $("#as-cap").value = ""; addPin = null; renderAdd();
+    ["#as-ada", "#as-pets"].forEach(function (id) { $(id).checked = false; }); $("#as-cap").value = ""; $("#as-open").value = ""; addPin = null; renderAdd();
   });
 
   // ---------- events ----------
