@@ -12,6 +12,8 @@
   window.SAS_APP.channel = platform;
   document.documentElement.classList.add("native", platform);
 
+  // vendor/capacitor.js adds registerPlugin; fall back to the bridge's own plugin list just in case
+  if (typeof Cap.registerPlugin !== "function") Cap.registerPlugin = function (n) { return (Cap.Plugins || {})[n]; };
   var Geo = Cap.registerPlugin("Geolocation");
   var Launcher = Cap.registerPlugin("AppLauncher");
   var Browser = Cap.registerPlugin("Browser");

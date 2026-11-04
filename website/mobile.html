@@ -1888,16 +1888,22 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         ssoMsg("");
       }).catch(function (err) {
         var m = String(err && err.message || err || "");
-        ssoMsg(/cancel/i.test(m) ? "" : "Google sign-in didn't finish" + (m ? ": " + m : ".") + " Please try again.");
+        if (/cancel/i.test(m)) { ssoMsg(""); return; }
+        // no Google account on the phone (or the picker isn't available): use the web sign-in instead
+        if (/credential|account|no.*available|unavailable|not.*implemented/i.test(m)) { webSignIn(provider); return; }
+        ssoMsg("Google sign-in didn't finish" + (m ? ": " + m : ".") + " Please try again.");
       });
       return;
     }
+    webSignIn(provider);
+  });
+  function webSignIn(provider) {
     var redirect = APP.oauth ? APP.oauth.redirect : location.origin + location.pathname;
     sb.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirect, skipBrowserRedirect: !!APP.oauth } }).then(function (r) {
       if (r.error) { ssoMsg("Couldn't start " + PROVIDERS[provider] + " sign-in: " + r.error.message); return; }
       if (APP.oauth && r.data && r.data.url) { APP.oauth.open(r.data.url); ssoMsg(""); }
     }, function () { ssoMsg("Couldn't reach the sign-in service. Check your connection and try again."); });
-  });
+  }
   $("#acct-signout").addEventListener("click", function () {
     if (sb) sb.auth.signOut();
     var p = profile(); delete p.provider; delete p.uid; p.first = p.last = p.email = ""; save("profile", p); renderProfile();

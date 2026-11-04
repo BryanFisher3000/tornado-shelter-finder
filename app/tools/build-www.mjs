@@ -34,6 +34,8 @@ fs.writeFileSync(path.join(www, "fonts.css"), fontCss);
 fs.copyFileSync(mod("leaflet/dist/leaflet.js"), path.join(www, "vendor/leaflet.js"));
 fs.copyFileSync(path.join(path.dirname(mod("topojson-client/package.json")), "dist/topojson-client.min.js"), path.join(www, "vendor/topojson-client.min.js"));
 fs.copyFileSync(path.join(path.dirname(mod("@supabase/supabase-js/package.json")), "dist/umd/supabase.js"), path.join(www, "vendor/supabase.js"));
+// Capacitor's JS runtime: gives window.Capacitor.registerPlugin, which app-shell.js uses for every native plugin
+fs.copyFileSync(path.join(path.dirname(mod("@capacitor/core/package.json")), "dist/capacitor.js"), path.join(www, "vendor/capacitor.js"));
 fs.copyFileSync(path.join(site, "shelter-core.js"), path.join(www, "shelter-core.js"));
 for (const f of fs.readdirSync(path.join(site, "data"))) fs.copyFileSync(path.join(site, "data", f), path.join(www, "data", f));
 fs.writeFileSync(path.join(www, "app-config.js"), fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version));
@@ -54,7 +56,7 @@ html = html.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.c
 swap('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>', '<script src="vendor/leaflet.js"></script>');
 swap('<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>', '<script src="vendor/topojson-client.min.js"></script>');
 swap('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>', '<script src="vendor/supabase.js"></script>');
-swap('<script src="shelter-core.js"></script>', '<script src="app-config.js"></script>\n<script src="app-shell.js"></script>\n<script src="shelter-core.js"></script>');
+swap('<script src="shelter-core.js"></script>', '<script src="vendor/capacitor.js"></script>\n<script src="app-config.js"></script>\n<script src="app-shell.js"></script>\n<script src="shelter-core.js"></script>');
 html = html.replace("By using this site you agree", "By using this app you agree");
 
 const head = `<!doctype html>
