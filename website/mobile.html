@@ -1366,6 +1366,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var RADAR_TILES = "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913{f}/{z}/{x}/{y}.png";
   var RADAR_META = "https://mesonet.agron.iastate.edu/data/gis/images/4326/USCOMP/n0q_0.json";
   var RADAR_FRAMES = ["-m50m", "-m40m", "-m30m", "-m20m", "-m10m", ""];
+  // Preferred source: NOAA MRMS quality-controlled base reflectivity (clutter, birds and bugs removed),
+  // served by NWS as WMS with a TIME dimension (nearest frame). Falls back to the raw NEXRAD tiles above.
+  var MRMS_WMS = "https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows";
+  var radarSource = "mrms";
   var radarOn = false, radarLayers = [], radarFrame = RADAR_FRAMES.length - 1, radarTimer = null, radarRefresh = null, radarValid = null;
   function fmtTime(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
   function frameMinutes(f) { var m = /m(\d+)m/.exec(f); return m ? +m[1] : 0; }
@@ -1383,6 +1387,20 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     radarLayers.forEach(function (l) { map.removeLayer(l); });
     var stamp = Date.now();
     radarLayers = RADAR_FRAMES.map(function (f, i) {
+      if (radarSource === "mrms") {
+        var opts = { layers: "conus_bref_qcd", format: "image/png", transparent: true, version: "1.1.1", pane: "radar", opacity: i === radarFrame ? 0.7 : 0, maxZoom: 19, attribution: "Radar: NOAA MRMS" };
+        var mins = frameMinutes(f);
+        opts.time = mins ? new Date(stamp - mins * 60000).toISOString().replace(/\.\d+Z$/, "Z") : "";
+        if (!opts.time) delete opts.time;
+        opts._ = stamp;
+        var l = L.tileLayer.wms(MRMS_WMS, opts);
+        // if NOAA's server won't give us tiles, use the raw NEXRAD tiles instead
+        l.on("tileerror", function () {
+          if (radarSource !== "mrms") return;
+          radarSource = "iem"; if (radarOn) { var playing = !!radarTimer; buildRadar(); if (playing) playRadar(true); }
+        });
+        return l;
+      }
       return L.tileLayer(RADAR_TILES.replace("{f}", f) + "?_=" + stamp, { pane: "radar", opacity: i === radarFrame ? 0.7 : 0, maxNativeZoom: 8, maxZoom: 19, attribution: "Radar: NOAA via Iowa State Mesonet" });
     });
     // only the latest frame loads until the loop is played
