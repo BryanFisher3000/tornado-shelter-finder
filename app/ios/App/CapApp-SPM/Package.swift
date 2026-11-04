@@ -16,8 +16,10 @@ let package = Package(
         .package(name: "CapacitorBrowser", path: "../../../node_modules/@capacitor/browser"),
         .package(name: "CapacitorDevice", path: "../../../node_modules/@capacitor/device"),
         .package(name: "CapacitorGeolocation", path: "../../../node_modules/@capacitor/geolocation"),
+        .package(name: "CapacitorLocalNotifications", path: "../../../node_modules/@capacitor/local-notifications"),
         .package(name: "CapacitorSplashScreen", path: "../../../node_modules/@capacitor/splash-screen"),
-        .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar")
+        .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
+        .package(name: "CapacitorNativeSettings", path: "../../../node_modules/capacitor-native-settings")
     ],
     targets: [
         .target(
@@ -29,8 +31,10 @@ let package = Package(
                 .product(name: "CapacitorBrowser", package: "CapacitorBrowser"),
                 .product(name: "CapacitorDevice", package: "CapacitorDevice"),
                 .product(name: "CapacitorGeolocation", package: "CapacitorGeolocation"),
+                .product(name: "CapacitorLocalNotifications", package: "CapacitorLocalNotifications"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
-                .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar")
+                .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
+                .product(name: "CapacitorNativeSettings", package: "CapacitorNativeSettings")
             ]
         )
     ]

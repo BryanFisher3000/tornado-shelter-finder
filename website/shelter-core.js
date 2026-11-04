@@ -247,11 +247,11 @@
 
   function amenityLabels(s) {
     var out = [];
-    if (s.ada_accessible === "yes") out.push("ADA accessible");
-    else if (s.ada_accessible === "no") out.push("Not ADA accessible");
-    if (s.pets_allowed === "yes") out.push("Pets allowed");
-    else if (s.pets_allowed === "no") out.push("No pets");
-    out.push(s.availability === "always" ? "Always open" : "Opens in emergencies");
+    if (s.ada_accessible === "yes") out.push("ADA Accessible");
+    else if (s.ada_accessible === "no") out.push("Not ADA Accessible");
+    if (s.pets_allowed === "yes") out.push("Pets Allowed");
+    else if (s.pets_allowed === "no") out.push("No Pets");
+    out.push(s.availability === "always" ? "Always Open" : "Opens in Emergencies");
     if (s.access === "registration_required") out.push("Registration required");
     else if (s.access === "restricted") out.push("Restricted access");
     return out;

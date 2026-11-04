@@ -157,6 +157,8 @@ body.searching .searchbar { z-index: 41; }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
 .set-row .v { color: var(--ink-2); text-align: right; }
 a.set-row { color: inherit; text-decoration: none; }
+.set-row .hint { display: block; font-size: .82rem; color: var(--muted); margin-top: .1rem; }
+.set-msg { margin: .6rem 0 0; }
 a.set-row[href="#"] { pointer-events: none; }
 a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: var(--muted); }
 .set-row select { background: var(--card); border: 1px solid var(--line-2); border-radius: 8px; padding: .4rem .5rem; max-width: 60%; }
@@ -252,9 +254,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
     <p class="sub" id="sub" aria-live="polite">Loading shelters…</p>
     <div class="chips" id="chips" role="group" aria-label="Filters" hidden>
-      <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair accessible</button>
-      <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
-      <button type="button" class="chip" data-filter="always" aria-pressed="false">Open year-round</button>
+      <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair Accessible</button>
+      <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets Allowed</button>
+      <button type="button" class="chip" data-filter="always" aria-pressed="false">Open Year-Round</button>
     </div>
   </div>
   <div class="sheet-body" id="body">
@@ -267,6 +269,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <div class="pane detail" id="pane-detail" hidden></div>
     <ol class="pane results" id="pane-saved" hidden></ol>
     <div class="pane settings" id="pane-settings" hidden>
+      <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
+      <div class="set-row"><label for="set-notify">Notifications<small class="hint">Tornado warnings are coming soon</small></label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
+      <p class="fine set-msg" id="set-perm-msg" hidden></p>
       <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
       <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
       <div class="set-row"><span>My Device</span><span class="v" id="set-device"></span></div>
@@ -352,7 +357,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   function facts(s) {
     return '<dl class="facts">' +
-      fact("Open", s.availability === "always" ? "Year-round" : "During emergencies") +
+      fact("Open", s.availability === "always" ? "Year-Round" : "During Emergencies") +
       fact("Capacity", s.capacity && s.capacity.label) +
       fact("Wheelchair Accessible", yesNo(s.ada_accessible)) +
       fact("Pets Allowed", yesNo(s.pets_allowed)) + "</dl>";
@@ -455,7 +460,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (name === "intro") { $("#title").textContent = "Tornado shelters"; }
     else if (name === "list") { $("#title").textContent = state.label || "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
-    else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; }
+    else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
     if (!sub) setSub("");
     body.scrollTop = 0;
     if (opts.snap) snapTo(opts.snap);
@@ -619,6 +624,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     });
   }
   function locate(quiet, snap) {
+    if (!quiet) { save("useLocation", true); refreshPerms(); }
     if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city, state or ZIP instead.", true); return; }
     fab.setAttribute("aria-busy", "true");
     if (!quiet) setSub("Finding your location…");
@@ -694,6 +700,76 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
   // ---------- feedback (Edit) ----------
   var fbShelter = null;
+  // My Location and Notifications switches. A switch is on when the phone allows it and the
+  // person hasn't turned it off here. Notifications only records the choice for now; tornado
+  // warnings will use it later.
+  var PERMS = APP.permissions || {
+    location: {
+      check: function () {
+        if (!navigator.geolocation) return Promise.resolve("denied");
+        if (!navigator.permissions) return Promise.resolve("prompt");
+        return navigator.permissions.query({ name: "geolocation" }).then(function (r) { return r.state; }, function () { return "prompt"; });
+      },
+      request: function () {
+        return new Promise(function (ok) {
+          if (!navigator.geolocation) return ok("denied");
+          navigator.geolocation.getCurrentPosition(function () { ok("granted"); }, function (e) { ok(e && e.code === 1 ? "denied" : "granted"); }, { timeout: 12000, maximumAge: 600000 });
+        });
+      }
+    },
+    notifications: {
+      check: function () { return Promise.resolve(!window.Notification ? "denied" : Notification.permission === "default" ? "prompt" : Notification.permission); },
+      request: function () {
+        if (!window.Notification) return Promise.resolve("denied");
+        return Promise.resolve(Notification.requestPermission()).then(function (p) { return p === "default" ? "prompt" : p; });
+      }
+    }
+  };
+  var PERM_KEYS = { location: "useLocation", notifications: "notify" };
+  var PERM_DEFAULTS = { location: true, notifications: false };
+  var PERM_BOX = { location: "#set-loc", notifications: "#set-notify" };
+  function permMsg(text) { var el = $("#set-perm-msg"); el.textContent = text || ""; el.hidden = !text; }
+  function refreshPerms() {
+    Object.keys(PERM_BOX).forEach(function (k) {
+      PERMS[k].check().then(function (st) {
+        $(PERM_BOX[k]).checked = st === "granted" && load(PERM_KEYS[k], PERM_DEFAULTS[k]) !== false;
+      }).catch(function () { $(PERM_BOX[k]).checked = false; });
+    });
+  }
+  function blocked(k) {
+    var what = k === "location" ? "Location" : "Notifications";
+    if (APP.openAppSettings) {
+      permMsg(what + (k === "location" ? " is" : " are") + " turned off for this app in your phone's settings. Turn it on there, then come back.");
+      APP.openAppSettings().catch(function () {});
+    } else {
+      permMsg(what + (k === "location" ? " is" : " are") + " blocked for this site. Allow it in your browser's site settings.");
+    }
+  }
+  function wirePerms() {
+    Object.keys(PERM_BOX).forEach(function (k) {
+      $(PERM_BOX[k]).addEventListener("change", function (e) {
+        var box = e.target; permMsg("");
+        if (!box.checked) {
+          save(PERM_KEYS[k], false);
+          if (k === "location") permMsg("The app won't use your location. To block it completely, change it in your phone's settings.");
+          return;
+        }
+        PERMS[k].check().then(function (st) { return st === "granted" ? st : PERMS[k].request(); }).then(function (st) {
+          if (st === "granted") {
+            save(PERM_KEYS[k], true); box.checked = true;
+            if (k === "location") locate(true, "half");
+            if (k === "notifications") permMsg("Notifications are on. We'll let you know when tornado warnings are ready.");
+          } else {
+            box.checked = false;
+            if (st === "denied") blocked(k);
+          }
+        }).catch(function () { box.checked = false; });
+      });
+    });
+    refreshPerms();
+    // pick up changes made in the phone's settings while the app was in the background
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) { refreshPerms(); if (!$("#set-perm-msg").hidden && /phone's settings\. Turn/.test($("#set-perm-msg").textContent)) permMsg(""); } });
+  }
   function osFromUA() {
     var ua = navigator.userAgent, m;
     if ((m = ua.match(/(?:iPhone|iPad|CPU) OS (\d+(?:_\d+)*)/))) return "iOS " + m[1].replace(/_/g, ".");
@@ -802,6 +878,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderList(); });
   $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
   $("#set-os").textContent = osFromUA() || "Unknown";
+  wirePerms();
   if (APP.deviceInfo) APP.deviceInfo().then(function (d) {
     var os = d.operatingSystem === "ios" ? "iOS" : d.operatingSystem === "android" ? "Android" : d.operatingSystem;
     if (d.osVersion) $("#set-os").textContent = os + " " + d.osVersion;
@@ -819,7 +896,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
   // first-run disclaimer
   // the app opens on the person's location, with results in the sheet at its lowest position
-  function afterAgree() { setSub("Finding your location…"); locate(true, "peek"); }
+  function afterAgree() {
+    if (load("useLocation", true) === false) { showPane("intro", { snap: "half" }); return; }
+    setSub("Finding your location…"); locate(true, "peek");
+  }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
     $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
