@@ -97,9 +97,9 @@ body.searching .searchbar { z-index: 41; }
 .title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.45rem; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sub { margin: .1rem 0 .3rem; color: var(--muted); font-size: .95rem; }
 .sub.error { color: var(--red); }
-.chips { display: flex; gap: .5rem; overflow-x: auto; padding: .35rem 0 .55rem; scrollbar-width: none; touch-action: pan-x; }
+.chips { display: flex; gap: .4rem; padding: .35rem 0 .55rem; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: none; border: 1px solid var(--line-2); background: var(--card); border-radius: 10px; padding: .42rem .85rem; font-size: .98rem; cursor: pointer; display: inline-flex; gap: .35rem; align-items: center; }
+.chip { flex: 1 1 auto; min-width: 0; justify-content: center; white-space: nowrap; border: 1px solid var(--line-2); background: var(--card); border-radius: 10px; padding: .42rem .3rem; font-size: clamp(.74rem, 3.35vw, .98rem); cursor: pointer; display: inline-flex; gap: .2rem; align-items: center; }
 .chip[aria-pressed="true"] { background: var(--chip-on); border-color: transparent; }
 .chip[aria-pressed="true"]::before { content: "✓"; font-size: .9em; }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); touch-action: none; }
@@ -156,6 +156,9 @@ body.searching .searchbar { z-index: 41; }
 .settings { padding: 0 16px 2rem; }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
 .set-row .v { color: var(--ink-2); text-align: right; }
+a.set-row { color: inherit; text-decoration: none; }
+a.set-row[href="#"] { pointer-events: none; }
+a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: var(--muted); }
 .set-row select { background: var(--card); border: 1px solid var(--line-2); border-radius: 8px; padding: .4rem .5rem; max-width: 60%; }
 .switch { position: relative; width: 3rem; height: 1.7rem; flex: none; }
 .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
@@ -212,7 +215,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-star-o" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 8h14l-1 13H6z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-city" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
   <symbol id="i-shelter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
@@ -232,9 +235,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
 <div class="menu" id="menu" role="menu" hidden>
-  <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved shelters</button>
-  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm store</button>
-  <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; feedback</button>
+  <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
+  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
+  <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
 </div>
 
 <button type="button" class="fab" id="locate" aria-label="Show shelters near my location"><svg class="i"><use href="#i-locate"/></svg></button>
@@ -264,12 +267,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <div class="pane detail" id="pane-detail" hidden></div>
     <ol class="pane results" id="pane-saved" hidden></ol>
     <div class="pane settings" id="pane-settings" hidden>
-      <div class="set-row"><label for="set-map">Directions app</label><select id="set-map"></select></div>
+      <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
       <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
-      <div class="set-row"><span>My device</span><span class="v" id="set-device"></span></div>
-      <div class="set-row"><span>App version</span><span class="v" id="set-version">2.0 (web)</span></div>
+      <div class="set-row"><span>My Device</span><span class="v" id="set-device"></span></div>
+      <div class="set-row"><span>My OS</span><span class="v" id="set-os"></span></div>
+      <div class="set-row"><span>App Version</span><span class="v" id="set-version">2.0 (web)</span></div>
+      <a class="set-row link" id="set-terms" href="#" target="_blank" rel="noopener"><span>Terms of Use</span><span class="v">Coming soon</span></a>
+      <a class="set-row link" id="set-privacy" href="#" target="_blank" rel="noopener"><span>Privacy Policy</span><span class="v">Coming soon</span></a>
       <div style="padding:1rem 0 .6rem">
-        <label for="set-fb" style="display:block;margin-bottom:.5rem">Feedback about the app</label>
+        <label for="set-fb" style="display:block;margin-bottom:.5rem">Feedback</label>
         <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
         <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
       </div>
@@ -362,7 +368,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         (n ? '<span class="npin"><span>' + n + "</span></span>" : '<span class="npin"><span></span></span>') +
         '<span class="dist">' + miles(distOf(s)) + "</span>" +
         '<a href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-act="dir">Directions</a>' +
-        '<button type="button" class="edit" data-act="edit">Edit</button>' +
+        '<button type="button" class="edit" data-act="edit">Suggest Edit</button>' +
       "</div>" +
       '<div class="c-main" data-act="open"><h3>' + esc(s.name) + "</h3><address>" + addrHtml(s) + "</address>" + facts(s) + "</div></li>";
   }
@@ -448,8 +454,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#close").hidden = !(name === "list" || name === "detail");
     if (name === "intro") { $("#title").textContent = "Tornado shelters"; }
     else if (name === "list") { $("#title").textContent = state.label || "Shelters"; }
-    else if (name === "saved") { $("#title").textContent = "Saved shelters"; renderSaved(); sub = false; }
-    else if (name === "settings") { $("#title").textContent = "Settings"; sub = false; }
+    else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
+    else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; }
     if (!sub) setSub("");
     body.scrollTop = 0;
     if (opts.snap) snapTo(opts.snap);
@@ -487,28 +493,30 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       '<div class="actions">' +
         '<a class="pill primary" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener"><svg><use href="#i-dir"/></svg>Directions</a>' +
         '<button type="button" class="pill" data-act="save" data-id="' + s.id + '"><svg><use href="#' + (isSaved(s.id) ? "i-star" : "i-star-o") + '"/></svg>' + (isSaved(s.id) ? "Saved" : "Save") + "</button>" +
-        '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Edit</button>' +
+        '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest Edit</button>' +
       "</div>" + facts(s) +
       (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
       (s.notes ? '<p class="note">' + esc(s.notes) + "</p>" : "") +
-      '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Edit.</p>';
+      '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Suggest Edit.</p>';
   }
 
   // ---------- map ----------
-  var map, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
+  var map, landLayer, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
   function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
   function initMap(basemap) {
     map = L.map("map", { zoomControl: false, preferCanvas: true, minZoom: 3, maxZoom: 18, attributionControl: true }).setView(US_CENTER, 5);
     map.attributionControl.setPrefix(false).setPosition("topleft");
     if (basemap && window.topojson) {
       map.createPane("base"); map.getPane("base").style.zIndex = 250;
-      L.geoJSON(topojson.feature(basemap, basemap.objects.counties), { pane: "base", interactive: false, style: function () { return { fillColor: cssVar("--land"), fillOpacity: 1, color: cssVar("--county"), weight: .6 }; } }).addTo(map);
+      landLayer = L.geoJSON(topojson.feature(basemap, basemap.objects.counties), { pane: "base", interactive: false, style: function () { return { fillColor: cssVar("--land"), fillOpacity: 1, color: cssVar("--county"), weight: .6 }; } }).addTo(map);
       L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
     }
     var probe = new Image();
     probe.onload = function () {
       tilesOn = true;
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      // the county fill sits above the tile pane; drop it so the streets show through
+      if (landLayer) map.removeLayer(landLayer);
       if (cityLayer) cityLayer.clearLayers();
     };
     probe.src = "https://tile.openstreetmap.org/4/3/6.png";
@@ -686,6 +694,14 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
   // ---------- feedback (Edit) ----------
   var fbShelter = null;
+  function osFromUA() {
+    var ua = navigator.userAgent, m;
+    if ((m = ua.match(/(?:iPhone|iPad|CPU) OS (\d+(?:_\d+)*)/))) return "iOS " + m[1].replace(/_/g, ".");
+    if ((m = ua.match(/Android (\d+(?:\.\d+)*)/))) return "Android " + m[1];
+    if ((m = ua.match(/Mac OS X (\d+(?:[_.]\d+)*)/))) return "macOS " + m[1].replace(/_/g, ".");
+    if (/Windows/.test(ua)) return "Windows";
+    return "";
+  }
   function deviceLabel() {
     var ua = navigator.userAgent, d = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows PC" : "Computer";
     return (APP.name || "Shelter Finder website 2.0") + " on " + d;
@@ -785,6 +801,16 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderList(); });
   $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
+  $("#set-os").textContent = osFromUA() || "Unknown";
+  if (APP.deviceInfo) APP.deviceInfo().then(function (d) {
+    var os = d.operatingSystem === "ios" ? "iOS" : d.operatingSystem === "android" ? "Android" : d.operatingSystem;
+    if (d.osVersion) $("#set-os").textContent = os + " " + d.osVersion;
+    if (d.platform === "android" && d.model) $("#set-device").textContent = (d.manufacturer && d.model.indexOf(d.manufacturer) !== 0 ? d.manufacturer + " " : "") + d.model;
+  }).catch(function () {});
+  // Terms and Privacy pages: set APP.termsUrl / APP.privacyUrl (app-config.js) once the URLs exist.
+  [["#set-terms", APP.termsUrl], ["#set-privacy", APP.privacyUrl]].forEach(function (l) {
+    if (l[1]) { $(l[0]).href = l[1]; $(l[0]).querySelector(".v").textContent = ""; }
+  });
   if (APP.version) $("#set-version").textContent = APP.version;
   $("#set-send").addEventListener("click", function () {
     var text = $("#set-fb").value.trim(); if (!text) { $("#set-fb").focus(); return; }

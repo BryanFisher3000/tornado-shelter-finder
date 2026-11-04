@@ -15,6 +15,10 @@
   var Geo = Cap.registerPlugin("Geolocation");
   var Launcher = Cap.registerPlugin("AppLauncher");
   var Browser = Cap.registerPlugin("Browser");
+  var Device = Cap.registerPlugin("Device");
+
+  // Settings shows the phone model and operating system version.
+  window.SAS_APP.deviceInfo = function () { return Device.getInfo(); };
 
   // navigator.geolocation → native plugin (asks permission the native way)
   if (navigator.geolocation) {
