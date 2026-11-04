@@ -740,11 +740,10 @@ body.searching .searchbar { z-index: 41; }
 .menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem auto .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
-.menu .mswitch { margin-left: auto; width: 2.2rem; height: 1.25rem; border-radius: 999px; background: var(--line-2); position: relative; flex: none; transition: background .15s; }
-.menu .mswitch::after { content: ""; position: absolute; top: .15rem; left: .15rem; width: .95rem; height: .95rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
-.menu [aria-checked="true"] .mswitch { background: var(--red); }
-.menu [aria-checked="true"] .mswitch::after { transform: translateX(.95rem); }
 .radar-bar, .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
+.map-btn { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: grid; justify-items: center; gap: 0; width: 3.4rem; padding: .35rem 0 .25rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); color: var(--ink-2); font-size: .72rem; cursor: pointer; }
+.map-btn .i { width: 1.4rem; height: 1.4rem; }
+.map-btn[aria-pressed="true"] { background: var(--you); color: #fff; }
 .radar-bar .i { width: 1.2rem; height: 1.2rem; color: var(--you); }
 .radar-bar .icon-btn { width: 2.2rem; height: 2.2rem; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
@@ -923,13 +922,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <svg class="i"><use href="#i-radar"/></svg>
   <span id="radar-time" aria-live="polite">Radar</span>
   <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour"><svg class="i"><use href="#i-play"/></svg></button>
-  <button type="button" class="icon-btn" id="radar-off" aria-label="Turn off radar"><svg class="i"><use href="#i-x"/></svg></button>
 </div>
+<button type="button" class="map-btn" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span>Radar</span></button>
 <div class="warn-bar" id="warn-bar" hidden></div>
 
 <div class="menu" id="menu" role="menu" hidden>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
-  <button type="button" role="menuitemcheckbox" aria-checked="false" data-go="radar" id="menu-radar"><svg class="i"><use href="#i-radar"/></svg><span>Weather Radar</span><span class="mswitch" aria-hidden="true"></span></button>
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
   <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
@@ -1175,7 +1173,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function describe() {
     if (!state.results.length) { setSub(""); return; }
     var s = state.results[0];
-    setSub(state.results.length + " nearest shelters · closest " + miles(C.distanceMiles(state.origin, s.location)));
+    var n = state.results.length;
+    setSub((n === RESULT_LIMIT ? n + " nearest shelters" : n === 1 ? "1 shelter" : n + " shelters") + " within " + RADIUS_MI + " mi · closest " + miles(C.distanceMiles(state.origin, s.location)));
   }
 
   var SAFETY_HTML =
@@ -1237,6 +1236,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
     }
     map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
+    // radar data comes in ~1 km cells; soften the edges so it reads like a TV weather map
+    var smoothRadar = function () { var z = map.getZoom(); map.getPane("radar").style.filter = "blur(" + (z >= 11 ? 3 : z >= 9 ? 2 : z >= 7 ? 1 : 0) + "px)"; };
+    map.on("zoomend", smoothRadar); smoothRadar();
     map.createPane("warn"); map.getPane("warn").style.zIndex = 380;
     var probe = new Image();
     probe.onload = function () {
@@ -1275,7 +1277,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     radarLayers.forEach(function (l) { map.removeLayer(l); });
     var stamp = Date.now();
     radarLayers = RADAR_FRAMES.map(function (f, i) {
-      return L.tileLayer(RADAR_TILES.replace("{f}", f) + "?_=" + stamp, { pane: "radar", opacity: i === radarFrame ? 0.7 : 0, maxNativeZoom: 12, maxZoom: 19, attribution: "Radar: NOAA via Iowa State Mesonet" });
+      return L.tileLayer(RADAR_TILES.replace("{f}", f) + "?_=" + stamp, { pane: "radar", opacity: i === radarFrame ? 0.7 : 0, maxNativeZoom: 8, maxZoom: 19, attribution: "Radar: NOAA via Iowa State Mesonet" });
     });
     // only the latest frame loads until the loop is played
     radarLayers[radarFrame].addTo(map);
@@ -1300,7 +1302,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   function setRadar(on) {
     radarOn = !!on; save("radar", radarOn);
-    $("#menu-radar").setAttribute("aria-checked", String(radarOn));
+    $("#radar-btn").setAttribute("aria-pressed", String(radarOn));
     $("#radar-bar").hidden = !radarOn; placeBars();
     clearInterval(radarRefresh); playRadar(false);
     if (!map) return;
@@ -1683,7 +1685,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (e.target.closest(".brand-link")) { $("#menu").hidden = true; return; }
     var b = e.target.closest("[data-go]"); if (!b) return;
     $("#menu").hidden = true;
-    if (b.dataset.go === "radar") { setRadar(!radarOn); return; }
     if (b.dataset.go === "store") window.open(C.STORE_URL, "_blank", "noopener");
     else showPane(b.dataset.go, { snap: "full" });
   });
@@ -1699,7 +1700,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
   $("#back").addEventListener("click", back);
   $("#radar-play").addEventListener("click", function () { playRadar(!radarTimer); });
-  $("#radar-off").addEventListener("click", function () { setRadar(false); });
+  $("#radar-btn").addEventListener("click", function () { setRadar(!radarOn); });
   $("#warn-bar").addEventListener("click", zoomToWarnings);
   fab.addEventListener("click", function () { locate(false); });
   $("#intro-locate").addEventListener("click", function () { locate(false); });
