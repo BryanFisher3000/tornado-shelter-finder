@@ -1041,7 +1041,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
-        <label>Capacity<select id="as-cap"><option value="">Not Sure</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
         <label>Open<select id="as-open"><option value="emergencies_only">During Emergencies</option><option value="always">Year-Round</option></select></label>
         <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
         <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
@@ -1080,7 +1080,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       <fieldset>
         <legend>Shelter Details</legend>
         <label class="fld" for="fb-cap">Capacity
-          <select id="fb-cap"><option value="">Not Listed</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select>
+          <select id="fb-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select>
         </label>
         <label class="chk"><input type="checkbox" id="fb-ada">Wheelchair Accessible</label>
         <label class="chk"><input type="checkbox" id="fb-pets">Pets Allowed</label>
@@ -1151,7 +1151,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function distOf(s) { return state.origin ? C.distanceMiles(state.origin, s.location) : null; }
   function yesNo(v) { return v === "yes" ? "Yes" : v === "no" ? "No" : null; }
   function fact(label, val) {
-    return "<div><dt>" + label + ":</dt><dd" + (val ? "" : ' class="unk"') + ">" + esc(val || "Not listed") + "</dd></div>";
+    return "<div><dt>" + label + ":</dt><dd" + (val ? "" : ' class="unk"') + ">" + esc(val || "") + "</dd></div>";
   }
   function facts(s) {
     return '<dl class="facts">' +
@@ -1788,9 +1788,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#fb-dialog").showModal();
   }
   function detailChanges(s) {
-    var out = [], yn = function (v) { return v === "yes" ? "Yes" : v === "no" ? "No" : "Not Listed"; };
+    var out = [], yn = function (v) { return v === "yes" ? "Yes" : v === "no" ? "No" : "Unknown"; };
     var cap = $("#fb-cap").value, oldCap = s.capacity && s.capacity.label || "";
-    if (cap !== oldCap) out.push({ field: "capacity_label", label: "Capacity", from: oldCap || "Not Listed", to: cap || "Not Listed", value: cap || null });
+    if (cap !== oldCap) out.push({ field: "capacity_label", label: "Capacity", from: oldCap || "Unknown", to: cap || "Unknown", value: cap || null });
     [["ada_accessible", "Wheelchair Accessible", "#fb-ada"], ["pets_allowed", "Pets Allowed", "#fb-pets"]].forEach(function (f) {
       var was = s[f[0]] === "yes", now = $(f[2]).checked;
       if (now !== was) out.push({ field: f[0], label: f[1], from: yn(s[f[0]]), to: now ? "Yes" : "No", value: now ? "yes" : "no" });
@@ -2024,8 +2024,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var note = v("#as-note"), addr = sh.address.street + ", " + sh.address.city + ", " + sh.address.state + (sh.address.zip ? " " + sh.address.zip : "");
     var subject = "New shelter: " + sh.name + " (" + sh.address.city + ", " + sh.address.state + ")";
     var body = ["Shelter: " + sh.name, "Address: " + addr, "Map pin: " + (addPin ? addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "not set"),
-      "Capacity: " + (sh.capacity_label || "Not sure"), "Wheelchair Accessible: " + ($("#as-ada").checked ? "Yes" : "Not sure"),
-      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Not sure"), "Open: " + ($("#as-open").selectedOptions[0] || {}).textContent,
+      "Capacity: " + (sh.capacity_label || "Unknown"), "Wheelchair Accessible: " + ($("#as-ada").checked ? "Yes" : "Unknown"),
+      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Unknown"), "Open: " + ($("#as-open").selectedOptions[0] || {}).textContent,
       "", "Comments:", note || "(none)", "", "Sent from: " + deviceLabel()].join("\n");
     fbShelter = null;
     sendReport({

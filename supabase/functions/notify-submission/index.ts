@@ -22,7 +22,7 @@ function esc(s: unknown) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 function show(v: unknown) {
-  if (v === "yes") return "Yes"; if (v === "no") return "No"; if (v === "unknown" || v == null || v === "") return "Not sure";
+  if (v === "yes") return "Yes"; if (v === "no") return "No"; if (v === "unknown" || v == null || v === "") return "Unknown";
   if (v === "always") return "Year-Round"; if (v === "emergencies_only") return "During Emergencies"; if (v === "county_activated") return "When the County Opens It";
   return String(v);
 }
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     subject = `New shelter: ${p.name} (${a.city ?? ""}, ${a.state ?? ""})`;
     rows.push(["Shelter", p.name], ["Address", [a.street, a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")],
       ["Map pin", p.location ? `${p.location.lat.toFixed(5)}, ${p.location.lng.toFixed(5)}` : "Not set"],
-      ["Capacity", p.capacity_label ?? "Not sure"], ["Wheelchair Accessible", show(p.ada_accessible)],
+      ["Capacity", p.capacity_label ?? "Unknown"], ["Wheelchair Accessible", show(p.ada_accessible)],
       ["Pets Allowed", show(p.pets_allowed)], ["Open", show(p.availability)]);
   } else if (s.kind === "report") {
     subject = `Suggested edit: ${(s.shelter_label ?? "").split(" — ")[0] || "shelter " + s.shelter_id}`;
