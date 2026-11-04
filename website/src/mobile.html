@@ -148,6 +148,10 @@ body.searching .searchbar { z-index: 41; }
 .tag { display: inline-block; margin: .1rem .3rem .1rem 0; padding: .15rem .5rem; border-radius: 6px; background: var(--chip); font-size: .85rem; color: var(--ink-2); }
 
 /* intro / empty */
+.none { padding: 1rem 16px 2rem; }
+.none-msg { margin: 0 0 .4rem; font-size: 1.1rem; font-weight: 500; color: var(--ink); }
+.none h3 { margin: 1rem 0 .3rem; font-size: 1.1rem; font-weight: 600; }
+.none ul { margin: 0; padding-left: 1.2rem; list-style: disc; display: grid; gap: .45rem; color: var(--ink-2); line-height: 1.35; }
 .intro { padding: 1.2rem 16px 2rem; display: grid; gap: .9rem; justify-items: start; }
 .intro p { margin: 0; color: var(--ink-2); font-size: 1.05rem; }
 .intro img { height: 2.6rem; width: auto; margin-top: .6rem; }
@@ -345,7 +349,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var C = window.ShelterCore;
   var APP = window.SAS_APP || {};
   var API = APP.apiBase ? String(APP.apiBase).replace(/\/$/, "") : "";
-  var RESULT_LIMIT = 40;
+  var RESULT_LIMIT = 40, RADIUS_MI = 50;
   var US_CENTER = [37.5, -92.5];
   var $ = function (s) { return document.querySelector(s); };
   function load(k, d) { try { var v = localStorage.getItem("sas." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -480,12 +484,32 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (to === "list") describe();
   }
   function describe() {
-    if (!state.results.length) { setSub("No shelters match these filters here. Try turning a filter off.", true); return; }
+    if (!state.results.length) { setSub(""); return; }
     var s = state.results[0];
     setSub(state.results.length + " nearest shelters · closest " + miles(C.distanceMiles(state.origin, s.location)));
   }
 
+  var SAFETY_HTML =
+    "<h3>Do</h3><ul>" +
+      "<li>Get to the basement. (If your basement is only partially underground, or a walk-out basement, consult an expert about sheltering.)</li>" +
+      "<li>If a basement isn't available, either get to a ground-level interior bathroom (in the shower or tub), or a room with no windows, a closet, or the space beneath an interior stairway.</li>" +
+      "<li>Protect yourself under sturdy furniture, or cover yourself using mattresses and pillows, especially your head and neck.</li>" +
+      "<li>If you're caught outside, first seek shelter. If there's no place to shelter, lie flat in a ditch or low-lying area away from your vehicle, and be aware of the possibility of sudden flooding.</li>" +
+    "</ul><h3>Do Not</h3><ul>" +
+      "<li>DO NOT seek shelter in places with wide-span roofs (large box stores, gymnasiums, shopping malls).</li>" +
+      "<li>DO NOT seek shelter in mobile homes.</li>" +
+      "<li>DO NOT seek shelter under a bridge or overpass.</li>" +
+      "<li>DO NOT attempt to outrun a tornado in your automobile.</li>" +
+      "<li>DO NOT drive into standing water. If you misjudge the water's depth, you could become stranded.</li>" +
+      "<li>DO NOT assume that a tornado won't strike a particular type of landscape. Tornadoes can strike anywhere.</li>" +
+    "</ul>";
   function renderList() {
+    if (!state.results.length) {
+      var filtered = state.filters.ada || state.filters.pets || state.filters.always;
+      $("#pane-list").innerHTML = '<li class="none"><p class="none-msg">There are no shelters within ' + RADIUS_MI + " miles of this location" +
+        (filtered ? " that match your filters. Try turning a filter off." : ".") + "</p>" + SAFETY_HTML + "</li>";
+      return;
+    }
     $("#pane-list").innerHTML = state.results.map(function (s, i) { return cardHtml(s, i + 1); }).join("");
   }
   function renderSaved() {
@@ -588,7 +612,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   function mapPad() { return { paddingTopLeft: [24, 76], paddingBottomRight: [24, visibleSheet() + 16] }; }
   function fitResults() {
-    if (!map || !state.results.length) return;
+    if (!map) return;
+    if (!state.results.length) { if (state.origin) map.setView([state.origin.lat, state.origin.lng], 9, { animate: true }); return; }
     var pts = state.results.slice(0, 8).map(function (s) { return [s.location.lat, s.location.lng]; });
     if (state.origin) pts.push([state.origin.lat, state.origin.lng]);
     var o = mapPad(); o.maxZoom = tilesOn ? 14 : 11; o.animate = true;
@@ -608,7 +633,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     state.origin = origin; state.label = label || origin.label || "";
     state.selected = null;
     return state.store.query({
-      lat: origin.lat, lng: origin.lng, limit: RESULT_LIMIT,
+      lat: origin.lat, lng: origin.lng, limit: RESULT_LIMIT, radius_mi: RADIUS_MI,
       ada: state.filters.ada || undefined, pets: state.filters.pets || undefined,
       availability: state.filters.always ? "always" : undefined
     }).then(function (rows) {
