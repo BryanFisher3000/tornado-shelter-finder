@@ -752,7 +752,10 @@ body.searching .searchbar { z-index: 41; }
 .warn-pop b { color: #C0392B; }
 
 /* locate button floats above the sheet */
-.locate-btn { color: var(--you); border-left: 1px solid var(--line); border-radius: 0; width: 2.9rem; }
+.locate-btn { color: var(--you); width: auto; display: inline-flex; gap: .3rem; padding: 0 .4rem; border-radius: 6px; font-size: .95rem; white-space: nowrap; }
+.locate-btn .i { width: 1.3rem; height: 1.3rem; }
+/* while typing, give the text box the room */
+body.searching .locate-btn span { display: none; }
 #menu-btn { margin-right: -.3rem; }
 .locate-btn[aria-busy="true"] svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -916,11 +919,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div id="map" role="region" aria-label="Shelter map"></div>
 
 <form class="searchbar" id="search-form" role="search">
-  <svg class="i logo" aria-hidden="true" style="color:var(--red)"><use href="#i-search"/></svg>
+  <svg class="i logo" aria-hidden="true" style="color:var(--ink)"><use href="#i-search"/></svg>
   <label class="sr" for="q">Search a city, state, ZIP or shelter</label>
   <input id="q" type="search" placeholder="City or Zip" autocomplete="off" enterkeyhint="search">
   <button type="button" class="icon-btn" id="q-clear" aria-label="Clear search" hidden><svg class="i"><use href="#i-x"/></svg></button>
-  <button type="button" class="icon-btn locate-btn" id="locate" aria-label="Show shelters near my location"><svg class="i"><use href="#i-locate"/></svg></button>
+  <button type="button" class="icon-btn locate-btn" id="locate" aria-label="Show shelters near my location"><svg class="i"><use href="#i-locate"/></svg><span>My Location</span></button>
   <button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
 </form>
 
