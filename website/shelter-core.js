@@ -222,6 +222,7 @@
     var submission = {
       kind: s ? "report" : "general",
       shelter_id: s ? s.id : null,
+      shelter_label: s ? s.name + " — " + fullAddress(s) : null,
       base_version: s ? s.version : null,
       report_reasons: reasons || [],
       proposed_changes: proposed,

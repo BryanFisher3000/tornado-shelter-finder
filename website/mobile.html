@@ -1094,6 +1094,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       <textarea id="fb-text" placeholder="Anything to note"></textarea>
       <div class="btns"><button class="btn red" type="submit">Send</button></div>
     </div>
+    <div id="fb-sending" hidden><p style="margin:0">Sending…</p></div>
+    <div id="fb-sent" hidden style="display:grid;gap:.8rem">
+      <p style="margin:0" id="fb-sent-msg">Thanks! We got it. Our team will review it soon.</p>
+      <div class="btns"><button class="btn red" type="button" id="fb-sent-done">Done</button></div>
+    </div>
     <div id="fb-ready" hidden style="display:grid;gap:.8rem">
       <p style="margin:0">Your note is ready. Send it from your email app to <strong id="fb-to">app@survive-a-storm.com</strong>.</p>
       <div class="mail"><div><strong>Subject:</strong> <span id="fb-subject"></span></div><pre id="fb-body"></pre></div>
@@ -1742,7 +1747,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (always !== (s.availability === "always")) out.push({ field: "availability", label: "Open", from: s.availability === "always" ? "Year-Round" : "During Emergencies", to: always ? "Year-Round" : "During Emergencies", value: always ? "always" : "emergencies_only" });
     return out;
   }
-  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send My Note"; }
+  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-sending").hidden = step !== "sending"; $("#fb-sent").hidden = step !== "sent"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : step === "sent" ? "Thank You" : step === "sending" ? "Sending" : "Send My Note"; }
   function sendReport(report) {
     report.submission.channel = APP.channel || "web";
     var me = profile();
@@ -1757,16 +1762,30 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         proposed_changes: sub.proposed_changes || {}, proposed_shelter: sub.proposed_shelter || null, comment: sub.comment || "",
         submitter_id: me.uid || null, submitter: sub.submitter || null, submitter_device: sub.submitter_device || null, channel: sub.channel
       };
-      sb.from("submissions").insert(row).then(function (r) { if (r && r.error) console.warn("submission", r.error.message); });
     }
     if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
     var outbox = load("outbox", []); outbox.push(Object.assign({ created_at: new Date().toISOString() }, report.submission)); save("outbox", outbox.slice(-50));
     $("#fb-subject").textContent = report.email.subject;
     $("#fb-body").textContent = report.email.body;
     $("#fb-mailto").href = report.email.mailto || "mailto:" + report.email.to + "?subject=" + encodeURIComponent(report.email.subject) + "&body=" + encodeURIComponent(report.email.body);
-    fbStep("ready");
     if (!$("#fb-dialog").open) $("#fb-dialog").showModal();
+    $("#fb-ready p").innerHTML = 'Your note is ready. Send it from your email app to <strong id="fb-to">' + esc(C.FEEDBACK_EMAIL) + '</strong>.';
+    if (!sb) { fbStep("ready"); return; }
+    // saved to the database, which emails the team; the email app is only the fallback (offline, errors)
+    fbStep("sending");
+    sb.from("submissions").insert(row).then(function (r) {
+      if (r && r.error) throw r.error;
+      $("#fb-sent-msg").textContent = report.submission.kind === "add" ? "Thanks! We got the new shelter. Our team will review it before it shows up in the app."
+        : report.submission.kind === "report" ? "Thanks! We got your suggestion. Our team will review it soon."
+        : "Thanks for the feedback! We read every note.";
+      fbStep("sent");
+    }).catch(function (err) {
+      console.warn("submission", err && err.message);
+      fbStep("ready");
+      $("#fb-ready p").textContent = "We couldn't send this from the app right now. Send it from your email app instead to " + C.FEEDBACK_EMAIL + ".";
+    });
   }
+  $("#fb-sent-done").addEventListener("click", function () { $("#fb-dialog").close(); });
   $("#fb-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var reasons = ["#fb-r1", "#fb-r2", "#fb-r3"].filter(function (id) { return $(id).checked; }).map(function (id) { return $(id).value; });
@@ -1944,7 +1963,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       submission: { kind: "add", shelter_id: null, base_version: null, report_reasons: [], proposed_shelter: sh, proposed_changes: {}, comment: note, submitter_device: deviceLabel() },
       email: { to: C.FEEDBACK_EMAIL, subject: subject, body: body }
     });
-    $("#fb-title").textContent = "Send New Shelter";
     ["#as-name", "#as-street", "#as-city", "#as-state", "#as-zip", "#as-note"].forEach(function (id) { $(id).value = ""; });
     ["#as-ada", "#as-pets", "#as-always"].forEach(function (id) { $(id).checked = false; }); $("#as-cap").value = ""; addPin = null; renderAdd();
   });
