@@ -1097,7 +1097,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }
     if (sb) {
       var sub = report.submission, row = {
-        kind: sub.kind, shelter_id: sub.shelter_id, base_version: sub.base_version, report_reasons: sub.report_reasons || [],
+        kind: sub.kind, shelter_id: sub.shelter_id, shelter_label: sub.shelter_label || null, base_version: sub.base_version, report_reasons: sub.report_reasons || [],
         proposed_changes: sub.proposed_changes || {}, proposed_shelter: sub.proposed_shelter || null, comment: sub.comment || "",
         submitter_id: me.uid || null, submitter: sub.submitter || null, submitter_device: sub.submitter_device || null, channel: sub.channel
       };
