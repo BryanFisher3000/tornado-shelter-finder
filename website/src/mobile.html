@@ -94,7 +94,7 @@ body.searching .searchbar { z-index: 41; }
 .sheet-head { flex: none; padding: .45rem 16px .2rem; touch-action: none; cursor: grab; }
 .grab { width: 2.6rem; height: .3rem; border-radius: 99px; background: var(--line-2); margin: 0 auto .5rem; border: 0; padding: 0; display: block; }
 .title-row { display: flex; align-items: center; gap: .5rem; min-height: 2.6rem; }
-.title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.45rem; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.45rem; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 .sub { margin: .1rem 0 .3rem; color: var(--muted); font-size: .95rem; }
 .sub.error { color: var(--red); }
 .chips { display: flex; gap: .4rem; padding: .35rem 0 .55rem; }
@@ -458,7 +458,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings");
     $("#close").hidden = !(name === "list" || name === "detail");
     if (name === "intro") { $("#title").textContent = "Tornado shelters"; }
-    else if (name === "list") { $("#title").textContent = state.label || "Shelters"; }
+    else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
     else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
     if (!sub) setSub("");
@@ -908,9 +908,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // ---------- boot ----------
   showPane("intro"); snapTo("peek", false);
   function nominatim(text) {
-    var url = "https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=1&q=" + encodeURIComponent(text);
+    var url = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=1&q=" + encodeURIComponent(text);
     return fetch(url, { headers: { Accept: "application/json" } }).then(function (r) { return r.ok ? r.json() : []; }).then(function (j) {
-      return j && j[0] ? { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(",").slice(0, 2).join(",") } : null;
+      if (!j || !j[0]) return null;
+      // label like "Oklahoma City, OK" for the panel heading
+      var ad = j[0].address || {}, place = ad.city || ad.town || ad.village || ad.hamlet || ad.suburb || ad.county || j[0].display_name.split(",")[0];
+      var st = (ad["ISO3166-2-lvl4"] || "").replace(/^US-/, "");
+      return { lat: +j[0].lat, lng: +j[0].lon, label: ad.postcode && /^\s*\d{5}\s*$/.test(text) ? null : place + (st ? ", " + st : "") };
     });
   }
   var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
