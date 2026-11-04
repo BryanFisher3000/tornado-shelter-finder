@@ -774,7 +774,7 @@ body.searching .searchbar { z-index: 41; }
 .c-left { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .15rem; }
 .c-left .dist { font-size: .95rem; color: var(--ink-2); }
 .c-left a, .c-left button { color: var(--red); text-decoration: none; border: 0; background: none; padding: .3rem .2rem; font-size: .98rem; cursor: pointer; }
-.c-left .edit { margin-top: auto; }
+.c-left .edit { margin-top: auto; line-height: 1.15; }
 .c-main h3 { margin: 0 0 .1rem; font-weight: 500; font-size: 1.22rem; line-height: 1.2; }
 .c-main address { font-style: italic; color: var(--ink-2); font-size: 1rem; margin-bottom: .45rem; }
 .facts { margin: 0; display: grid; gap: .15rem; font-size: .92rem; }
@@ -1034,7 +1034,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         (n ? '<span class="npin"><span>' + n + "</span></span>" : '<span class="npin"><span></span></span>') +
         '<span class="dist">' + miles(distOf(s)) + "</span>" +
         '<a href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-act="dir">Directions</a>' +
-        '<button type="button" class="edit" data-act="edit">Suggest Edit</button>' +
+        '<button type="button" class="edit" data-act="edit">Suggest<br>Edit</button>' +
       "</div>" +
       '<div class="c-main" data-act="open"><h3>' + esc(s.name) + "</h3><address>" + addrHtml(s) + "</address>" + facts(s) + "</div></li>";
   }
