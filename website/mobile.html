@@ -1425,7 +1425,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
 
   // Active tornado warnings, drawn in red. Always on: these are the storms to take shelter from.
-  var warnLayer = null, warnCount = 0;
+  var warnLayer = null, warnCount = 0, warnFeats = [], nearWarn = [];
+  var WARN_MI = 30;   // the banner only counts warnings within this distance of the place being shown
   function loadWarnings() {
     if (!map || document.hidden) return;
     fetch("https://api.weather.gov/alerts/active?event=Tornado%20Warning", { headers: { Accept: "application/geo+json" } })
@@ -1442,18 +1443,48 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
               (p.expires ? "<br>Until " + esc(fmtTime(new Date(p.expires))) : "") + "<br><small>National Weather Service</small></div>");
           }
         }).addTo(map);
-        warnCount = feats.length;
-        var bar = $("#warn-bar");
-        bar.hidden = !warnCount;
-        bar.textContent = warnCount === 1 ? "1 tornado warning in effect" : warnCount + " tornado warnings in effect";
-        placeBars();
+        warnFeats = feats;
+        updateWarnBar();
       }).catch(function () {});
+  }
+  // miles from a point to a warning polygon (0 when inside), using a flat projection around the point
+  function milesToArea(pt, geom) {
+    var kx = 69.17 * Math.cos(pt.lat * Math.PI / 180), ky = 69.17;
+    var polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+    var best = Infinity;
+    polys.forEach(function (poly) {
+      poly.forEach(function (ring) {
+        var inside = false;
+        for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          var ax = (ring[i][0] - pt.lng) * kx, ay = (ring[i][1] - pt.lat) * ky, bx = (ring[j][0] - pt.lng) * kx, by = (ring[j][1] - pt.lat) * ky;
+          if ((ay > 0) !== (by > 0) && 0 < (bx - ax) * (0 - ay) / (by - ay) + ax) inside = !inside;
+          var dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy, t = len ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len)) : 0;
+          best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+        }
+        if (inside) best = 0;
+      });
+    });
+    return best;
+  }
+  // banner: only warnings within WARN_MI of the searched place (or the person, before any search)
+  function updateWarnBar() {
+    var pt = state.origin || state.here, bar = $("#warn-bar");
+    nearWarn = pt ? warnFeats.filter(function (f) { return milesToArea(pt, f.geometry) <= WARN_MI; }) : [];
+    warnCount = nearWarn.length;
+    bar.hidden = !warnCount;
+    if (warnCount) {
+      var inside = nearWarn.some(function (f) { return milesToArea(pt, f.geometry) === 0; });
+      var area = String((nearWarn[0].properties || {}).areaDesc || "").split(";")[0].trim();
+      bar.textContent = warnCount === 1 ? "Tornado Warning" + (inside ? " here" : " nearby") + (area ? ": " + area : "")
+        : warnCount + " tornado warnings within " + WARN_MI + " mi";
+    }
+    placeBars();
   }
   // the warning banner sits under the radar bar when both show
   function placeBars() { $("#warn-bar").style.top = "calc(var(--band-h, 0px) + " + (radarOn ? "7.1rem" : "4.3rem") + ")"; }
   function zoomToWarnings() {
-    if (!warnLayer || !warnCount) return;
-    var o = mapPad(); o.maxZoom = 10; map.fitBounds(warnLayer.getBounds(), o);
+    if (!warnCount) return;
+    var o = mapPad(); o.maxZoom = 10; map.fitBounds(L.geoJSON({ type: "FeatureCollection", features: nearWarn }).getBounds(), o);
   }
 
   function drawAllDots() {
@@ -1532,6 +1563,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function runQuery(origin, label, snap) {
     var ab = document.getElementById("area-btn"); if (ab) ab.hidden = true;
     state.origin = origin; state.label = label || origin.label || "";
+    updateWarnBar();
     state.selected = null;
     return state.store.query({
       lat: origin.lat, lng: origin.lng, limit: RESULT_LIMIT, radius_mi: RADIUS_MI,
