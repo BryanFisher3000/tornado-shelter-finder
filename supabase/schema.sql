@@ -43,12 +43,15 @@ create index if not exists submissions_status_idx on public.submissions (status,
 alter table public.profiles    enable row level security;
 alter table public.submissions enable row level security;
 
-create or replace function public.is_reviewer() returns boolean
+-- helpers live in a private schema so they aren't callable through the public API
+create schema if not exists private;
+grant usage on schema private to anon, authenticated;
+create or replace function private.is_reviewer() returns boolean
 language sql stable security definer set search_path = public as
 $$ select coalesce((select is_reviewer from public.profiles where id = auth.uid()), false) $$;
 
 -- Profiles: each person reads and edits only their own; reviewers can read all.
-create policy "own profile read"   on public.profiles for select using (id = auth.uid() or public.is_reviewer());
+create policy "own profile read"   on public.profiles for select using (id = auth.uid() or private.is_reviewer());
 create policy "own profile insert" on public.profiles for insert with check (id = auth.uid());
 create policy "own profile update" on public.profiles for update using (id = auth.uid())
   with check (id = auth.uid() and is_reviewer = (select p.is_reviewer from public.profiles p where p.id = auth.uid()));
@@ -59,8 +62,8 @@ create policy "submit" on public.submissions for insert with check (
   and (submitter_id is null or submitter_id = auth.uid())
   and (kind <> 'add' or (auth.uid() is not null and submitter_id = auth.uid()))
 );
-create policy "own or reviewer read" on public.submissions for select using (submitter_id = auth.uid() or public.is_reviewer());
-create policy "reviewer update"      on public.submissions for update using (public.is_reviewer());
+create policy "own or reviewer read" on public.submissions for select using (submitter_id = auth.uid() or private.is_reviewer());
+create policy "reviewer update"      on public.submissions for update using (private.is_reviewer());
 
 -- Make a profile row as soon as someone signs in, pre-filled from Google/Apple.
 create or replace function public.handle_new_user() returns trigger
@@ -75,3 +78,4 @@ begin
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
