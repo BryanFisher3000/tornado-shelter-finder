@@ -1214,6 +1214,23 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       return;
     }
     ssoMsg("Opening " + PROVIDERS[provider] + "…");
+    if (provider === "google" && APP.nativeGoogle && window.crypto && crypto.subtle) {
+      // phone's own Google account picker; Supabase checks the token's nonce against the raw one
+      var raw = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+      crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)).then(function (buf) {
+        var hashed = Array.prototype.map.call(new Uint8Array(buf), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+        return APP.nativeGoogle.signIn(hashed);
+      }).then(function (idToken) {
+        return sb.auth.signInWithIdToken({ provider: "google", token: idToken, nonce: raw });
+      }).then(function (r) {
+        if (r && r.error) throw r.error;
+        ssoMsg("");
+      }).catch(function (err) {
+        var m = String(err && err.message || err || "");
+        ssoMsg(/cancel/i.test(m) ? "" : "Google sign-in didn't finish" + (m ? ": " + m : ".") + " Please try again.");
+      });
+      return;
+    }
     var redirect = APP.oauth ? APP.oauth.redirect : location.origin + location.pathname;
     sb.auth.signInWithOAuth({ provider: provider, options: { redirectTo: redirect, skipBrowserRedirect: !!APP.oauth } }).then(function (r) {
       if (r.error) { ssoMsg("Couldn't start " + PROVIDERS[provider] + " sign-in: " + r.error.message); return; }

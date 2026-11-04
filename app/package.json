@@ -1,6 +1,6 @@
 {
   "name": "sas-shelter-finder-app",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "description": "Survive-A-Storm Tornado Shelter Finder for iPhone and Android, built from the shelter finder website.",
   "scripts": {
     "build": "node tools/build-www.mjs",
@@ -27,6 +27,7 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
+    "@capgo/capacitor-social-login": "^8.7.6",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/barlow-semi-condensed": "^5.3.0",
     "@supabase/supabase-js": "^2.119.0",

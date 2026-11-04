@@ -33,6 +33,25 @@
     }
   };
 
+  // Built-in Google sign-in (Android account picker / iOS Google sheet). Returns a Google ID token
+  // that the page hands to Supabase (signInWithIdToken). Needs googleWebClientId in app-config.js.
+  if (window.SAS_APP.googleWebClientId) {
+    var Social = Cap.registerPlugin("SocialLogin");
+    var socialReady = null;
+    window.SAS_APP.nativeGoogle = {
+      signIn: function (hashedNonce) {
+        socialReady = socialReady || Social.initialize({ google: { webClientId: window.SAS_APP.googleWebClientId, iOSClientId: window.SAS_APP.googleIosClientId || undefined, iOSServerClientId: window.SAS_APP.googleWebClientId, mode: "online", skipAuthOnlyAuthorizationAfterSignIn: true } });
+        return socialReady.then(function () {
+          return Social.login({ provider: "google", options: { nonce: hashedNonce } });
+        }).then(function (res) {
+          var r = res && res.result || {};
+          if (!r.idToken) throw new Error("Google didn't return a sign-in token.");
+          return r.idToken;
+        });
+      }
+    };
+  }
+
   // Settings shows the phone model and operating system version.
   window.SAS_APP.deviceInfo = function () { return Device.getInfo(); };
 
