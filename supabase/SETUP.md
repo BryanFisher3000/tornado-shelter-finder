@@ -9,6 +9,11 @@
    - Authorized redirect URI: `https://<your-project>.supabase.co/auth/v1/callback`.
    - In Supabase: Authentication > Providers > Google: turn on, paste the Client ID and Client Secret.
 5. Authentication > URL Configuration > Redirect URLs: add `com.surviveastorm.shelterfinder://auth` and `https://survive-a-storm.com/tornado-shelter-finder/*`.
-6. Apple sign-in (needed before the iPhone app ships): requires the Apple Developer Program ($99/yr). We'll do this step together later.
-7. After you sign in once in the app, run in SQL Editor to make yourself a reviewer:
+6. Facebook sign-in:
+   - https://developers.facebook.com > My Apps > Create App > "Authenticate and request data from users with Facebook Login" (Consumer).
+   - Facebook Login > Settings: Valid OAuth Redirect URI `https://<your-project>.supabase.co/auth/v1/callback`.
+   - App Settings > Basic: add the Privacy Policy URL (https://survive-a-storm.com/privacy/) and a data deletion URL or instructions, then switch the app to Live.
+   - In Supabase: Authentication > Providers > Facebook: turn on, paste the App ID and App Secret.
+7. Apple sign-in (needed before the iPhone app ships): requires the Apple Developer Program ($99/yr). We'll do this step together later.
+8. After you sign in once in the app, run in SQL Editor to make yourself a reviewer:
    `update public.profiles set is_reviewer = true where email = '<your email>';`
