@@ -263,9 +263,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   </div>
   <div class="sheet-body" id="body">
     <div class="pane intro" id="pane-intro">
-      <p>Find the tornado shelters nearest you, or search a city, state or ZIP.</p>
-      <button type="button" class="btn red" id="intro-locate"><svg class="i"><use href="#i-locate"/></svg>Use my location</button>
-      <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+      <p>Find the tornado shelters nearest you, or search a city or Zip.</p>
+      <button type="button" class="btn red" id="intro-locate"><svg class="i"><use href="#i-locate"/></svg>Use My Location</button>
     </div>
     <ol class="pane results" id="pane-list" hidden></ol>
     <div class="pane detail" id="pane-detail" hidden></div>
@@ -465,7 +464,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#chips").hidden = name !== "list";
     $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings");
     $("#close").hidden = !(name === "list" || name === "detail");
-    if (name === "intro") { $("#title").textContent = "Tornado shelters"; }
+    if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
     else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
     else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
@@ -627,13 +626,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#q").blur();
     setSub("Searching for " + text + "…");
     state.store.geocode(text).then(function (hit) {
-      if (!hit) { showPane(state.results.length ? "list" : "intro"); setSub("We couldn't find “" + text + "”. Try a city and state, like Moore, OK, or a 5-digit ZIP.", true); return; }
+      if (!hit) { showPane(state.results.length ? "list" : "intro"); setSub("We couldn't find “" + text + "”. Try a city, like Wichita, KS, or a 5-digit Zip.", true); return; }
       runQuery(hit, hit.label && !/^ZIP /.test(hit.label) ? hit.label : text);
     });
   }
   function locate(quiet, snap) {
     if (!quiet) { save("useLocation", true); refreshPerms(); }
-    if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city, state or ZIP instead.", true); return; }
+    if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city or Zip instead.", true); return; }
     fab.setAttribute("aria-busy", "true");
     if (!quiet) setSub("Finding your location…");
     navigator.geolocation.getCurrentPosition(function (pos) {
@@ -645,7 +644,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }, function () {
       fab.removeAttribute("aria-busy");
       if (!state.results.length) showPane("intro", { snap: "half" });
-      setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city, state or ZIP.", true);
+      setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city or Zip.", true);
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
   }
   function openShelter(id, opts) {
@@ -875,9 +874,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
   $("#close").addEventListener("click", function () {
     if (state.pane === "detail") { back(); return; }
-    // close the search: clear it and go back to the start
-    q.value = ""; $("#q-clear").hidden = true;
-    state.results = []; state.selected = null; drawPins();
+    // close a search: clear it and go back to the shelters nearest you
+    q.value = ""; $("#q-clear").hidden = true; state.selected = null;
+    if (state.here && state.label !== "Near you") { runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", "peek"); return; }
+    if (state.here) { drawPins(); snapTo("peek", true); return; }
+    // no location yet: show the start panel
+    state.results = []; drawPins();
     showPane("intro", { snap: "half" }); setSub("");
   });
   $("#back").addEventListener("click", back);
