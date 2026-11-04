@@ -43,8 +43,9 @@ a { color: var(--red); }
 svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
 
 /* the white "Brought to you by Survive-A-Storm" band, kept from version 1 */
-.band { position: fixed; z-index: 30; top: 0; left: 0; right: 0; background: var(--band); border-bottom: 1px solid var(--line); padding: calc(var(--safe-top) + .45rem) 16px .45rem; display: flex; justify-content: center; }
+.band { position: fixed; z-index: 50; top: 0; left: 0; right: 0; background: var(--band); border-bottom: 1px solid var(--line); padding: calc(var(--safe-top) + .45rem) 16px .45rem; display: flex; justify-content: center; }
 .band img { height: 2.3rem; width: auto; display: block; }
+.band .icon-btn { position: absolute; right: 8px; bottom: .3rem; }
 #map { position: fixed; inset: var(--band-h, 3.3rem) 0 0 0; z-index: 0; background: var(--water); }
 
 /* search bar */
@@ -62,8 +63,8 @@ body.searching .searchbar { z-index: 41; }
 .icon-btn:active { background: var(--chip); }
 .icon-btn.filled { background: var(--chip); }
 
-/* suggestions: full screen under the search bar while typing */
-.suggest { position: fixed; z-index: 40; inset: 0; background: var(--card); padding: calc(var(--band-h, 3.3rem) + 4.4rem) 0 var(--safe-bottom); overflow: auto; }
+/* suggestions: a dropdown under the search bar, so the map and results stay in view */
+.suggest { position: fixed; z-index: 40; left: 12px; right: 12px; top: calc(var(--band-h, 3.3rem) + 3.9rem); max-height: 45vh; overflow: auto; background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: .3rem 0; }
 .suggest[hidden] { display: none; }
 .suggest ul { list-style: none; margin: 0; padding: 0; }
 .suggest button { width: 100%; display: flex; gap: .9rem; align-items: center; border: 0; background: none; padding: .8rem 16px; text-align: left; cursor: pointer; }
@@ -73,7 +74,7 @@ body.searching .searchbar { z-index: 41; }
 .suggest .s { font-size: .88rem; color: var(--muted); }
 
 /* menu */
-.menu { position: fixed; z-index: 45; right: 12px; top: calc(var(--band-h, 3.3rem) + 4.2rem); background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
+.menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 3.3rem) + 4px); background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
@@ -217,7 +218,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
-<header class="band" id="band"><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"></header>
+<header class="band" id="band"><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"><button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button></header>
 
 <div id="map" role="region" aria-label="Shelter map"></div>
 
@@ -226,7 +227,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <label class="sr" for="q">Search a city, state, ZIP or shelter</label>
   <input id="q" type="search" placeholder="Search city, state or ZIP" autocomplete="off" enterkeyhint="search">
   <button type="button" class="icon-btn" id="q-clear" aria-label="Clear search" hidden><svg class="i"><use href="#i-x"/></svg></button>
-  <button type="button" class="icon-btn" id="menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
 </form>
 
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
@@ -607,7 +607,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     setSub("Searching for " + text + "…");
     state.store.geocode(text).then(function (hit) {
       if (!hit) { showPane(state.results.length ? "list" : "intro"); setSub("We couldn't find “" + text + "”. Try a city and state, like Moore, OK, or a 5-digit ZIP.", true); return; }
-      runQuery(hit, hit.label || text);
+      runQuery(hit, hit.label && !/^ZIP /.test(hit.label) ? hit.label : text);
     });
   }
   function locate(quiet, snap) {
@@ -650,6 +650,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
   function showSuggest() {
     var q = norm($("#q").value), items = [];
+    if (q) items.push({ kind: "search", t: $("#q").value.trim(), s: "Search this place" });
     items.push({ kind: "here", t: "Your location", s: "Shelters nearest you" });
     if (q && state.store) {
       cityIndex.forEach(function (c) { if (items.length < 7 && norm(c.label).indexOf(q) === 0) items.push({ kind: "city", t: c.label, s: c.n + (c.n === 1 ? " shelter" : " shelters") }); });
@@ -664,13 +665,14 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       });
     }
     $("#suggest-list").innerHTML = items.map(function (it, i) {
-      return '<li><button type="button" data-i="' + i + '"><span class="ic"><svg class="i"><use href="#' + (it.kind === "here" ? "i-locate" : it.kind === "shelter" ? "i-shelter" : "i-city") + '"/></svg></span><span><div class="t">' + esc(it.t) + '</div><div class="s">' + esc(it.s) + "</div></span></button></li>";
+      return '<li><button type="button" data-i="' + i + '"><span class="ic"><svg class="i"><use href="#' + (it.kind === "here" ? "i-locate" : it.kind === "shelter" ? "i-shelter" : it.kind === "search" ? "i-search" : "i-city") + '"/></svg></span><span><div class="t">' + esc(it.t) + '</div><div class="s">' + esc(it.s) + "</div></span></button></li>";
     }).join("");
     $("#suggest-list").onclick = function (e) {
       var b = e.target.closest("button[data-i]"); if (!b) return;
       var it = items[+b.dataset.i];
       hideSuggest();
-      if (it.kind === "here") locate(false);
+      if (it.kind === "search") search(it.t);
+      else if (it.kind === "here") locate(false);
       else if (it.kind === "shelter") {
         $("#q").value = it.t;
         var s = state.store.getSync(it.id);
