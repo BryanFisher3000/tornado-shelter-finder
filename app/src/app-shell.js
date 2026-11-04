@@ -17,6 +17,22 @@
   var Browser = Cap.registerPlugin("Browser");
   var Device = Cap.registerPlugin("Device");
 
+  // Sign-in: open the Google/Apple/Facebook page in a browser sheet; it comes back to
+  // com.surviveastorm.shelterfinder://auth?code=..., which Android/iOS hand to the app.
+  var AppPlugin = Cap.registerPlugin("App");
+  var OAUTH_RETURN = "com.surviveastorm.shelterfinder://auth";
+  window.SAS_APP.oauth = {
+    redirect: OAUTH_RETURN,
+    open: function (url) { return Browser.open({ url: url, presentationStyle: "popover" }); },
+    onReturn: function (cb) {
+      AppPlugin.addListener("appUrlOpen", function (e) {
+        if (!e || !e.url || e.url.indexOf(OAUTH_RETURN) !== 0) return;
+        Browser.close().catch(function () {});
+        cb(e.url);
+      });
+    }
+  };
+
   // Settings shows the phone model and operating system version.
   window.SAS_APP.deviceInfo = function () { return Device.getInfo(); };
 
