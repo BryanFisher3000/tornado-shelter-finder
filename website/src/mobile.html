@@ -75,6 +75,7 @@ body.searching .searchbar { z-index: 41; }
 .menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 0px) + 4.4rem); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
 .set-brand { display: block; height: 2rem; width: auto; margin: 1.2rem auto .6rem; }
+.brand-link { display: block; }
 .menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem auto .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
@@ -246,7 +247,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
 <div class="menu" id="menu" role="menu" hidden>
-  <img class="brand" alt="Brought to you by Survive-A-Storm Shelters">
+  <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
   <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
@@ -292,7 +293,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
         <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
       </div>
-      <img class="brand set-brand" alt="Brought to you by Survive-A-Storm Shelters">
+      <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand set-brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
       <p class="fine">By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
     </div>
   </div>
@@ -340,7 +341,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <h1 id="splash-title">Tornado Shelter Finder</h1>
     <p>By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
     <button class="btn red" type="button" id="agree" style="width:100%;justify-content:center">Agree</button>
-    <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+    <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"></a>
   </div>
 </div>
 
@@ -903,6 +904,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
   $("#menu-btn").addEventListener("click", function () { var m = $("#menu"); m.hidden = !m.hidden; this.setAttribute("aria-expanded", String(!m.hidden)); hideSuggest(); });
   $("#menu").addEventListener("click", function (e) {
+    if (e.target.closest(".brand-link")) { $("#menu").hidden = true; return; }
     var b = e.target.closest("[data-go]"); if (!b) return;
     $("#menu").hidden = true;
     if (b.dataset.go === "store") window.open(C.STORE_URL, "_blank", "noopener");
