@@ -81,6 +81,8 @@ body.searching .searchbar { z-index: 41; }
 .menu button:active { background: var(--chip); }
 .radar-bar, .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
 .map-btn { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: grid; justify-items: center; gap: 0; width: 3.4rem; padding: .35rem 0 .25rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); color: var(--ink-2); font-size: .72rem; cursor: pointer; }
+.area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
+.area-btn .i { width: 1.1rem; height: 1.1rem; }
 .map-btn .i { width: 1.4rem; height: 1.4rem; }
 .map-btn[aria-pressed="true"] { background: var(--you); color: #fff; }
 .radar-bar .i { width: 1.2rem; height: 1.2rem; color: var(--you); }
@@ -264,6 +266,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 </div>
 <button type="button" class="map-btn" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span>Radar</span></button>
 <div class="warn-bar" id="warn-bar" hidden></div>
+<button type="button" class="area-btn" id="area-btn" hidden><svg class="i"><use href="#i-search"/></svg>Search this area</button>
 
 <div class="menu" id="menu" role="menu" hidden>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
@@ -438,7 +441,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     sheet.style.transform = "translateY(" + y + "px)";
     // let every row scroll into view while the sheet is only partly open
     body.style.paddingBottom = Math.max(0, y) + "px";
-    var visible = vh() - y;
+    var visible = vh() - y, area = document.getElementById("area-btn");
+    if (area) { area.style.bottom = (visible + 12) + "px"; area.style.visibility = y < vh() * 0.35 ? "hidden" : ""; }
   }
   function snapTo(name, animate) {
     snapName = name; sheet.dataset.snap = name;
@@ -592,6 +596,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     pinLayer = L.layerGroup().addTo(map);
     cityLayer = L.layerGroup().addTo(map);
     map.on("zoomend moveend", drawCities);
+    // panning keeps the current list; offer to list the shelters around the new spot instead
+    map.on("dragend", function () {
+      var c = map.getCenter();
+      $("#area-btn").hidden = !(state.origin && C.distanceMiles(state.origin, { lat: c.lat, lng: c.lng }) > 15);
+      placeSheet(sheetY);
+    });
     map.on("click", function () { $("#menu").hidden = true; });
   }
   // ---------- weather radar (NOAA NEXRAD via Iowa State Mesonet) and tornado warnings (NWS) ----------
@@ -753,7 +763,14 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
 
   // ---------- search, results ----------
+  // "Tulsa, OK" for the place nearest a map spot, from the shelter list's cities
+  function nearestCityLabel(c) {
+    var best = null, bd = Infinity;
+    cityIndex.forEach(function (ci) { if (ci.lat == null) return; var d = C.distanceMiles({ lat: c.lat, lng: c.lng }, ci); if (d < bd) { bd = d; best = ci; } });
+    return best && bd < 15 ? best.label : "this area";
+  }
   function runQuery(origin, label, snap) {
+    var ab = document.getElementById("area-btn"); if (ab) ab.hidden = true;
     state.origin = origin; state.label = label || origin.label || "";
     state.selected = null;
     return state.store.query({
@@ -813,9 +830,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var seen = {};
     state.store.all().forEach(function (s) {
       var k = (s.address.city + ", " + s.address.state);
-      if (!seen[k]) { seen[k] = { label: k, n: 0 }; cityIndex.push(seen[k]); }
-      seen[k].n++;
+      if (!seen[k]) { seen[k] = { label: k, n: 0, sl: 0, sg: 0 }; cityIndex.push(seen[k]); }
+      seen[k].n++; seen[k].sl += s.location.lat; seen[k].sg += s.location.lng;
     });
+    cityIndex.forEach(function (c) { c.lat = c.sl / c.n; c.lng = c.sg / c.n; });
     cityIndex.sort(function (a, b) { return b.n - a.n; });
   }
   function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
@@ -1038,6 +1056,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     showPane("intro", { snap: "half" }); setSub("");
   });
   $("#back").addEventListener("click", back);
+  $("#area-btn").addEventListener("click", function () {
+    var c = map.getCenter(); $("#area-btn").hidden = true;
+    q.value = ""; $("#q-clear").hidden = true;
+    runQuery({ lat: c.lat, lng: c.lng, label: "this area" }, nearestCityLabel(c), "half");
+  });
   $("#radar-play").addEventListener("click", function () { playRadar(!radarTimer); });
   $("#radar-btn").addEventListener("click", function () { setRadar(!radarOn); });
   $("#warn-bar").addEventListener("click", zoomToWarnings);
