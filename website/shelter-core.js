@@ -213,12 +213,18 @@
    * A Submission (kind "report") in the spec's shape, plus the email the
    * layout spec asks for, pre-filled with the shelter's data.
    */
-  function buildReport(s, reasons, comment, device) {
+  /* changes (optional): [{ field, label, from, to, value }] for shelter details the person
+   * corrected, e.g. { field: "pets_allowed", label: "Pets Allowed", from: "No", to: "Yes", value: "yes" }. */
+  function buildReport(s, reasons, comment, device, changes) {
+    changes = changes || [];
+    var proposed = {};
+    changes.forEach(function (c) { proposed[c.field] = c.value; });
     var submission = {
       kind: s ? "report" : "general",
       shelter_id: s ? s.id : null,
       base_version: s ? s.version : null,
       report_reasons: reasons || [],
+      proposed_changes: proposed,
       comment: comment || "",
       submitter_device: device || "",
       channel: "web"
@@ -232,6 +238,11 @@
       "Issues: " + ((reasons || []).map(function (r) { return REPORT_REASONS[r] || r; }).join("; ") || "None selected"),
       ""
     ] : [];
+    if (s && changes.length) {
+      lines.push("Suggested changes:");
+      changes.forEach(function (c) { lines.push("  " + c.label + ": " + c.from + " -> " + c.to); });
+      lines.push("");
+    }
     lines.push("Comments:", comment || "(none)", "", "Sent from: " + (device || "Shelter Finder website"));
     var subject = s ? "Shelter feedback: " + s.name + " (" + s.address.city + ", " + s.address.state + ")"
       : "Shelter Finder feedback";

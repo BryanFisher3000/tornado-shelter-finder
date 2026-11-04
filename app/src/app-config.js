@@ -5,8 +5,5 @@
 window.SAS_APP = {
   name: "Shelter Finder app __VERSION__",
   version: "__VERSION__",
-  apiBase: null,
-  // Settings links to these; until they are set the rows say "Coming soon".
-  termsUrl: null,
-  privacyUrl: null
+  apiBase: null
 };

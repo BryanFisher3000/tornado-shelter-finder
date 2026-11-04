@@ -191,6 +191,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 .fb .summary p { margin: 0; }
 .fb fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .45rem; }
 .fb legend { font-size: 1.05rem; padding: 0 0 .35rem; }
+.fb label.fld { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.fb label.fld select { background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .35rem .5rem; font: inherit; }
 .fb label.chk { display: flex; gap: .6rem; align-items: center; cursor: pointer; }
 .fb label.chk input { width: 1.15rem; height: 1.15rem; accent-color: var(--red); margin: 0; }
 .fb .mail { background: var(--bg); border-radius: 6px; padding: .7rem .85rem; font-size: .9rem; }
@@ -291,9 +293,18 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
 <dialog id="fb-dialog" aria-labelledby="fb-title">
   <form class="fb" id="fb-form" method="dialog">
-    <header><button type="button" class="icon-btn" id="fb-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button><h2 id="fb-title">Suggest an edit</h2></header>
+    <header><button type="button" class="icon-btn" id="fb-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button><h2 id="fb-title">Suggest an Edit</h2></header>
     <div id="fb-compose" style="display:grid;gap:.8rem">
       <div class="summary" id="fb-summary"></div>
+      <fieldset>
+        <legend>Shelter Details</legend>
+        <label class="fld" for="fb-cap">Capacity
+          <select id="fb-cap"><option value="">Not Listed</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select>
+        </label>
+        <label class="chk"><input type="checkbox" id="fb-ada">Wheelchair Accessible</label>
+        <label class="chk"><input type="checkbox" id="fb-pets">Pets Allowed</label>
+        <label class="chk"><input type="checkbox" id="fb-always">Open Year-Round</label>
+      </fieldset>
       <fieldset>
         <legend>What would you like us to know?</legend>
         <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
@@ -301,7 +312,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
       </fieldset>
       <label class="sr" for="fb-text">Comments</label>
-      <textarea id="fb-text" placeholder="Anything else, such as the correct address, hours or capacity."></textarea>
+      <textarea id="fb-text" placeholder="Anything else, such as the correct address or hours."></textarea>
       <div class="btns"><button class="btn red" type="submit">Send</button></div>
     </div>
     <div id="fb-ready" hidden style="display:grid;gap:.8rem">
@@ -784,10 +795,29 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#fb-summary").innerHTML = "<p><strong>" + esc(s.name) + "</strong></p><p>" + addrHtml(s) + "</p>";
     ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
     $("#fb-text").value = "";
+    // start from what the shelter list says now; only changed details are sent
+    var cap = s.capacity && s.capacity.label || "";
+    if (cap && !Array.prototype.some.call($("#fb-cap").options, function (o) { return o.value === cap; })) $("#fb-cap").add(new Option(cap, cap));
+    $("#fb-cap").value = cap;
+    $("#fb-ada").checked = s.ada_accessible === "yes";
+    $("#fb-pets").checked = s.pets_allowed === "yes";
+    $("#fb-always").checked = s.availability === "always";
     fbStep("compose");
     $("#fb-dialog").showModal();
   }
-  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an edit" : "Send your note"; }
+  function detailChanges(s) {
+    var out = [], yn = function (v) { return v === "yes" ? "Yes" : v === "no" ? "No" : "Not Listed"; };
+    var cap = $("#fb-cap").value, oldCap = s.capacity && s.capacity.label || "";
+    if (cap !== oldCap) out.push({ field: "capacity_label", label: "Capacity", from: oldCap || "Not Listed", to: cap || "Not Listed", value: cap || null });
+    [["ada_accessible", "Wheelchair Accessible", "#fb-ada"], ["pets_allowed", "Pets Allowed", "#fb-pets"]].forEach(function (f) {
+      var was = s[f[0]] === "yes", now = $(f[2]).checked;
+      if (now !== was) out.push({ field: f[0], label: f[1], from: yn(s[f[0]]), to: now ? "Yes" : "No", value: now ? "yes" : "no" });
+    });
+    var always = $("#fb-always").checked;
+    if (always !== (s.availability === "always")) out.push({ field: "availability", label: "Open", from: s.availability === "always" ? "Year-Round" : "During Emergencies", to: always ? "Year-Round" : "During Emergencies", value: always ? "always" : "emergencies_only" });
+    return out;
+  }
+  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send your note"; }
   function sendReport(report) {
     report.submission.channel = APP.channel || "web";
     if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
@@ -801,7 +831,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#fb-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var reasons = ["#fb-r1", "#fb-r2", "#fb-r3"].filter(function (id) { return $(id).checked; }).map(function (id) { return $(id).value; });
-    sendReport(C.buildReport(fbShelter, reasons, $("#fb-text").value.trim(), deviceLabel()));
+    sendReport(C.buildReport(fbShelter, reasons, $("#fb-text").value.trim(), deviceLabel(), detailChanges(fbShelter)));
   });
   $("#fb-back").addEventListener("click", function () { if (!$("#fb-ready").hidden && fbShelter) fbStep("compose"); else $("#fb-dialog").close(); });
   $("#fb-done").addEventListener("click", function () { $("#fb-dialog").close(); });
@@ -881,8 +911,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (d.osVersion) $("#set-os").textContent = os + " " + d.osVersion;
     if (d.platform === "android" && d.model) $("#set-device").textContent = (d.manufacturer && d.model.indexOf(d.manufacturer) !== 0 ? d.manufacturer + " " : "") + d.model;
   }).catch(function () {});
-  // Terms and Privacy pages: set APP.termsUrl / APP.privacyUrl (app-config.js) once the URLs exist.
-  [["#set-terms", APP.termsUrl], ["#set-privacy", APP.privacyUrl]].forEach(function (l) {
+  // Terms and Privacy pages (APP.termsUrl / APP.privacyUrl can override them).
+  [["#set-terms", APP.termsUrl || "https://survive-a-storm.com/terms/#tornado-shelter-finder"], ["#set-privacy", APP.privacyUrl || "https://survive-a-storm.com/privacy/"]].forEach(function (l) {
     if (l[1]) { $(l[0]).href = l[1]; $(l[0]).querySelector(".v").textContent = ""; }
   });
   if (APP.version) $("#set-version").textContent = APP.version;
