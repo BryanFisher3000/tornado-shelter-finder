@@ -12,7 +12,7 @@
   --bg: #F3F2F0; --card: #FFFFFF; --ink: #1A1815; --ink-2: #4E4748; --muted: #6E6A6A;
   --line: #E0DDD9; --line-2: #CDC8C3; --chip: #ECEAE7; --chip-on: #F8D6D6;
   --land: #EFEDE9; --county: #DDD8D2; --state: #A89F97; --water: #DCE3E6; --dot: #C2282A;
-  --you: #1A73E8; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
+  --you: #1A73E8; --band: #FFFFFF; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
   --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --f-body: "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -23,7 +23,7 @@
     --red: #F0393A; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
     --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324;
     --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #F0393A;
-    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark;
+    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark; --band: #F3F2F0;
   }
 }
 :root[data-theme="dark"] {
@@ -42,11 +42,14 @@ a { color: var(--red); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
 
-#map { position: fixed; inset: 0; z-index: 0; background: var(--water); }
+/* the white "Brought to you by Survive-A-Storm" band, kept from version 1 */
+.band { position: fixed; z-index: 30; top: 0; left: 0; right: 0; background: var(--band); border-bottom: 1px solid var(--line); padding: calc(var(--safe-top) + .45rem) 16px .45rem; display: flex; justify-content: center; }
+.band img { height: 2.3rem; width: auto; display: block; }
+#map { position: fixed; inset: var(--band-h, 3.3rem) 0 0 0; z-index: 0; background: var(--water); }
 
 /* search bar */
 .searchbar {
-  position: fixed; z-index: 20; left: 12px; right: 12px; top: calc(var(--safe-top) + 10px);
+  position: fixed; z-index: 20; left: 12px; right: 12px; top: calc(var(--band-h, 3.3rem) + 10px);
   display: flex; align-items: center; gap: .25rem; height: 3.1rem; padding: 0 .35rem 0 .9rem;
   background: var(--card); border-radius: 999px; box-shadow: var(--shadow);
 }
@@ -60,7 +63,7 @@ body.searching .searchbar { z-index: 41; }
 .icon-btn.filled { background: var(--chip); }
 
 /* suggestions: full screen under the search bar while typing */
-.suggest { position: fixed; z-index: 40; inset: 0; background: var(--card); padding: calc(var(--safe-top) + 4.4rem) 0 var(--safe-bottom); overflow: auto; }
+.suggest { position: fixed; z-index: 40; inset: 0; background: var(--card); padding: calc(var(--band-h, 3.3rem) + 4.4rem) 0 var(--safe-bottom); overflow: auto; }
 .suggest[hidden] { display: none; }
 .suggest ul { list-style: none; margin: 0; padding: 0; }
 .suggest button { width: 100%; display: flex; gap: .9rem; align-items: center; border: 0; background: none; padding: .8rem 16px; text-align: left; cursor: pointer; }
@@ -70,7 +73,7 @@ body.searching .searchbar { z-index: 41; }
 .suggest .s { font-size: .88rem; color: var(--muted); }
 
 /* menu */
-.menu { position: fixed; z-index: 45; right: 12px; top: calc(var(--safe-top) + 4.2rem); background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
+.menu { position: fixed; z-index: 45; right: 12px; top: calc(var(--band-h, 3.3rem) + 4.2rem); background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
@@ -214,6 +217,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
+<header class="band" id="band"><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"></header>
+
 <div id="map" role="region" aria-label="Shelter map"></div>
 
 <form class="searchbar" id="search-form" role="search">
@@ -260,7 +265,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <ol class="pane results" id="pane-saved" hidden></ol>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-map">Directions app</label><select id="set-map"></select></div>
-      <div class="set-row"><label for="set-loc">Find shelters near me when the app opens</label><span class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></span></div>
       <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
       <div class="set-row"><span>My device</span><span class="v" id="set-device"></span></div>
       <div class="set-row"><span>App version</span><span class="v" id="set-version">2.0 (web)</span></div>
@@ -330,7 +334,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var state = {
     store: null, origin: null, here: null, results: [], selected: null, pane: "intro", prevPane: "intro",
     filters: { ada: false, pets: false, always: false }, label: "",
-    saved: load("saved", []), provider: load("provider", null), useLocation: load("useLocation", false)
+    saved: load("saved", []), provider: load("provider", null)
   };
 
   // ---------- formatting, per the result card example ----------
@@ -371,9 +375,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function vh() { return window.innerHeight; }
   function snaps() {
     var h = vh();
-    return { full: Math.max(16, safeTopPx), half: Math.round(h * 0.5), peek: Math.round(h - head.offsetHeight - 6) };
+    return { full: bandH(), half: Math.round(h * 0.5), peek: Math.round(h - head.offsetHeight - 6) };
   }
   var safeTopPx = 0;
+  function bandH() { var h = $("#band").offsetHeight; document.documentElement.style.setProperty("--band-h", h + "px"); return h; }
+  bandH(); $("#band img").addEventListener("load", function () { bandH(); snapTo(snapName, false); if (map) map.invalidateSize(); });
   (function measureSafe() { var p = document.createElement("div"); p.style.cssText = "position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(p); safeTopPx = p.offsetHeight; p.remove(); })();
   function placeSheet(y, animate) {
     sheetY = y;
@@ -383,8 +389,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     body.style.paddingBottom = Math.max(0, y) + "px";
     var visible = vh() - y;
     fab.style.bottom = (visible + 14) + "px";
-    fab.style.opacity = y < vh() * 0.3 ? "0" : "1";
-    fab.style.pointerEvents = y < vh() * 0.3 ? "none" : "";
+    fab.style.opacity = y < vh() * 0.35 ? "0" : "1";
+    fab.style.pointerEvents = y < vh() * 0.35 ? "none" : "";
   }
   function snapTo(name, animate) {
     snapName = name; sheet.dataset.snap = name;
@@ -560,7 +566,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (youMarker) youMarker.remove();
     if (state.here) youMarker = L.marker([state.here.lat, state.here.lng], { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: "", html: '<div class="you-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }) }).addTo(map);
   }
-  function mapPad() { return { paddingTopLeft: [24, 80 + safeTopPx], paddingBottomRight: [24, visibleSheet() + 16] }; }
+  function mapPad() { return { paddingTopLeft: [24, 76], paddingBottomRight: [24, visibleSheet() + 16] }; }
   function fitResults() {
     if (!map || !state.results.length) return;
     var pts = state.results.slice(0, 8).map(function (s) { return [s.location.lat, s.location.lng]; });
@@ -573,12 +579,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var z = Math.max(map.getZoom(), tilesOn ? 14 : 10);
     // keep the pin centered in the part of the map the sheet doesn't cover
     var target = map.project([s.location.lat, s.location.lng], z);
-    var offset = (visibleSheet() - (64 + safeTopPx)) / 2;
+    var offset = (visibleSheet() - 64) / 2;
     map.setView(map.unproject(target.add([0, offset]), z), z, { animate: true });
   }
 
   // ---------- search, results ----------
-  function runQuery(origin, label) {
+  function runQuery(origin, label, snap) {
     state.origin = origin; state.label = label || origin.label || "";
     state.selected = null;
     return state.store.query({
@@ -588,7 +594,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }).then(function (rows) {
       state.results = rows;
       renderList(); drawPins();
-      showPane("list", { snap: snapName === "full" ? "half" : snapName === "peek" ? "half" : snapName });
+      showPane("list", { snap: snap || (snapName === "full" || snapName === "peek" ? "half" : snapName) });
       describe();
       fitResults();
     });
@@ -604,20 +610,20 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       runQuery(hit, hit.label || text);
     });
   }
-  function locate(quiet) {
+  function locate(quiet, snap) {
     if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city, state or ZIP instead.", true); return; }
     fab.setAttribute("aria-busy", "true");
     if (!quiet) setSub("Finding your location…");
     navigator.geolocation.getCurrentPosition(function (pos) {
       fab.removeAttribute("aria-busy");
       state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      if (!state.useLocation) { state.useLocation = true; save("useLocation", true); $("#set-loc").checked = true; }
       drawYou();
       $("#q").value = ""; $("#q-clear").hidden = true;
-      runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you");
+      runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", snap);
     }, function () {
       fab.removeAttribute("aria-busy");
-      if (!quiet) { if (state.pane === "intro" || !state.results.length) showPane("intro"); setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city, state or ZIP.", true); }
+      if (!state.results.length) showPane("intro", { snap: "half" });
+      setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city, state or ZIP.", true);
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
   }
   function openShelter(id, opts) {
@@ -776,8 +782,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   setMapApps(C.webMapApps(navigator.userAgent));
   if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderList(); });
-  $("#set-loc").checked = state.useLocation;
-  $("#set-loc").addEventListener("change", function () { state.useLocation = this.checked; save("useLocation", state.useLocation); if (this.checked) locate(false); });
   $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
   if (APP.version) $("#set-version").textContent = APP.version;
   $("#set-send").addEventListener("click", function () {
@@ -786,14 +790,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
 
   // first-run disclaimer
-  function afterAgree() { if (state.useLocation) locate(true); }
+  // the app opens on the person's location, with results in the sheet at its lowest position
+  function afterAgree() { setSub("Finding your location…"); locate(true, "peek"); }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
     $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
   }
 
   // ---------- boot ----------
-  showPane("intro"); snapTo("half", false);
+  showPane("intro"); snapTo("peek", false);
   function nominatim(text) {
     var url = "https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=1&q=" + encodeURIComponent(text);
     return fetch(url, { headers: { Accept: "application/json" } }).then(function (r) { return r.ok ? r.json() : []; }).then(function (j) {
