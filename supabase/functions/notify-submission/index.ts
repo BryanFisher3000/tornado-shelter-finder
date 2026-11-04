@@ -6,7 +6,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const TO = (Deno.env.get("NOTIFY_TO") ?? "app@survive-a-storm.com").split(",").map((s) => s.trim()).filter(Boolean);
-const FROM = Deno.env.get("NOTIFY_FROM") ?? "Tornado Shelter Finder <onboarding@resend.dev>";
+const FROM = Deno.env.get("NOTIFY_FROM") ?? "Tornado Shelter Finder <app@survive-a-storm.com>";
 const REVIEW_URL = "https://supabase.com/dashboard/project/svptjcclszprsmjoldaz/editor";
 
 const REASONS: Record<string, string> = {
