@@ -79,6 +79,15 @@ body.searching .searchbar { z-index: 41; }
 .menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem auto .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
+.menu .mswitch { margin-left: auto; width: 2.2rem; height: 1.25rem; border-radius: 999px; background: var(--line-2); position: relative; flex: none; transition: background .15s; }
+.menu .mswitch::after { content: ""; position: absolute; top: .15rem; left: .15rem; width: .95rem; height: .95rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.menu [aria-checked="true"] .mswitch { background: var(--red); }
+.menu [aria-checked="true"] .mswitch::after { transform: translateX(.95rem); }
+.radar-bar, .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
+.radar-bar .i { width: 1.2rem; height: 1.2rem; color: var(--you); }
+.radar-bar .icon-btn { width: 2.2rem; height: 2.2rem; }
+.warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
+.warn-pop b { color: #C0392B; }
 
 /* locate button floats above the sheet */
 .locate-btn { color: var(--you); border-left: 1px solid var(--line); border-radius: 0; width: 2.9rem; }
@@ -224,6 +233,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="currentColor"/></symbol>
   <symbol id="i-star-o" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-radar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M19.07 4.93A10 10 0 1 0 22 12"/><path d="M16.24 7.76A6 6 0 1 0 18 12"/><path d="M12 12 19 5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 8h14l-1 13H6z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-city" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
@@ -246,8 +258,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
+<div class="radar-bar" id="radar-bar" hidden>
+  <svg class="i"><use href="#i-radar"/></svg>
+  <span id="radar-time" aria-live="polite">Radar</span>
+  <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour"><svg class="i"><use href="#i-play"/></svg></button>
+  <button type="button" class="icon-btn" id="radar-off" aria-label="Turn off radar"><svg class="i"><use href="#i-x"/></svg></button>
+</div>
+<div class="warn-bar" id="warn-bar" hidden></div>
+
 <div class="menu" id="menu" role="menu" hidden>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
+  <button type="button" role="menuitemcheckbox" aria-checked="false" data-go="radar" id="menu-radar"><svg class="i"><use href="#i-radar"/></svg><span>Weather Radar</span><span class="mswitch" aria-hidden="true"></span></button>
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
   <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
@@ -554,6 +575,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       landLayer = L.geoJSON(topojson.feature(basemap, basemap.objects.counties), { pane: "base", interactive: false, style: function () { return { fillColor: cssVar("--land"), fillOpacity: 1, color: cssVar("--county"), weight: .6 }; } }).addTo(map);
       L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
     }
+    map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
+    map.createPane("warn"); map.getPane("warn").style.zIndex = 380;
     var probe = new Image();
     probe.onload = function () {
       tilesOn = true;
@@ -569,6 +592,98 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     map.on("zoomend moveend", drawCities);
     map.on("click", function () { $("#menu").hidden = true; });
   }
+  // ---------- weather radar (NOAA NEXRAD via Iowa State Mesonet) and tornado warnings (NWS) ----------
+  // Radar frames are 5-minute composites; "" is the latest, "-m50m" is 50 minutes ago.
+  var RADAR_TILES = "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913{f}/{z}/{x}/{y}.png";
+  var RADAR_META = "https://mesonet.agron.iastate.edu/data/gis/images/4326/USCOMP/n0q_0.json";
+  var RADAR_FRAMES = ["-m50m", "-m40m", "-m30m", "-m20m", "-m10m", ""];
+  var radarOn = false, radarLayers = [], radarFrame = RADAR_FRAMES.length - 1, radarTimer = null, radarRefresh = null, radarValid = null;
+  function fmtTime(d) { return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  function frameMinutes(f) { var m = /m(\d+)m/.exec(f); return m ? +m[1] : 0; }
+  function radarLabel() {
+    var base = radarValid || new Date(), mins = frameMinutes(RADAR_FRAMES[radarFrame]);
+    var t = new Date(base.getTime() - mins * 60000);
+    $("#radar-time").textContent = (radarTimer ? "Radar " : "Radar updated ") + fmtTime(t);
+  }
+  function loadRadarMeta() {
+    return fetch(RADAR_META + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
+      var v = j && j.meta && j.meta.valid; radarValid = v ? new Date(v) : new Date();
+    }).catch(function () { radarValid = new Date(); }).then(radarLabel);
+  }
+  function buildRadar() {
+    radarLayers.forEach(function (l) { map.removeLayer(l); });
+    var stamp = Date.now();
+    radarLayers = RADAR_FRAMES.map(function (f, i) {
+      return L.tileLayer(RADAR_TILES.replace("{f}", f) + "?_=" + stamp, { pane: "radar", opacity: i === radarFrame ? 0.7 : 0, maxNativeZoom: 12, maxZoom: 19, attribution: "Radar: NOAA via Iowa State Mesonet" });
+    });
+    // only the latest frame loads until the loop is played
+    radarLayers[radarFrame].addTo(map);
+  }
+  function showFrame(i) {
+    if (!radarLayers.length) { radarFrame = i; return; }
+    if (radarLayers[radarFrame]) radarLayers[radarFrame].setOpacity(0);
+    radarFrame = i;
+    if (!map.hasLayer(radarLayers[i])) radarLayers[i].addTo(map);
+    radarLayers[i].setOpacity(0.7);
+    radarLabel();
+  }
+  function playRadar(on) {
+    clearInterval(radarTimer); radarTimer = null;
+    if (on) {
+      radarLayers.forEach(function (l) { if (!map.hasLayer(l)) l.addTo(map); });
+      radarTimer = setInterval(function () { showFrame((radarFrame + 1) % RADAR_FRAMES.length); }, 700);
+    } else showFrame(RADAR_FRAMES.length - 1);
+    $("#radar-play").innerHTML = '<svg class="i"><use href="#' + (on ? "i-pause" : "i-play") + '"/></svg>';
+    $("#radar-play").setAttribute("aria-label", on ? "Pause" : "Play the last hour");
+    radarLabel();
+  }
+  function setRadar(on) {
+    radarOn = !!on; save("radar", radarOn);
+    $("#menu-radar").setAttribute("aria-checked", String(radarOn));
+    $("#radar-bar").hidden = !radarOn; placeBars();
+    clearInterval(radarRefresh); playRadar(false);
+    if (!map) return;
+    if (radarOn) {
+      radarFrame = RADAR_FRAMES.length - 1; buildRadar(); loadRadarMeta();
+      // new radar every 5 minutes
+      radarRefresh = setInterval(function () { if (document.hidden) return; var playing = !!radarTimer; buildRadar(); loadRadarMeta(); if (playing) playRadar(true); }, 300000);
+    } else {
+      radarLayers.forEach(function (l) { map.removeLayer(l); }); radarLayers = [];
+    }
+  }
+
+  // Active tornado warnings, drawn in red. Always on: these are the storms to take shelter from.
+  var warnLayer = null, warnCount = 0;
+  function loadWarnings() {
+    if (!map || document.hidden) return;
+    fetch("https://api.weather.gov/alerts/active?event=Tornado%20Warning", { headers: { Accept: "application/geo+json" } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) {
+        var feats = (j.features || []).filter(function (f) { return f.geometry; });
+        if (warnLayer) map.removeLayer(warnLayer);
+        warnLayer = L.geoJSON({ type: "FeatureCollection", features: feats }, {
+          pane: "warn",
+          style: function () { return { color: "#D0021B", weight: 2.5, fillColor: "#D0021B", fillOpacity: 0.22 }; },
+          onEachFeature: function (f, l) {
+            var p = f.properties || {};
+            l.bindPopup('<div class="warn-pop"><b>Tornado Warning</b><br>' + esc(p.areaDesc || "") +
+              (p.expires ? "<br>Until " + esc(fmtTime(new Date(p.expires))) : "") + "<br><small>National Weather Service</small></div>");
+          }
+        }).addTo(map);
+        warnCount = feats.length;
+        var bar = $("#warn-bar");
+        bar.hidden = !warnCount;
+        bar.textContent = warnCount === 1 ? "1 tornado warning in effect" : warnCount + " tornado warnings in effect";
+        placeBars();
+      }).catch(function () {});
+  }
+  // the warning banner sits under the radar bar when both show
+  function placeBars() { $("#warn-bar").style.top = "calc(var(--band-h, 0px) + " + ($("#radar-bar").hidden ? "4.3rem" : "7.1rem") + ")"; }
+  function zoomToWarnings() {
+    if (!warnLayer || !warnCount) return;
+    var o = mapPad(); o.maxZoom = 10; map.fitBounds(warnLayer.getBounds(), o);
+  }
+
   function drawAllDots() {
     var rad = function () { return map.getZoom() >= 10 ? 5 : map.getZoom() >= 7 ? 3.2 : 2; };
     state.store.all().forEach(function (s) {
@@ -907,6 +1022,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (e.target.closest(".brand-link")) { $("#menu").hidden = true; return; }
     var b = e.target.closest("[data-go]"); if (!b) return;
     $("#menu").hidden = true;
+    if (b.dataset.go === "radar") { setRadar(!radarOn); return; }
     if (b.dataset.go === "store") window.open(C.STORE_URL, "_blank", "noopener");
     else showPane(b.dataset.go, { snap: "full" });
   });
@@ -921,6 +1037,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     showPane("intro", { snap: "half" }); setSub("");
   });
   $("#back").addEventListener("click", back);
+  $("#radar-play").addEventListener("click", function () { playRadar(!radarTimer); });
+  $("#radar-off").addEventListener("click", function () { setRadar(false); });
+  $("#warn-bar").addEventListener("click", zoomToWarnings);
   fab.addEventListener("click", function () { locate(false); });
   $("#intro-locate").addEventListener("click", function () { locate(false); });
   document.querySelectorAll(".chip").forEach(function (c) {
@@ -991,7 +1110,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
     $("#set-count").textContent = data.count.toLocaleString("en-US");
     setSub("");
-    if (window.L) { initMap(res[1]); drawAllDots(); buildCities(); }
+    if (window.L) {
+      initMap(res[1]); drawAllDots(); buildCities();
+      setRadar(load("radar", false));
+      loadWarnings(); setInterval(loadWarnings, 120000);
+      document.addEventListener("visibilitychange", function () { if (!document.hidden) loadWarnings(); });
+    }
     buildCityIndex();
     if (load("agreed", false)) afterAgree();
   }).catch(function (err) {
