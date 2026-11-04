@@ -736,7 +736,7 @@ body.searching .searchbar { z-index: 41; }
 .menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 0px) + 4.4rem); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
 .set-brand { display: block; height: 2rem; width: auto; margin: 1.2rem auto .6rem; }
-.menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem 1rem .5rem; }
+.menu .brand { display: block; height: 1.7rem; width: auto; margin: .45rem auto .5rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
 
@@ -1330,6 +1330,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     navigator.geolocation.getCurrentPosition(function (pos) {
       fab.removeAttribute("aria-busy");
       state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (PERM_BOX && !$("#pane-settings").hidden) refreshPerms();
       drawYou();
       $("#q").value = ""; $("#q-clear").hidden = true;
       runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", snap);
@@ -1430,9 +1431,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function permMsg(text) { var el = $("#set-perm-msg"); el.textContent = text || ""; el.hidden = !text; }
   function refreshPerms() {
     Object.keys(PERM_BOX).forEach(function (k) {
+      var on = load(PERM_KEYS[k], PERM_DEFAULTS[k]) !== false;
+      // a location fix this session proves location is allowed, even if the check below is slow or fails
+      var have = k === "location" && !!state.here;
+      $(PERM_BOX[k]).checked = on && have;
       PERMS[k].check().then(function (st) {
-        $(PERM_BOX[k]).checked = st === "granted" && load(PERM_KEYS[k], PERM_DEFAULTS[k]) !== false;
-      }).catch(function () { $(PERM_BOX[k]).checked = false; });
+        $(PERM_BOX[k]).checked = on && (st === "granted" || (have && st !== "denied"));
+      }).catch(function () { $(PERM_BOX[k]).checked = on && have; });
     });
   }
   function blocked(k) {
