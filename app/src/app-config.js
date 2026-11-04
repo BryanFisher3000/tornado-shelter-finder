@@ -8,5 +8,5 @@ window.SAS_APP = {
   apiBase: null,
   // Google "Web application" OAuth client ID (public). With it, Google sign-in uses the phone's
   // own account picker ("Sign in to Tornado Shelter Finder") instead of a web page.
-  googleWebClientId: ""
+  googleWebClientId: "285055757005-3a83pb9nloo4mhe0o26pb1n9qufk2t01.apps.googleusercontent.com"
 };
