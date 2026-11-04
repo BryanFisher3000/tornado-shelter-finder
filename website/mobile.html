@@ -745,7 +745,7 @@ body.searching .searchbar { z-index: 41; }
 #radar-btn { display: inline-flex; align-items: center; gap: .4rem; border: 0; background: none; padding: .55rem .75rem; font-size: .98rem; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
 #radar-btn .i { width: 1.3rem; height: 1.3rem; }
 #radar-btn[aria-pressed="true"] .i { color: var(--you); }
-#radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-left: 1px solid var(--line); border-radius: 0; }
+#radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
@@ -755,7 +755,6 @@ body.searching .searchbar { z-index: 41; }
 .locate-btn { color: var(--you); width: auto; display: inline-flex; gap: .3rem; padding: 0 .4rem; border-radius: 6px; font-size: .95rem; white-space: nowrap; }
 .locate-btn .i { width: 1.3rem; height: 1.3rem; }
 /* while typing, give the text box the room */
-body.searching .locate-btn span { display: none; }
 #menu-btn { margin-right: -.3rem; }
 .locate-btn[aria-busy="true"] svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1282,7 +1281,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function radarLabel() {
     var base = radarValid || new Date(), mins = frameMinutes(RADAR_FRAMES[radarFrame]);
     var t = new Date(base.getTime() - mins * 60000);
-    if (radarOn) $("#radar-time").textContent = (radarTimer ? "" : "Updated ") + fmtTime(t);
+    if (radarOn) $("#radar-time").textContent = fmtTime(t);
   }
   function loadRadarMeta() {
     return fetch(RADAR_META + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
@@ -1470,7 +1469,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (!quiet) { save("useLocation", true); refreshPerms(); }
     if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city or Zip instead.", true); return; }
     fab.setAttribute("aria-busy", "true");
-    if (!quiet) setSub("Finding your location…");
+    if (!quiet) setSub("Finding My Location…");
     navigator.geolocation.getCurrentPosition(function (pos) {
       fab.removeAttribute("aria-busy");
       state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1481,7 +1480,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }, function () {
       fab.removeAttribute("aria-busy");
       if (!state.results.length) showPane("intro", { snap: "half" });
-      setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city or Zip.", true);
+      setSub("My Location isn't available. Allow location for the app in your phone's settings, or search a city or Zip.", true);
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
   }
   function openShelter(id, opts) {
@@ -1510,7 +1509,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function showSuggest() {
     var q = norm($("#q").value), items = [];
     if (q) items.push({ kind: "search", t: $("#q").value.trim(), s: "Search this place" });
-    items.push({ kind: "here", t: "Your location", s: "Shelters nearest you" });
     if (q && state.store) {
       cityIndex.forEach(function (c) { if (items.length < 7 && norm(c.label).indexOf(q) === 0) items.push({ kind: "city", t: c.label, s: c.n + (c.n === 1 ? " shelter" : " shelters") }); });
       if (/^\d{3,5}$/.test(q)) {
@@ -1538,7 +1536,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         runQuery({ lat: s.location.lat, lng: s.location.lng, label: it.s }, it.s).then(function () { openShelter(it.id); });
       } else { $("#q").value = it.t; search(it.t); }
     };
-    $("#suggest").hidden = false;
+    $("#suggest").hidden = !items.length;
     document.body.classList.add("searching");
   }
   function hideSuggest() { $("#suggest").hidden = true; document.body.classList.remove("searching"); }
@@ -1658,7 +1656,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (always !== (s.availability === "always")) out.push({ field: "availability", label: "Open", from: s.availability === "always" ? "Year-Round" : "During Emergencies", to: always ? "Year-Round" : "During Emergencies", value: always ? "always" : "emergencies_only" });
     return out;
   }
-  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send your note"; }
+  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send My Note"; }
   function sendReport(report) {
     report.submission.channel = APP.channel || "web";
     if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
@@ -1778,7 +1776,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // the app opens on the person's location, with results in the sheet at its lowest position
   function afterAgree() {
     if (load("useLocation", true) === false) { showPane("intro", { snap: "half" }); return; }
-    setSub("Finding your location…"); locate(true, "peek");
+    setSub("Finding My Location…"); locate(true, "peek");
   }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;

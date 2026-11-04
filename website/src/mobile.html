@@ -808,7 +808,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (!quiet) { save("useLocation", true); refreshPerms(); }
     if (!navigator.geolocation) { if (!quiet) setSub("Location isn't available here. Search a city or Zip instead.", true); return; }
     fab.setAttribute("aria-busy", "true");
-    if (!quiet) setSub("Finding your location…");
+    if (!quiet) setSub("Finding My Location…");
     navigator.geolocation.getCurrentPosition(function (pos) {
       fab.removeAttribute("aria-busy");
       state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -819,7 +819,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }, function () {
       fab.removeAttribute("aria-busy");
       if (!state.results.length) showPane("intro", { snap: "half" });
-      setSub("Your location isn't available. Allow location for the app in your phone's settings, or search a city or Zip.", true);
+      setSub("My Location isn't available. Allow location for the app in your phone's settings, or search a city or Zip.", true);
     }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
   }
   function openShelter(id, opts) {
@@ -995,7 +995,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (always !== (s.availability === "always")) out.push({ field: "availability", label: "Open", from: s.availability === "always" ? "Year-Round" : "During Emergencies", to: always ? "Year-Round" : "During Emergencies", value: always ? "always" : "emergencies_only" });
     return out;
   }
-  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send your note"; }
+  function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : "Send My Note"; }
   function sendReport(report) {
     report.submission.channel = APP.channel || "web";
     if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
@@ -1115,7 +1115,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // the app opens on the person's location, with results in the sheet at its lowest position
   function afterAgree() {
     if (load("useLocation", true) === false) { showPane("intro", { snap: "half" }); return; }
-    setSub("Finding your location…"); locate(true, "peek");
+    setSub("Finding My Location…"); locate(true, "peek");
   }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;

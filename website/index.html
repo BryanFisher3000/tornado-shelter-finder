@@ -1300,7 +1300,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       runQuery({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }).then(function () { if (isPhone() && state.view === "search") setView("list"); });
     }, function () {
       btn.removeAttribute("aria-busy");
-      if (!quiet) setStatus("Your location isn't available here. Allow location for this site, or search a city, state or ZIP.", true);
+      if (!quiet) setStatus("My Location isn't available here. Allow location for this site, or search a city, state or ZIP.", true);
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   }
 
