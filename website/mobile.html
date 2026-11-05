@@ -1069,7 +1069,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
-        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option></select></label>
         <label>Open<select id="as-open"><option value="emergencies_only">During Emergencies</option><option value="always">Year-Round</option></select></label>
         <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
         <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
@@ -1112,7 +1112,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           <label><input type="radio" name="fb-cap" value="<25">&lt;25</label>
           <label><input type="radio" name="fb-cap" value="<50">&lt;50</label>
           <label><input type="radio" name="fb-cap" value="50+">50+</label>
-          <label id="fb-cap-limited" hidden><input type="radio" name="fb-cap" value="Limited">Limited</label>
         </div>
       </div>
       <div class="grp" role="radiogroup" aria-labelledby="fb-open-l">
@@ -1848,7 +1847,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#fb-text").value = "";
     // start from what the shelter list says now; only changed details are sent
     var cap = s.capacity && s.capacity.label || "";
-    $("#fb-cap-limited").hidden = cap !== "Limited";
     setRadio("fb-cap", cap);
     setRadio("fb-open", s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "");
     $("#fb-ada").checked = s.ada_accessible === "yes";
