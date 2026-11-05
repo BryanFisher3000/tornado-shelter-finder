@@ -2,7 +2,8 @@
 /**
  * Public county emergency management contacts page.
  * Shortcode: [sas_county_contacts]  (optional: state="TX" to open on one state;
- *   edit_url="/edit-county/?county={county}&state={state}" adds an Edit link to each county)
+ *   edit_url="..." changes where each county's Edit link goes; ?county=...&state=... is added to it,
+ *   so a Formidable field can prefill with the default value [get param="county"]; edit_url="" hides it)
  * Reads public.county_contacts in Supabase on the server and caches it for an hour;
  * saving a county on the review page clears the cache, so edits show right away.
  */
@@ -72,7 +73,7 @@ function sas_county_link( $url ) {
 add_shortcode(
 	'sas_county_contacts',
 	function ( $atts ) {
-		$atts  = shortcode_atts( array( 'state' => '', 'edit_url' => '', 'edit_label' => 'Edit' ), $atts, 'sas_county_contacts' );
+		$atts  = shortcode_atts( array( 'state' => '', 'edit_url' => '/tornado-shelter-finder/county-emergency-management-contacts/edit/', 'edit_label' => 'Edit' ), $atts, 'sas_county_contacts' );
 		$rows  = sas_county_contacts_all();
 		if ( is_wp_error( $rows ) ) {
 			return '<p>County contacts are not available right now. Please try again later.</p>';
@@ -135,7 +136,7 @@ add_shortcode(
 							</dl>
 						<?php endif; ?>
 						<?php if ( $atts['edit_url'] ) : ?>
-							<p class="sas-county-edit"><a href="<?php echo esc_url( strtr( $atts['edit_url'], array( '{county}' => rawurlencode( $r['county'] ), '{state}' => rawurlencode( $r['state'] ) ) ) ); ?>"><?php echo esc_html( $atts['edit_label'] ); ?></a></p>
+							<p class="sas-county-edit"><a href="<?php echo esc_url( add_query_arg( array( 'county' => rawurlencode( $r['county'] ), 'state' => rawurlencode( $r['state'] ) ), html_entity_decode( $atts['edit_url'] ) ) ); ?>"><?php echo esc_html( $atts['edit_label'] ); ?></a></p>
 						<?php endif; ?>
 					</div>
 				<?php endforeach; ?>
