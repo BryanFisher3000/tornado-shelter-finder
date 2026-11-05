@@ -766,15 +766,16 @@ body.searching .searchbar { z-index: 41; }
   display: flex; flex-direction: column; will-change: transform;
 }
 .sheet.anim { transition: transform .28s cubic-bezier(.2,.8,.2,1); }
-.sheet-head { flex: none; padding: .45rem 16px .2rem; touch-action: none; cursor: grab; }
-.grab { width: 2.6rem; height: .3rem; border-radius: 99px; background: var(--line-2); margin: 0 auto .5rem; border: 0; padding: 0; display: block; }
-.title-row { display: flex; align-items: center; gap: .5rem; min-height: 2.6rem; }
-.title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.45rem; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
-.sub { margin: .1rem 0 .3rem; color: var(--muted); font-size: .95rem; }
+.sheet-head { flex: none; padding: .35rem 16px .1rem; touch-action: none; cursor: grab; }
+.grab { width: 2.6rem; height: .3rem; border-radius: 99px; background: var(--line-2); margin: 0 auto .3rem; border: 0; padding: 0; display: block; }
+.title-row { display: flex; align-items: center; gap: .5rem; min-height: 2.1rem; }
+.title-row .icon-btn { width: 2.1rem; height: 2.1rem; }
+.title-row h2 { margin: 0; flex: 1; min-width: 0; font-weight: 500; font-size: 1.25rem; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.sub { margin: 0 0 .15rem; color: var(--muted); font-size: .85rem; }
 .sub.error { color: var(--red); }
-.chips { display: flex; gap: .4rem; padding: .35rem 0 .55rem; }
+.chips { display: flex; gap: .4rem; padding: .2rem 0 .45rem; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: 1 1 auto; min-width: 0; justify-content: center; white-space: nowrap; border: 1px solid var(--line-2); background: var(--card); border-radius: 6px; padding: .42rem .3rem; font-size: clamp(.74rem, 3.35vw, .98rem); cursor: pointer; display: inline-flex; gap: .2rem; align-items: center; }
+.chip { flex: none; justify-content: center; white-space: nowrap; border: 1px solid var(--line-2); background: var(--card); border-radius: 99px; padding: .22rem .75rem; font-size: .85rem; cursor: pointer; display: inline-flex; gap: .2rem; align-items: center; }
 .chip[aria-pressed="true"] { background: var(--chip-on); border-color: transparent; }
 .chip[aria-pressed="true"]::before { content: "✓"; font-size: .9em; }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); touch-action: none; }
@@ -783,7 +784,7 @@ body.searching .searchbar { z-index: 41; }
 
 /* result card, per the Goddard example: pin + distance + Directions + Edit on the left */
 .results { list-style: none; margin: 0; padding: 0; }
-.card { display: grid; grid-template-columns: 6.7rem 1fr; gap: .2rem .6rem; padding: 1rem 16px 1rem 6px; border-bottom: 8px solid var(--bg); cursor: pointer; }
+.card { display: grid; grid-template-columns: 6.7rem 1fr; gap: .2rem .6rem; padding: 1rem 16px 1rem 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .card.sel { background: color-mix(in srgb, var(--red) 6%, var(--card)); }
 .c-left { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .15rem; }
 .c-left .dist { font-size: .95rem; color: var(--ink-2); }
@@ -1275,7 +1276,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (!state.results.length) { setSub(""); return; }
     var s = state.results[0];
     var n = state.results.length;
-    setSub((n === RESULT_LIMIT ? n + " nearest shelters" : n === 1 ? "1 shelter" : n + " shelters") + " within " + RADIUS_MI + " mi · closest " + miles(C.distanceMiles(state.origin, s.location)));
+    setSub((n === RESULT_LIMIT ? n + " nearest" : n === 1 ? "1 shelter" : n + " shelters") + " within " + RADIUS_MI + " mi · closest " + miles(C.distanceMiles(state.origin, s.location)));
   }
 
   var SAFETY_HTML =
@@ -1338,8 +1339,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
     }
     map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
+    // Hide the light-blue low-end returns (under ~20 dBZ: drizzle, virga, clutter) so the radar matches what
+    // weather.com and other consumer apps show. Keeps greens, yellows, reds, magenta and purple.
+    if (!document.getElementById("radar-rain")) {
+      var fx = document.createElement("div");
+      fx.innerHTML = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="radar-rain" color-interpolation-filters="sRGB">' +
+        '<feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  6 4 -5 0 0.2" result="m"/>' +
+        '<feComposite in="m" in2="SourceAlpha" operator="in"/></filter></svg>';
+      document.body.appendChild(fx.firstChild);
+    }
     // radar data comes in ~1 km cells; soften the edges so it reads like a TV weather map
-    var smoothRadar = function () { var z = map.getZoom(); map.getPane("radar").style.filter = "blur(" + (z >= 11 ? 3 : z >= 9 ? 2 : z >= 7 ? 1 : 0) + "px)"; };
+    var smoothRadar = function () { var z = map.getZoom(); map.getPane("radar").style.filter = "url(#radar-rain) blur(" + (z >= 11 ? 3 : z >= 9 ? 2 : z >= 7 ? 1 : 0) + "px)"; };
     map.on("zoomend", smoothRadar); smoothRadar();
     map.createPane("warn"); map.getPane("warn").style.zIndex = 380;
     var probe = new Image();
@@ -1560,7 +1570,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (!map) return;
     if (!state.results.length) { if (state.origin) map.setView([state.origin.lat, state.origin.lng], 9, { animate: true }); return; }
     var pts = state.results.slice(0, 8).map(function (s) { return [s.location.lat, s.location.lng]; });
-    if (state.origin) pts.push([state.origin.lat, state.origin.lng]);
+    if (state.origin) {
+      // mirror each pin through the searched spot so the spot (or My Location dot) lands in the middle of the visible map
+      var oy = state.origin.lat, ox = state.origin.lng;
+      pts = pts.concat(pts.map(function (p) { return [2 * oy - p[0], 2 * ox - p[1]]; }));
+      pts.push([oy, ox]);
+    }
     var o = mapPad(); o.maxZoom = tilesOn ? 14 : 11; o.animate = true;
     map.fitBounds(L.latLngBounds(pts), o);
   }
@@ -2074,8 +2089,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (state.pane === "detail") { back(); return; }
     // close a search: clear it and go back to the shelters nearest you
     q.value = ""; $("#q-clear").hidden = true; state.selected = null;
-    if (state.here && state.label !== "Near you") { runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", "peek"); return; }
-    if (state.here) { drawPins(); snapTo("peek", true); return; }
+    if (state.here && state.label !== "Near you") { runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", "half"); return; }
+    if (state.here) { drawPins(); snapTo("half", true); return; }
     // no location yet: show the start panel
     state.results = []; drawPins();
     showPane("intro", { snap: "half" }); setSub("");
@@ -2130,10 +2145,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
 
   // first-run disclaimer
-  // the app opens on the person's location, with results in the sheet at its lowest position
+  // the app opens on the person's location, with results in the sheet at half height
   function afterAgree() {
     if (load("useLocation", true) === false) { showPane("intro", { snap: "half" }); return; }
-    setSub("Finding My Location…"); locate(true, "peek");
+    setSub("Finding My Location…"); locate(true, "half");
   }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
