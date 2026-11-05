@@ -165,6 +165,9 @@ function sas_review_apply_submission( $sub, $force ) {
 		$rows                      = sas_review_supabase( 'POST', 'shelters', $row, array( 'Prefer' => 'return=representation' ) );
 		return is_wp_error( $rows ) ? $rows : $rows[0];
 	}
+	if ( 'county' === $sub['kind'] ) {
+		return sas_review_apply_county( $sub );
+	}
 	if ( 'report' !== $sub['kind'] || empty( $sub['shelter_id'] ) ) {
 		return false;
 	}
@@ -197,6 +200,34 @@ function sas_review_apply_submission( $sub, $force ) {
 		return false;
 	}
 	return sas_review_update_shelter( $shelter['id'], $shelter['version'], $patch, $sid );
+}
+
+/** Approve a county contact correction: apply its changed fields to county_contacts. */
+function sas_review_apply_county( $sub ) {
+	if ( empty( $sub['county_id'] ) ) {
+		return new WP_Error( 'sas_missing', 'This correction isn\'t linked to a county in the list. Make the change in the County contacts tab, then mark it handled.', array( 'status' => 409 ) );
+	}
+	$rows = sas_review_supabase( 'GET', 'county_contacts?select=*&id=eq.' . (int) $sub['county_id'] );
+	if ( is_wp_error( $rows ) ) {
+		return $rows;
+	}
+	if ( empty( $rows ) ) {
+		return new WP_Error( 'sas_missing', 'That county is no longer in the list.', array( 'status' => 409 ) );
+	}
+	$patch = sas_review_county_patch( is_array( $sub['proposed_changes'] ) ? $sub['proposed_changes'] : array() );
+	if ( is_wp_error( $patch ) ) {
+		return $patch;
+	}
+	foreach ( $patch as $col => $v ) { // drop values that are already the same
+		if ( (string) $rows[0][ $col ] === (string) $v ) {
+			unset( $patch[ $col ] );
+		}
+	}
+	if ( ! $patch ) {
+		return false;
+	}
+	$updated = sas_review_county_update( $sub['county_id'], $patch );
+	return is_wp_error( $updated ) ? $updated : false;
 }
 
 /** PostgREST-safe search term: letters, digits, spaces and a few address characters. */
@@ -304,6 +335,11 @@ function sas_review_shelter_undo( WP_REST_Request $req ) {
 /** GET /counties ?q=&state= ; at most 200, alphabetical. */
 function sas_review_counties_search( WP_REST_Request $req ) {
 	$path = 'county_contacts?select=*&limit=200&order=state.asc,county.asc';
+	$ids  = array_filter( array_map( 'intval', explode( ',', (string) $req['ids'] ) ) );
+	if ( $ids ) {
+		$rows = sas_review_supabase( 'GET', 'county_contacts?select=*&id=in.(' . implode( ',', array_slice( $ids, 0, 200 ) ) . ')' );
+		return is_wp_error( $rows ) ? $rows : rest_ensure_response( array( 'counties' => $rows ) );
+	}
 	$q    = sas_review_term( $req['q'] );
 	if ( '' !== $q ) {
 		$like  = rawurlencode( '*' . $q . '*' );
@@ -320,9 +356,9 @@ function sas_review_counties_search( WP_REST_Request $req ) {
 	return is_wp_error( $rows ) ? $rows : rest_ensure_response( array( 'counties' => $rows ) );
 }
 
-/** POST /counties/{id} {changes}: edit one county's contact details. */
-function sas_review_county_save( WP_REST_Request $req ) {
-	$changes = is_array( $req['changes'] ) ? $req['changes'] : array();
+/** Turn county field values into a clean county_contacts patch, or a WP_Error naming the field. */
+function sas_review_county_patch( $changes ) {
+	$changes = is_array( $changes ) ? $changes : array();
 	$patch   = array();
 	foreach ( array( 'agency', 'director', 'phone', 'email', 'address', 'website', 'source_url', 'source_date' ) as $f ) {
 		if ( array_key_exists( $f, $changes ) ) {
@@ -333,15 +369,32 @@ function sas_review_county_save( WP_REST_Request $req ) {
 	if ( isset( $patch['email'] ) && ! is_email( $patch['email'] ) ) {
 		return new WP_Error( 'sas_field', 'That email address doesn\'t look right.', array( 'status' => 400 ) );
 	}
+	return $patch;
+}
+
+/** Save a county_contacts patch. Returns the updated rows or a WP_Error. */
+function sas_review_county_update( $id, $patch ) {
+	$patch['updated_by'] = sas_review_reviewer_name();
+	$patch['updated_at'] = gmdate( 'c' );
+	$rows                = sas_review_supabase( 'PATCH', 'county_contacts?id=eq.' . (int) $id, $patch, array( 'Prefer' => 'return=representation' ) );
+	if ( ! is_wp_error( $rows ) ) {
+		sas_county_contacts_flush();
+	}
+	return $rows;
+}
+
+/** POST /counties/{id} {changes}: edit one county's contact details. */
+function sas_review_county_save( WP_REST_Request $req ) {
+	$patch = sas_review_county_patch( $req['changes'] );
+	if ( is_wp_error( $patch ) ) {
+		return $patch;
+	}
 	if ( ! $patch ) {
 		return new WP_Error( 'sas_nothing', 'Nothing changed.', array( 'status' => 400 ) );
 	}
-	$patch['updated_by'] = sas_review_reviewer_name();
-	$patch['updated_at'] = gmdate( 'c' );
-	$rows                = sas_review_supabase( 'PATCH', 'county_contacts?id=eq.' . (int) $req['id'], $patch, array( 'Prefer' => 'return=representation' ) );
+	$rows = sas_review_county_update( $req['id'], $patch );
 	if ( is_wp_error( $rows ) ) {
 		return $rows;
 	}
-	sas_county_contacts_flush();
 	return empty( $rows ) ? new WP_Error( 'sas_missing', 'No county with that id.', array( 'status' => 404 ) ) : rest_ensure_response( array( 'county' => $rows[0] ) );
 }

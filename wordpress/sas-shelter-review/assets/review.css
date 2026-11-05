@@ -74,6 +74,7 @@
 #sas-review .type.add { background: var(--ok-soft); color: var(--ok); }
 #sas-review .type.edit { background: var(--info-soft); color: var(--info); }
 #sas-review .type.report { background: var(--bad-soft); color: var(--bad); }
+#sas-review .type.county { background: var(--warn-soft); color: var(--warn); }
 #sas-review .flagdot { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; flex: none; }
 #sas-review .flagdot.warn { color: var(--warn); }
 #sas-review .flagdot.fail { color: var(--bad); }

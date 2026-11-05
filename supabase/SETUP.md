@@ -62,3 +62,22 @@
     Edit pop-up, filled from `county_contacts` in Supabase. It refreshes within an hour, or right
     away when a county is saved on the review page. Use `edit_url="..."` to send the Edit links
     somewhere other than the page's `edit/` subpage, or `edit_url=""` to hide them.
+
+## Website "Suggest an Edit" forms into the review queue
+
+21. Run `supabase/forms.sql` in the SQL Editor. It adds the `county` submission kind and a
+    `county_id` link to the county list.
+22. Redeploy the `notify-submission` function (Edge Functions → notify-submission → Code, paste
+    `supabase/functions/notify-submission/index.ts`, Deploy) so the digest describes county
+    corrections.
+23. Upload the plugin zip again (v1.3.0 or later). From then on every entry of the shelter
+    "Suggest an Edit" form (Formidable 44, fields `sfb_*`) and the county contact form
+    (Formidable 45, fields `cemf_*`) is also added to the review queue:
+    - a shelter edit is matched to the shelter by its original name and state (closest pin if
+      several) and arrives as an Edit with only the changed fields;
+    - a form opened blank arrives as an Add;
+    - a county correction is matched to the county row and arrives as a County contact; approving
+      it updates the county list and the public page;
+    - anything that can't be matched arrives as Feedback with the details in the comment.
+    Formidable still keeps its own copy of each entry. The forms' own "Send Email" actions can be
+    turned off, since the 7 AM digest now covers these submissions.
