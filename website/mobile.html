@@ -808,6 +808,10 @@ body.searching .searchbar { z-index: 41; }
 /* detail pane */
 .detail { padding: .2rem 16px 1.4rem; }
 .detail address { font-style: italic; color: var(--ink-2); margin: 0 0 .7rem; font-size: 1.05rem; }
+/* shelter page: no line under the name; address and facts line up with the name (past the back arrow); buttons centered */
+.sheet[data-pane="detail"] .sheet-body { border-top-color: transparent; }
+.detail address, .detail .facts { margin-left: var(--title-indent, 2.6rem); }
+.detail .actions { justify-content: center; }
 .detail .dist { color: var(--muted); }
 .actions { display: flex; gap: .4rem; overflow-x: auto; padding: .2rem 0 .9rem; scrollbar-width: none; }
 .actions::-webkit-scrollbar { display: none; }
@@ -1248,7 +1252,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var sub = true;
     $("#chips").hidden = name !== "list";
     $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add");
-    $("#close").hidden = !(name === "list" || name === "detail");
+    $("#close").hidden = name !== "list";
+    sheet.dataset.pane = name;
     if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
     else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
