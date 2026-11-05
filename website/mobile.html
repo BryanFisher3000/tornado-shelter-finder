@@ -1122,9 +1122,23 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           <label><input type="radio" name="fb-open" value="always">Year-round</label>
         </div>
       </div>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-ada-l">
+        <div class="glabel" id="fb-ada-l">Wheelchair accessible</div>
+        <div class="radios">
+          <label><input type="radio" name="fb-ada" value="">Unknown</label>
+          <label><input type="radio" name="fb-ada" value="yes">Yes</label>
+          <label><input type="radio" name="fb-ada" value="no">No</label>
+        </div>
+      </div>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-pets-l">
+        <div class="glabel" id="fb-pets-l">Pets allowed</div>
+        <div class="radios">
+          <label><input type="radio" name="fb-pets" value="">Unknown</label>
+          <label><input type="radio" name="fb-pets" value="yes">Yes</label>
+          <label><input type="radio" name="fb-pets" value="no">No</label>
+        </div>
+      </div>
       <div class="grp">
-        <label class="chk"><input type="checkbox" id="fb-ada">Wheelchair accessible</label>
-        <label class="chk"><input type="checkbox" id="fb-pets">Pets allowed</label>
         <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
         <div class="addr" id="fb-addr" hidden>
           <label>Street address<input id="fb-street" autocomplete="off"></label>
@@ -1849,8 +1863,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var cap = s.capacity && s.capacity.label || "";
     setRadio("fb-cap", cap);
     setRadio("fb-open", s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "");
-    $("#fb-ada").checked = s.ada_accessible === "yes";
-    $("#fb-pets").checked = s.pets_allowed === "yes";
+    setRadio("fb-ada", s.ada_accessible === "yes" || s.ada_accessible === "no" ? s.ada_accessible : "");
+    setRadio("fb-pets", s.pets_allowed === "yes" || s.pets_allowed === "no" ? s.pets_allowed : "");
     var a = s.address || {};
     $("#fb-street").value = a.line || ""; $("#fb-city").value = a.city || ""; $("#fb-zip").value = a.zip || "";
     var st = $("#fb-state");
@@ -1878,9 +1892,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var OPEN = { always: "Year-round", emergencies_only: "During emergencies", "": "Unknown" };
     var open = radioVal("fb-open"), oldOpen = s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "";
     if (open !== oldOpen) out.push({ field: "availability", label: "Open", from: OPEN[oldOpen], to: OPEN[open], value: open || null });
-    [["ada_accessible", "Wheelchair accessible", "#fb-ada"], ["pets_allowed", "Pets allowed", "#fb-pets"]].forEach(function (f) {
-      var was = s[f[0]] === "yes", now = $(f[2]).checked;
-      if (now !== was) out.push({ field: f[0], label: f[1], from: yn(s[f[0]]), to: now ? "Yes" : "No", value: now ? "yes" : "no" });
+    [["ada_accessible", "Wheelchair accessible", "fb-ada"], ["pets_allowed", "Pets allowed", "fb-pets"]].forEach(function (f) {
+      var was = s[f[0]] === "yes" || s[f[0]] === "no" ? s[f[0]] : "", now = radioVal(f[2]);
+      if (now !== was) out.push({ field: f[0], label: f[1], from: yn(was), to: yn(now), value: now || "unknown" });
     });
     if ($("#fb-r1").checked) {
       var a = s.address || {};
