@@ -1,0 +1,807 @@
+<title>Tornado Shelter Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow+Semi+Condensed:wght@300;400;500;600&display=swap">
+<style>{{LEAFLET_CSS}}</style>
+<style>
+/* Layout: the app's warm-grey card stack on the left, the map filling the rest; phones get the app's own bottom tab bar. */
+:root {
+  --red: #EA2627;        /* SAS red, actions and pins */
+  --red-deep: #9E1F23;   /* pressed / emphasis */
+  --bg: #E5E4E1;         /* app ground */
+  --panel: #F3F2F0;      /* raised surfaces */
+  --card: #E5E4E1;
+  --ink: #1A1815;
+  --ink-2: #4E4740;
+  --muted: #82766A;
+  --line: #CDC8C3;
+  --line-2: #B4ADA6;
+  --on-red: #FFFFFF;
+  --water: #CDD6DA;
+  --land: #F3F2F0;
+  --county: #DAD6D1;
+  --state: #9B9188;
+  --dot: #9E1F23;
+  --focus: #1A1815;
+  --shadow: 0 1px 2px rgba(26,24,21,.12), 0 6px 18px rgba(26,24,21,.10);
+  --f-body: "Barlow Semi Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --f-display: "Barlow Condensed", "Arial Narrow", Impact, system-ui, sans-serif;
+  --panel-w: 26rem;
+  --tabs-h: 4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --red: #F0393A; --red-deep: #C9282B; --bg: #1A1815; --panel: #25221E; --card: #2E2A26;
+    --ink: #F3F2F0; --ink-2: #CDC8C3; --muted: #9B9188; --line: #3E3833; --line-2: #4E4740;
+    --water: #141619; --land: #25221E; --county: #342F2A; --state: #685E55; --dot: #F0393A;
+    --focus: #F3F2F0; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --red: #F0393A; --red-deep: #C9282B; --bg: #1A1815; --panel: #25221E; --card: #2E2A26;
+  --ink: #F3F2F0; --ink-2: #CDC8C3; --muted: #9B9188; --line: #3E3833; --line-2: #4E4740;
+  --water: #141619; --land: #25221E; --county: #342F2A; --state: #685E55; --dot: #F0393A;
+  --focus: #F3F2F0; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 1rem; line-height: 1.35;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: var(--red); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* header */
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .55rem 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  flex: none;
+}
+.brand { display: flex; align-items: center; gap: .9rem; min-width: 0; text-decoration: none; color: inherit; }
+.brand img { height: 2.1rem; width: auto; display: block; }
+.brand .product {
+  font-family: var(--f-display); font-weight: 800; font-size: 1.05rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-2); border-left: 1px solid var(--line-2); padding-left: .9rem;
+  white-space: nowrap;
+}
+.top-links { display: flex; gap: .25rem; }
+.top-links a, .top-links button {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .7rem; border-radius: .4rem;
+  border: 0; background: none; cursor: pointer; text-decoration: none; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: .06em; font-size: .85rem;
+}
+.top-links a:hover, .top-links button:hover, .top-links [aria-pressed="true"] { background: var(--card); color: var(--ink); }
+.top-links svg { width: 1.1rem; height: 1.1rem; }
+
+/* main split */
+.app { position: relative; flex: 1; display: grid; grid-template-columns: var(--panel-w) 1fr; min-height: 0; }
+.panel { display: flex; flex-direction: column; min-height: 0; background: var(--bg); border-right: 1px solid var(--line); }
+.panel-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+#map { min-height: 0; background: var(--water); }
+
+/* search block */
+.search { display: grid; gap: .55rem; padding: 1rem 16px .75rem; background: var(--bg); }
+.field {
+  display: flex; align-items: center; gap: .6rem; background: var(--panel); border: 1px solid var(--line-2);
+  padding: 0 .75rem; height: 2.75rem;
+}
+.field:focus-within { border-color: var(--ink-2); }
+.field svg { width: 1.2rem; height: 1.2rem; color: var(--muted); flex: none; }
+.field input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 1rem; letter-spacing: .03em; }
+.field input::placeholder { text-transform: uppercase; color: var(--muted); letter-spacing: .06em; }
+.field button { border: 0; background: none; cursor: pointer; color: var(--red); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; font-size: .85rem; padding: .3rem 0 .3rem .3rem; }
+.locate {
+  display: flex; align-items: center; justify-content: center; gap: .6rem; height: 2.75rem;
+  background: var(--panel); border: 1px solid var(--line-2); cursor: pointer; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink-2); font-size: .95rem;
+}
+.locate:hover { border-color: var(--ink-2); color: var(--ink); }
+.locate svg { width: 1.2rem; height: 1.2rem; }
+.locate[aria-busy="true"] svg { animation: spin 1.2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  border: 1px solid var(--line-2); background: none; padding: .25rem .65rem; border-radius: 999px; cursor: pointer;
+  font-size: .85rem; color: var(--ink-2);
+}
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.status { font-size: .9rem; color: var(--ink-2); min-height: 1.2em; }
+.status strong { color: var(--ink); font-weight: 600; }
+.status.error { color: var(--red); }
+.status .eg { display: inline-block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--line-2); padding: 0 .35rem; margin-left: .25rem; color: var(--muted); }
+
+.seg { display: flex; gap: 0; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.seg button {
+  flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; padding: .55rem 0; cursor: pointer;
+  text-transform: uppercase; letter-spacing: .08em; font-size: .85rem; color: var(--muted);
+}
+.seg button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--red); }
+
+/* shelter cards: the app's list row */
+.list { list-style: none; margin: 0; padding: 0 16px 1rem; }
+.row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem 1rem;
+  padding: .95rem 0; border-bottom: 2px dotted var(--line-2);
+}
+.row.sel { background: linear-gradient(90deg, transparent, var(--card) 8%, var(--card) 92%, transparent); }
+.row .info { min-width: 0; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
+.row h3 { margin: 0; font-size: 1.02rem; font-weight: 500; line-height: 1.25; text-wrap: balance; }
+.row .addr { margin: .1rem 0 0; color: var(--ink-2); }
+.row .cap { margin: .55rem 0 0; color: var(--ink); }
+.row .tags { margin: .2rem 0 0; color: var(--ink-2); font-size: .9rem; }
+.row .note { margin: .2rem 0 0; color: var(--ink-2); font-size: .9rem; }
+.acts { display: flex; flex-direction: column; align-items: flex-end; gap: .35rem; }
+.dist { font-size: 1.1rem; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 500; }
+.act {
+  display: inline-flex; align-items: center; gap: .3rem; border: 0; background: none; cursor: pointer; padding: .1rem 0;
+  text-transform: uppercase; letter-spacing: .07em; font-size: .78rem; color: var(--red); text-decoration: none;
+}
+.act svg { width: .9rem; height: .9rem; }
+.act.quiet { color: var(--ink-2); }
+.act[aria-pressed="true"] svg path { fill: currentColor; }
+.empty { text-align: center; padding: 3rem 16px; display: grid; gap: .8rem; justify-items: center; }
+.empty svg { width: 3rem; height: 3rem; color: var(--muted); }
+.empty h3 { margin: 0; font-weight: 400; font-size: 1.5rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.empty button { border: 0; background: none; color: var(--red); font-size: 1.25rem; cursor: pointer; }
+
+/* settings */
+.settings { padding: 1rem 16px 2rem; display: grid; gap: 0; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 0; text-transform: uppercase; letter-spacing: .05em; }
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.set-row.sep { border-top: 2px dotted var(--line-2); }
+.set-row select { background: var(--panel); border: 1px solid var(--line-2); padding: .4rem .6rem; text-transform: none; letter-spacing: 0; }
+.set-row .v { text-transform: none; letter-spacing: 0; color: var(--ink-2); text-align: right; }
+.switch { position: relative; width: 3rem; height: 1.7rem; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line-2); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: .2rem; left: .2rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--panel); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked + span { background: #2FBF4A; }
+.switch input:checked + span::after { transform: translateX(1.3rem); }
+.switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+.settings textarea, .fb textarea { width: 100%; min-height: 7rem; resize: vertical; background: var(--panel); border: 1px solid var(--line-2); padding: .6rem; box-sizing: border-box; }
+.btns { display: flex; gap: .6rem; flex-wrap: wrap; }
+.btn { border: 0; padding: .55rem 1.3rem; cursor: pointer; text-transform: uppercase; letter-spacing: .08em; font-size: .9rem; }
+.btn.red { background: var(--red); color: var(--on-red); }
+.btn.red:hover { background: var(--red-deep); }
+.btn.grey { background: var(--ink-2); color: var(--bg); }
+.btn.plain { background: var(--panel); border: 1px solid var(--line-2); text-decoration: none; display: inline-block; color: var(--ink); }
+.fine { font-size: .85rem; color: var(--muted); line-height: 1.4; }
+
+/* map bits */
+.leaflet-container { font-family: var(--f-body); background: var(--water); }
+.pin { color: var(--red); filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.pin svg { width: 100%; height: 100%; display: block; }
+.pin.sel { color: var(--red-deep); }
+.you { width: 16px; height: 16px; border-radius: 50%; background: #2B6CB0; border: 3px solid #fff; box-shadow: 0 0 0 8px rgba(43,108,176,.22); box-sizing: border-box; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--card); color: var(--ink); box-shadow: var(--shadow); border-radius: 0; }
+.leaflet-popup-content { margin: .8rem .9rem; font-size: .95rem; min-width: 14rem; }
+.leaflet-popup-content .row { padding: 0; border: 0; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+.leaflet-bar a { background: var(--panel); color: var(--ink); border-bottom-color: var(--line); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--panel) 80%, transparent) !important; color: var(--muted); }
+.leaflet-control-attribution a { color: var(--ink-2); }
+.leaflet-container a.act { color: var(--red); }
+.leaflet-container a.act:hover { color: var(--red-deep); }
+.leaflet-popup-content { width: 19rem !important; max-width: calc(100vw - 6rem); }
+.city-label { white-space: nowrap; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); text-shadow: 0 0 3px var(--land), 0 0 3px var(--land), 0 0 6px var(--land); pointer-events: none; transform: translate(-50%, 6px); width: max-content; }
+.city-label.big { font-size: .9rem; font-weight: 600; color: var(--ink); }
+.map-note { background: var(--panel); color: var(--ink-2); padding: .3rem .55rem; font-size: .8rem; box-shadow: var(--shadow); max-width: 18rem; }
+
+/* bottom tabs (phones) */
+.tabs { display: none; }
+.tabs button {
+  flex: 1; display: grid; justify-items: center; gap: .15rem; background: none; border: 0; cursor: pointer;
+  padding: .45rem 0; color: var(--ink-2); font-size: .7rem; text-transform: capitalize; border-radius: .5rem;
+}
+.tabs button svg { width: 1.45rem; height: 1.45rem; }
+.tabs button[aria-current="page"] { background: var(--card); color: var(--ink); }
+
+/* dialogs */
+dialog { border: 0; padding: 0; background: var(--bg); color: var(--ink); box-shadow: var(--shadow); width: min(30rem, calc(100vw - 32px)); max-height: calc(100% - 32px); }
+dialog::backdrop { background: rgba(26,24,21,.55); }
+.fb { padding: 1.2rem 1.2rem 1.4rem; display: grid; gap: .8rem; }
+.fb header { display: grid; justify-items: center; gap: .2rem; }
+.fb .back { border: 0; background: none; cursor: pointer; color: var(--ink-2); justify-self: start; padding: 0; }
+.fb .back svg { width: 2.4rem; height: 2rem; }
+.fb h2 { margin: 0; font-weight: 400; font-size: 1.5rem; letter-spacing: .06em; color: var(--ink-2); text-transform: uppercase; }
+.fb .for { margin: 0; font-style: italic; }
+.fb .summary { background: var(--line); padding: .7rem .8rem; font-size: .92rem; }
+.fb .summary p { margin: 0; }
+.fb fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .3rem; }
+.fb legend { font-size: 1.1rem; padding: 0 0 .3rem; }
+.fb label.chk { display: flex; gap: .5rem; align-items: center; font-size: .95rem; cursor: pointer; }
+.fb label.chk input { width: 1.05rem; height: 1.05rem; accent-color: var(--red); margin: 0; }
+.fb .mail { background: var(--panel); border: 1px solid var(--line-2); padding: .7rem .8rem; font-size: .9rem; display: grid; gap: .25rem; }
+.fb .mail pre { margin: .4rem 0 0; white-space: pre-wrap; font-family: inherit; max-height: 12rem; overflow: auto; }
+.fb .mail .addr { font-weight: 600; user-select: all; }
+
+/* first-run disclaimer, from the startup screen */
+.splash { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: rgba(26,24,21,.6); padding: 16px; }
+.splash[hidden] { display: none; }
+.splash-card { background: var(--panel); width: min(23rem, 100%); padding: 1.6rem 1.4rem 1.4rem; display: grid; gap: 1rem; justify-items: center; text-align: center; box-shadow: var(--shadow); }
+.splash h1 {
+  margin: 0; font-family: var(--f-display); font-weight: 800; font-size: clamp(2.6rem, 11vw, 3.4rem); line-height: .86;
+  color: var(--red); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance;
+  -webkit-text-stroke: 1px var(--red-deep);
+}
+.splash .disc { background: var(--line); padding: .9rem 1rem; display: grid; gap: .8rem; font-size: .98rem; color: var(--ink-2); }
+.splash .disc .btn { width: 100%; }
+.splash img { height: 3rem; width: auto; }
+
+@media (max-width: 860px) {
+  .top { justify-content: center; padding-block: .4rem; }
+  .top-links, .brand .product { display: none; }
+  .brand img { height: 2.2rem; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  .panel, #map { grid-area: 1 / 1; }
+  .panel { border-right: 0; }
+  body[data-view="map"] .panel { visibility: hidden; pointer-events: none; }
+  body:not([data-view="map"]) #map { visibility: hidden; }
+  body[data-view="list"] .search, body[data-view="saved"] .search, body[data-view="settings"] .search { display: none; }
+  .seg { display: none; }
+  .tabs {
+    display: flex; gap: .15rem; flex: none; background: var(--panel); border-top: 1px solid var(--line);
+    padding: .3rem .4rem calc(.3rem + env(safe-area-inset-bottom, 0px));
+  }
+  .map-card { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 900; background: var(--card); box-shadow: var(--shadow); padding: .8rem .9rem; }
+  .map-card .row { padding: 0; border: 0; background: none; }
+  .map-card .x { position: absolute; top: .2rem; right: .35rem; border: 0; background: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: var(--muted); }
+}
+@media (min-width: 861px) { .map-card { display: none !important; } }
+body:not([data-view="map"]) .map-card { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2.5 6.5 8 4.5l8 2 5.5-2v13l-5.5 2-8-2-5.5 2z"/><path d="M8 4.5v13M16 6.5v13"/><path d="M12 13.5s-2.6-2.6-2.6-4.4a2.6 2.6 0 0 1 5.2 0c0 1.8-2.6 4.4-2.6 4.4z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M7.5 5h14M7.5 9.5h14M7.5 14h14M7.5 18.5h14"/><path d="M3 5h1.5M3 9.5h1.5M3 14h1.5M3 18.5h1.5" stroke-width="1.8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="currentColor"/></symbol>
+  <symbol id="i-star-o" viewBox="0 0 24 24"><path d="m12 2.8 2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17l-5.8 3.4 1.5-6.5-5-4.4 6.6-.6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M5 8h14l-1 13H6z"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3"/><circle cx="12" cy="12" r="6.6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 24 24"><path d="M14 5l7 6.5-7 6.5v-4c-5 0-8.5 1.5-11 5 1-5.5 4-10 11-10.5z" fill="currentColor"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 20"><path d="M10 1 1 10l9 9v-5.5h13v-7H10z" fill="currentColor"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 34"><path d="M12 33S1.5 19.6 1.5 12a10.5 10.5 0 0 1 21 0C22.5 19.6 12 33 12 33z" fill="currentColor" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="#fff"/></symbol>
+</svg>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Survive-A-Storm Shelters, Tornado Shelter Finder home">
+    <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+    <span class="product">Tornado Shelter Finder</span>
+  </a>
+  <nav class="top-links" aria-label="More">
+    <a href="https://survive-a-storm.com/store" target="_blank" rel="noopener"><svg><use href="#i-store"/></svg>Store</a>
+    <button type="button" id="top-settings" aria-pressed="false"><svg><use href="#i-gear"/></svg>Settings</button>
+  </nav>
+</header>
+
+<main class="app">
+  <section class="panel" aria-label="Shelters">
+    <form class="search" id="search-form" role="search">
+      <label class="field" for="q">
+        <svg aria-hidden="true"><use href="#i-search"/></svg>
+        <span class="sr">Search by city, state or ZIP</span>
+        <input id="q" name="q" type="search" placeholder="Search: City, State, Zip" autocomplete="off" enterkeyhint="search">
+        <button type="submit">Go</button>
+      </label>
+      <button class="locate" id="locate" type="button"><svg aria-hidden="true"><use href="#i-target"/></svg>Current location</button>
+      <div class="chips" role="group" aria-label="Filters">
+        <button type="button" class="chip" data-filter="ada" aria-pressed="false">ADA accessible</button>
+        <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
+        <button type="button" class="chip" data-filter="always" aria-pressed="false">Always open</button>
+      </div>
+      <p class="status" id="status" aria-live="polite">Loading shelters…</p>
+    </form>
+    <div class="seg" role="tablist" aria-label="Panel">
+      <button type="button" role="tab" id="seg-near" aria-selected="true" data-view="list">Nearby</button>
+      <button type="button" role="tab" id="seg-saved" aria-selected="false" data-view="saved">Saved</button>
+    </div>
+    <div class="panel-scroll" id="panel-scroll">
+      <ol class="list" id="results" aria-label="Nearest shelters"></ol>
+      <ol class="list" id="saved" aria-label="Saved shelters" hidden></ol>
+      <div class="settings" id="settings" hidden>
+        <div class="set-row"><label for="set-loc">My location</label><span class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></span></div>
+        <div class="set-row"><label for="set-map">Map</label><select id="set-map"><option value="google">Google Maps</option><option value="apple">Apple Maps</option></select></div>
+        <div class="set-row sep"><span>My device</span><span class="v" id="set-device"></span></div>
+        <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
+        <div class="set-row"><span>App version</span><span class="v" id="set-version">1.0 prototype (web)</span></div>
+        <div class="set-row sep" style="display:block">
+          <label for="set-fb" style="display:block;margin-bottom:.6rem">Feedback</label>
+          <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
+          <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button><button class="btn grey" type="button" id="set-cancel">Cancel</button></div>
+        </div>
+        <p class="fine">By using this site you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
+      </div>
+    </div>
+  </section>
+  <div id="map" role="region" aria-label="Shelter map"></div>
+  <div class="map-card" id="map-card" hidden></div>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <button type="button" data-tab="map"><svg aria-hidden="true"><use href="#i-map"/></svg>Map</button>
+  <button type="button" data-tab="list"><svg aria-hidden="true"><use href="#i-list"/></svg>List</button>
+  <button type="button" data-tab="search"><svg aria-hidden="true"><use href="#i-search"/></svg>Search</button>
+  <button type="button" data-tab="saved"><svg aria-hidden="true"><use href="#i-star"/></svg>Saved</button>
+  <button type="button" data-tab="store"><svg aria-hidden="true"><use href="#i-store"/></svg>Store</button>
+  <button type="button" data-tab="settings"><svg aria-hidden="true"><use href="#i-gear"/></svg>Settings</button>
+</nav>
+
+<dialog id="fb-dialog" aria-labelledby="fb-title">
+  <form class="fb" id="fb-form" method="dialog">
+    <header>
+      <button type="button" class="back" id="fb-back" aria-label="Back"><svg><use href="#i-back"/></svg></button>
+      <h2 id="fb-title">Feedback</h2>
+    </header>
+    <div id="fb-compose">
+      <div style="display:grid;gap:.8rem">
+        <p class="for">Providing feedback for the location:</p>
+        <div class="summary" id="fb-summary"></div>
+        <fieldset>
+          <legend>What would you like us to know?</legend>
+          <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
+          <label class="chk"><input type="checkbox" id="fb-r2" value="no_shelter">No shelter at this location</label>
+          <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
+        </fieldset>
+        <label class="sr" for="fb-text">Comments</label>
+        <textarea id="fb-text" placeholder="Anything else, such as the correct address or hours."></textarea>
+        <div class="btns"><button class="btn red" type="submit">Send</button><button class="btn grey" type="button" id="fb-cancel">Cancel</button></div>
+      </div>
+    </div>
+    <div id="fb-ready" hidden>
+      <div style="display:grid;gap:.8rem">
+        <p style="margin:0">Your feedback is ready. Send it from your email app, or copy it and email <span class="addr" id="fb-to">app@survive-a-storm.com</span>.</p>
+        <div class="mail"><div><strong>Subject:</strong> <span id="fb-subject"></span></div><pre id="fb-body"></pre></div>
+        <div class="btns">
+          <a class="btn red" id="fb-mailto" href="#">Open email app</a>
+          <button class="btn plain" type="button" id="fb-copy">Copy message</button>
+          <button class="btn grey" type="button" id="fb-done">Done</button>
+        </div>
+        <p class="fine" id="fb-copied" aria-live="polite"></p>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="splash" id="splash" hidden>
+  <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splash-title">
+    <h1 id="splash-title">Tornado Shelter Finder</h1>
+    <div class="disc">
+      <p style="margin:0">By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
+      <button class="btn red" type="button" id="agree">Agree</button>
+    </div>
+    <img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="shelter-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  var C = window.ShelterCore;
+  // Set by the iPhone/Android app shell (app-config.js); the website leaves it empty.
+  // apiBase: once the shared API is live, shelters come from it and feedback posts to it.
+  var APP = window.SAS_APP || {};
+  var API = APP.apiBase ? String(APP.apiBase).replace(/\/$/, "") : "";
+  var $ = function (s) { return document.querySelector(s); };
+  var DEFAULT_ORIGIN = { lat: 37.6872, lng: -97.3301, label: "Wichita, KS", example: true };
+  var RESULT_LIMIT = 40;
+
+  // ---- per-viewer preferences (browser storage only) ----
+  function load(k, d) { try { var v = localStorage.getItem("sas." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem("sas." + k, JSON.stringify(v)); } catch (e) {} }
+
+  var state = {
+    store: null, origin: null, results: [], selected: null,
+    filters: { ada: false, pets: false, always: false },
+    saved: load("saved", []), provider: load("provider", /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? "apple" : "google"),
+    useLocation: load("useLocation", false), view: "list"
+  };
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function isSaved(id) { return state.saved.indexOf(id) >= 0; }
+
+  // ---- the shared row, used in the list, saved list, popups and the phone map card ----
+  function rowHtml(s, opts) {
+    opts = opts || {};
+    var a = s.address, cap = s.capacity && s.capacity.label;
+    var saved = isSaved(s.id);
+    var dist = s.distance_mi != null ? s.distance_mi : (state.origin ? C.distanceMiles(state.origin, s.location) : null);
+    return '<div class="row' + (state.selected === s.id && !opts.bare ? " sel" : "") + '" data-id="' + esc(s.id) + '">' +
+      '<button type="button" class="info" data-act="select" aria-label="Show ' + esc(s.name) + ' on the map">' +
+        '<h3>' + esc(s.name) + '</h3>' +
+        '<p class="addr">' + (a.line ? esc(a.line) + "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "") + '</p>' +
+        (cap ? '<p class="cap">Capacity: ' + esc(cap) + '</p>' : "") +
+        '<p class="tags">' + esc(C.amenityLabels(s).join(" · ")) + '</p>' +
+        (s.notes ? '<p class="note">' + esc(s.notes) + '</p>' : "") +
+      '</button>' +
+      '<div class="acts">' +
+        '<span class="dist">' + esc(C.formatMiles(dist)) + '</span>' +
+        '<a class="act" target="_blank" rel="noopener" href="' + esc(C.directionsUrl(s, state.provider, state.origin && !state.origin.example ? state.origin : null)) + '"><svg aria-hidden="true"><use href="#i-dir"/></svg>Directions</a>' +
+        '<button type="button" class="act" data-act="save" aria-pressed="' + saved + '"><svg aria-hidden="true"><use href="' + (saved ? "#i-star" : "#i-star-o") + '"/></svg>' + (saved ? "Saved" : "Save") + '</button>' +
+        '<button type="button" class="act quiet" data-act="feedback"><svg aria-hidden="true" style="transform:scaleX(-1)"><use href="#i-dir"/></svg>Feedback</button>' +
+      '</div></div>';
+  }
+
+  function renderResults() {
+    var el = $("#results");
+    if (!state.results.length) {
+      el.innerHTML = state.store ? '<li class="empty"><h3>No shelters match</h3><p class="fine">Try turning off a filter or searching a nearby city.</p></li>' : "";
+      return;
+    }
+    el.innerHTML = state.results.map(function (s) { return "<li>" + rowHtml(s) + "</li>"; }).join("");
+  }
+
+  function renderSaved() {
+    var el = $("#saved");
+    var items = state.saved.map(function (id) { return state.store && state.store.getSync(id); }).filter(Boolean);
+    if (!items.length) {
+      el.innerHTML = '<li class="empty"><svg aria-hidden="true"><use href="#i-star"/></svg><h3>No saved locations yet</h3><button type="button" data-act="go-search">Search for locations</button></li>';
+      return;
+    }
+    if (state.origin) items.sort(function (a, b) { return C.distanceMiles(state.origin, a.location) - C.distanceMiles(state.origin, b.location); });
+    el.innerHTML = items.map(function (s) { return "<li>" + rowHtml(s) + "</li>"; }).join("");
+  }
+
+  function setStatus(html, isError) { var el = $("#status"); el.innerHTML = html; el.classList.toggle("error", !!isError); }
+
+  function describeOrigin() {
+    var o = state.origin, n = state.results.length;
+    if (!o) return;
+    var near = state.results[0];
+    setStatus("<strong>" + n + " nearest shelters</strong> to " + esc(o.label) +
+      (o.example ? ' <span class="eg">Example</span>' : "") +
+      (near ? ". Closest is " + esc(C.formatMiles(near.distance_mi)) + " away." : "."));
+  }
+
+  // ---- map ----
+  var map, baseLayers = {}, dotLayer, pinLayer, youMarker, tilesOn = false, popup;
+
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function styleBase() {
+    if (baseLayers.land) baseLayers.land.setStyle({ fillColor: css("--land"), fillOpacity: tilesOn ? 0 : 1, color: css("--county"), weight: .6, opacity: tilesOn ? 0 : 1 });
+    if (baseLayers.states) baseLayers.states.setStyle({ color: css("--state"), weight: 1.2, fill: false, opacity: tilesOn ? .55 : 1 });
+    if (dotLayer) dotLayer.eachLayer(function (l) { l.setStyle({ color: css("--panel"), fillColor: css("--dot") }); });
+  }
+
+  function initMap(basemap) {
+    map = L.map("map", { preferCanvas: true, zoomControl: true, worldCopyJump: false, minZoom: 3, maxZoom: 18 }).setView([DEFAULT_ORIGIN.lat, DEFAULT_ORIGIN.lng], 10);
+    map.attributionControl.setPrefix(false);
+    if (basemap && window.topojson) {
+      var counties = topojson.feature(basemap, basemap.objects.counties);
+      var states = topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; });
+      var nation = topojson.mesh(basemap, basemap.objects.nation);
+      map.createPane("base"); map.getPane("base").style.zIndex = 250;
+      baseLayers.land = L.geoJSON(counties, { pane: "base", interactive: false }).addTo(map);
+      baseLayers.states = L.geoJSON({ type: "FeatureCollection", features: [{ type: "Feature", geometry: states }, { type: "Feature", geometry: nation }] }, { pane: "base", interactive: false }).addTo(map);
+      map.attributionControl.addAttribution("Boundaries: US Census via us-atlas");
+    }
+    // Street tiles load only where the page is allowed to fetch them (e.g. the standalone site).
+    var probe = new Image();
+    probe.onload = function () {
+      tilesOn = true;
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+      styleBase();
+      drawCities();
+    };
+    probe.src = "https://tile.openstreetmap.org/4/3/6.png";
+
+    dotLayer = L.layerGroup().addTo(map);
+    pinLayer = L.layerGroup().addTo(map);
+    styleBase();
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    (mq.addEventListener ? mq.addEventListener("change", styleBase) : mq.addListener(styleBase));
+    new MutationObserver(styleBase).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  }
+
+  // City names from the shelter data, so the map has orientation where street tiles can't load.
+  var cityLayer, cityList = [];
+  function buildCities() {
+    var acc = {};
+    state.store.all().forEach(function (s) {
+      var k = s.address.city + ", " + s.address.state;
+      var e = acc[k] || (acc[k] = { name: s.address.city, lat: 0, lng: 0, n: 0 });
+      e.lat += s.location.lat; e.lng += s.location.lng; e.n++;
+    });
+    cityList = Object.keys(acc).map(function (k) { var e = acc[k]; return { name: e.name, lat: e.lat / e.n, lng: e.lng / e.n, n: e.n }; })
+      .sort(function (a, b) { return b.n - a.n; });
+    cityLayer = L.layerGroup().addTo(map);
+    map.on("moveend zoomend", drawCities);
+    drawCities();
+  }
+  function drawCities() {
+    if (!cityLayer) return;
+    cityLayer.clearLayers();
+    if (tilesOn || map.getZoom() < 7) return;
+    var b = map.getBounds().pad(0.05), shown = [], max = map.getZoom() >= 11 ? 40 : 25, minPx = 70;
+    for (var i = 0; i < cityList.length && shown.length < max; i++) {
+      var c = cityList[i];
+      if (!b.contains([c.lat, c.lng])) continue;
+      var pt = map.latLngToContainerPoint([c.lat, c.lng]);
+      if (shown.some(function (q) { return Math.abs(q.x - pt.x) < minPx && Math.abs(q.y - pt.y) < 22; })) continue;
+      shown.push(pt);
+      L.marker([c.lat, c.lng], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", html: '<div class="city-label' + (shown.length <= 3 ? " big" : "") + '">' + esc(c.name) + "</div>", iconSize: [0, 0] }) }).addTo(cityLayer);
+    }
+  }
+
+  function drawAllDots() {
+    if (!map) return;
+    var r = function () { return map.getZoom() >= 9 ? 4 : map.getZoom() >= 6 ? 2.5 : 1.6; };
+    state.store.all().forEach(function (s) {
+      if (s.status !== "active") return;
+      var m = L.circleMarker([s.location.lat, s.location.lng], { radius: r(), weight: .8, color: css("--panel"), fillColor: css("--dot"), fillOpacity: .85 });
+      m.on("click", function () { select(s.id, { pan: false }); });
+      m.addTo(dotLayer);
+    });
+    map.on("zoomend", function () { var rad = r(); dotLayer.eachLayer(function (l) { l.setRadius(rad); }); });
+  }
+
+  function pinIcon(sel) {
+    return L.divIcon({ className: "pin" + (sel ? " sel" : ""), html: '<svg><use href="#i-pin"/></svg>', iconSize: sel ? [30, 42] : [24, 34], iconAnchor: sel ? [15, 42] : [12, 34], popupAnchor: [0, -32] });
+  }
+
+  function drawPins() {
+    if (!map) return;
+    pinLayer.clearLayers();
+    state.results.forEach(function (s) {
+      var m = L.marker([s.location.lat, s.location.lng], { icon: pinIcon(s.id === state.selected), title: s.name, keyboard: true, riseOnHover: true });
+      m.on("click", function () { select(s.id, { pan: false }); });
+      m.addTo(pinLayer);
+    });
+    if (youMarker) youMarker.remove();
+    if (state.origin && !state.origin.zoneOnly) {
+      youMarker = L.marker([state.origin.lat, state.origin.lng], { icon: L.divIcon({ className: "", html: '<div class="you"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }), interactive: false, keyboard: false, zIndexOffset: -100 }).addTo(map);
+    }
+  }
+
+  function fitResults() {
+    if (!state.origin || !map) return;
+    var pts = state.results.slice(0, 8).map(function (s) { return [s.location.lat, s.location.lng]; });
+    pts.push([state.origin.lat, state.origin.lng]);
+    map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: tilesOn ? 14 : 12, animate: true });
+  }
+
+  function isPhone() { return window.matchMedia("(max-width: 860px)").matches; }
+
+  function select(id, opts) {
+    opts = opts || {};
+    var s = state.store.getSync(id);
+    if (!s) return;
+    state.selected = id;
+    var inResults = state.results.filter(function (r) { return r.id === id; })[0];
+    var withDist = inResults || s;
+    drawPins();
+    renderResults(); renderSaved();
+    if (isPhone()) {
+      var card = $("#map-card");
+      card.innerHTML = '<button type="button" class="x" data-act="close-card" aria-label="Close">&times;</button>' + rowHtml(withDist, { bare: true });
+      card.hidden = false;
+      if (opts.fromList) setView("map");
+    } else if (map) {
+      if (popup) popup.remove();
+      popup = L.popup({ maxWidth: 360, minWidth: 280, autoPanPadding: [30, 30] }).setLatLng([s.location.lat, s.location.lng]).setContent(rowHtml(withDist, { bare: true })).openOn(map);
+      var li = document.querySelector('#results .row[data-id="' + id + '"]');
+      if (li && opts.scroll !== false) li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+    if (opts.pan !== false && map) map.setView([s.location.lat, s.location.lng], Math.max(map.getZoom(), 13), { animate: true });
+  }
+
+  // ---- searching ----
+  function runQuery(origin, opts) {
+    opts = opts || {};
+    state.origin = origin;
+    state.selected = null;
+    if (popup) popup.remove();
+    $("#map-card").hidden = true;
+    return state.store.query({
+      lat: origin.lat, lng: origin.lng, limit: RESULT_LIMIT,
+      ada: state.filters.ada || undefined, pets: state.filters.pets || undefined,
+      availability: state.filters.always ? "always" : undefined
+    }).then(function (rows) {
+      state.results = rows;
+      renderResults(); renderSaved(); drawPins(); describeOrigin();
+      if (opts.fit !== false) fitResults();
+      $("#panel-scroll").scrollTop = 0;
+    });
+  }
+
+  function search(text) {
+    text = text.trim();
+    if (!text) { setStatus("Type a city and state, like Moore, OK, or a 5-digit ZIP.", true); return; }
+    setStatus("Searching for " + esc(text) + "…");
+    state.store.geocode(text).then(function (hit) {
+      if (!hit) {
+        setStatus("We couldn't find “" + esc(text) + "”. Try a city and state, like Moore, OK, or a 5-digit ZIP.", true);
+        return;
+      }
+      runQuery(hit).then(function () { if (isPhone()) setView("list"); });
+    });
+  }
+
+  function locate(quiet) {
+    var btn = $("#locate");
+    if (!navigator.geolocation) { if (!quiet) setStatus("This browser can't share your location. Search a city, state or ZIP instead.", true); return; }
+    btn.setAttribute("aria-busy", "true");
+    if (!quiet) setStatus("Finding your location…");
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      btn.removeAttribute("aria-busy");
+      runQuery({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }).then(function () { if (isPhone() && state.view === "search") setView("list"); });
+    }, function () {
+      btn.removeAttribute("aria-busy");
+      if (!quiet) setStatus("Your location isn't available here. Allow location for this site, or search a city, state or ZIP.", true);
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  }
+
+  // remote geocoder for street addresses; only reachable where the page may call it
+  function nominatim(text) {
+    var url = "https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=1&q=" + encodeURIComponent(text);
+    return fetch(url, { headers: { Accept: "application/json" } }).then(function (r) { return r.ok ? r.json() : []; }).then(function (j) {
+      return j && j[0] ? { lat: +j[0].lat, lng: +j[0].lon, label: j[0].display_name.split(",").slice(0, 3).join(",") } : null;
+    });
+  }
+
+  // ---- views ----
+  function setView(v) {
+    if (v === "search" && !isPhone()) v = "list";
+    state.view = v;
+    document.body.dataset.view = v;
+    var showSaved = v === "saved", showSettings = v === "settings";
+    $("#results").hidden = showSaved || showSettings;
+    $("#saved").hidden = !showSaved;
+    $("#settings").hidden = !showSettings;
+    $("#seg-near").setAttribute("aria-selected", String(!showSaved && !showSettings));
+    $("#seg-saved").setAttribute("aria-selected", String(showSaved));
+    $("#top-settings").setAttribute("aria-pressed", String(showSettings));
+    document.querySelectorAll(".tabs button").forEach(function (b) {
+      if (b.dataset.tab === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    if (v === "map" && map) setTimeout(function () { map.invalidateSize(); }, 0);
+    if (v === "search" && isPhone()) setTimeout(function () { $("#q").focus(); }, 50);
+  }
+
+  // ---- feedback (layout spec: a pre-filled email to app@survive-a-storm.com) ----
+  var fbShelter = null;
+  function deviceLabel() {
+    var ua = navigator.userAgent, d = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows PC" : "Computer";
+    return (APP.name || "Shelter Finder website 1.0") + " on " + d;
+  }
+  function openFeedback(s) {
+    fbShelter = s;
+    var a = s.address;
+    $("#fb-summary").innerHTML = "<p>" + esc(s.name) + "</p><p>" + esc(a.line) + "</p><p>" + esc(a.city) + ", " + esc(a.state) + "</p>" +
+      (s.capacity && s.capacity.label ? '<p style="margin-top:.6rem">Capacity: ' + esc(s.capacity.label) + "</p>" : "") + (s.notes ? "<p>" + esc(s.notes) + "</p>" : "");
+    ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
+    $("#fb-text").value = "";
+    showFbStep("compose");
+    $("#fb-dialog").showModal();
+  }
+  function showFbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-copied").textContent = ""; }
+  function showReady(report) {
+    $("#fb-to").textContent = report.email.to;
+    $("#fb-subject").textContent = report.email.subject;
+    $("#fb-body").textContent = report.email.body;
+    $("#fb-mailto").href = report.email.mailto;
+    showFbStep("ready");
+    if (!$("#fb-dialog").open) $("#fb-dialog").showModal();
+    report.submission.channel = APP.channel || "web";
+    // Once the API is live, every report also lands in the review dashboard (POST /v1/submissions).
+    if (API) fetch(API + "/v1/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(report.submission) }).catch(function () {});
+    // Prototype outbox: the review tool will read these as submissions once the API exists.
+    var outbox = load("outbox", []); outbox.push(Object.assign({ created_at: new Date().toISOString() }, report.submission)); save("outbox", outbox.slice(-50));
+  }
+
+  // ---- events ----
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-act]");
+    if (!t) return;
+    var row = t.closest(".row"), id = row && row.dataset.id;
+    var act = t.dataset.act;
+    if (act === "select") select(id, { fromList: true, scroll: false });
+    else if (act === "save") {
+      if (isSaved(id)) state.saved = state.saved.filter(function (x) { return x !== id; }); else state.saved.unshift(id);
+      save("saved", state.saved);
+      renderResults(); renderSaved();
+      document.querySelectorAll('.leaflet-popup .row[data-id="' + id + '"], #map-card .row[data-id="' + id + '"]').forEach(function (r) {
+        var s = state.store.getSync(id), d = state.results.filter(function (x) { return x.id === id; })[0] || s;
+        r.outerHTML = rowHtml(d, { bare: true });
+      });
+    }
+    else if (act === "feedback") openFeedback(state.store.getSync(id));
+    else if (act === "close-card") { $("#map-card").hidden = true; state.selected = null; drawPins(); }
+    else if (act === "go-search") setView(isPhone() ? "search" : "list");
+  });
+
+  $("#search-form").addEventListener("submit", function (e) { e.preventDefault(); search($("#q").value); });
+  $("#locate").addEventListener("click", function () { locate(false); });
+  document.querySelectorAll(".chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var k = c.dataset.filter; state.filters[k] = !state.filters[k];
+      c.setAttribute("aria-pressed", String(state.filters[k]));
+      if (state.origin) runQuery(state.origin, { fit: false });
+    });
+  });
+  document.querySelectorAll(".seg button").forEach(function (b) { b.addEventListener("click", function () { setView(b.dataset.view); }); });
+  $("#top-settings").addEventListener("click", function () { setView(state.view === "settings" ? "list" : "settings"); });
+  document.querySelectorAll(".tabs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.tab === "store") { window.open(C.STORE_URL, "_blank", "noopener"); return; }
+      setView(b.dataset.tab);
+    });
+  });
+
+  $("#fb-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!$("#fb-compose").hidden) {
+      var reasons = ["#fb-r1", "#fb-r2", "#fb-r3"].filter(function (id) { return $(id).checked; }).map(function (id) { return $(id).value; });
+      showReady(C.buildReport(fbShelter, reasons, $("#fb-text").value.trim(), deviceLabel()));
+    }
+  });
+  function closeFb() { $("#fb-dialog").close(); }
+  $("#fb-cancel").addEventListener("click", closeFb);
+  $("#fb-done").addEventListener("click", closeFb);
+  $("#fb-back").addEventListener("click", function () { if (!$("#fb-ready").hidden && fbShelter) showFbStep("compose"); else closeFb(); });
+  $("#fb-copy").addEventListener("click", function () {
+    var text = "To: " + $("#fb-to").textContent + "\nSubject: " + $("#fb-subject").textContent + "\n\n" + $("#fb-body").textContent;
+    var done = function () { $("#fb-copied").textContent = "Copied. Paste it into an email to " + C.FEEDBACK_EMAIL + "."; };
+    try {
+      navigator.clipboard.writeText(text).then(done, function () { selectBody(); });
+    } catch (err) { selectBody(); }
+  });
+  function selectBody() {
+    var r = document.createRange(); r.selectNodeContents($("#fb-body"));
+    var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    $("#fb-copied").textContent = "Copying isn't allowed here. The message is selected; copy it with your keyboard.";
+  }
+
+  $("#set-map").value = state.provider;
+  $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderResults(); renderSaved(); });
+  if (APP.version) $("#set-version").textContent = APP.version;
+  $("#set-loc").checked = state.useLocation;
+  $("#set-loc").addEventListener("change", function () { state.useLocation = this.checked; save("useLocation", state.useLocation); if (this.checked) locate(false); });
+  $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 1.0") + " on ", "");
+  $("#set-send").addEventListener("click", function () {
+    var text = $("#set-fb").value.trim();
+    if (!text) { $("#set-fb").focus(); return; }
+    fbShelter = null;
+    showReady(C.buildReport(null, [], text, deviceLabel()));
+    $("#set-fb").value = "";
+  });
+  $("#set-cancel").addEventListener("click", function () { $("#set-fb").value = ""; });
+
+  // first-run disclaimer, as on the app's startup screen
+  if (!load("agreed", false)) {
+    $("#splash").hidden = false;
+    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; $("#q").focus(); });
+  }
+
+  // ---- boot ----
+  setView(isPhone() ? "map" : "list");
+  var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
+  // Prefer the live API's full list; fall back to the bundled copy (always there in the app, so it works offline).
+  var sheltersJSON = API ? getJSON(API + "/v1/shelters/snapshot").then(function (j) { return j.shelters ? j : { source: "Shelter API", count: j.length, shelters: j }; }).catch(function () { return getJSON("data/shelters.json"); }) : getJSON("data/shelters.json");
+  Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
+    var data = res[0];
+    state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
+    $("#set-count").textContent = data.count.toLocaleString("en-US") + " from " + data.source;
+    if (window.L) initMap(res[1]); else $("#map").innerHTML = '<p class="fine" style="padding:1rem">The map didn\'t load. The list still works.</p>';
+    drawAllDots();
+    if (map) buildCities();
+    runQuery(DEFAULT_ORIGIN);
+    if (state.useLocation) locate(true);
+  }).catch(function (err) {
+    setStatus("The shelter list didn't load. Reload the page to try again.", true);
+    console.error(err);
+  });
+})();
+</script>

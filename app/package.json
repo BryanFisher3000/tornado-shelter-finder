@@ -1,0 +1,33 @@
+{
+  "name": "sas-shelter-finder-app",
+  "version": "2.0.0",
+  "description": "Survive-A-Storm Tornado Shelter Finder for iPhone and Android, built from the shelter finder website.",
+  "scripts": {
+    "build": "node tools/build-www.mjs",
+    "sync": "npm run build && cap sync",
+    "android": "npm run sync && cap open android",
+    "ios": "npm run sync && cap open ios",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug",
+    "assets": "capacitor-assets generate --iconBackgroundColor \"#ffffff\" --iconBackgroundColorDark \"#1A1815\" --splashBackgroundColor \"#F3F2F0\" --splashBackgroundColorDark \"#1A1815\""
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app-launcher": "^8.0.1",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/geolocation": "^8.2.4",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/barlow-semi-condensed": "^5.3.0",
+    "leaflet": "^1.9.4",
+    "topojson-client": "^3.1.0"
+  },
+  "private": true
+}

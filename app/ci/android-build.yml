@@ -1,0 +1,24 @@
+# Copy to .github/workflows/android-build.yml once the code is in a GitHub repo
+# laid out as  app/  (this folder)  and  website/  side by side.
+# Every push builds a test APK you can download from the run's Artifacts and install on an Android phone.
+name: Android test build
+on: [push, workflow_dispatch]
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+        with: { packages: platform-tools }
+      - run: npm ci
+      - run: npm run build && npx cap sync android
+      - run: cd android && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shelter-finder-debug-apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk

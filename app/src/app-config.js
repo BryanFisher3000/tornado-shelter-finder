@@ -1,0 +1,9 @@
+/* App settings read by the shared shelter finder page (website/src/index.html).
+ * apiBase: set to the shared API's address (e.g. "https://api.survive-a-storm.com")
+ * once it is live. Until then the app uses the shelter list bundled inside it,
+ * and feedback goes out as a pre-filled email to app@survive-a-storm.com. */
+window.SAS_APP = {
+  name: "Shelter Finder app __VERSION__",
+  version: "__VERSION__",
+  apiBase: null
+};

@@ -1,0 +1,12 @@
+{
+  "appId": "com.surviveastorm.shelterfinder",
+  "appName": "Shelter Finder",
+  "webDir": "www",
+  "backgroundColor": "#F3F2F0",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never", "scheme": "Shelter Finder" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 2000, "launchAutoHide": true, "backgroundColor": "#F3F2F0", "showSpinner": false },
+    "StatusBar": { "overlaysWebView": true, "style": "DEFAULT" }
+  }
+}
