@@ -20,7 +20,7 @@ create table if not exists public.profiles (
 -- Every add / edit / report from the app or website. The review dashboard reads this.
 create table if not exists public.submissions (
   id               bigint generated always as identity primary key,
-  kind             text not null check (kind in ('add', 'report', 'general')),
+  kind             text not null check (kind in ('add', 'report', 'county', 'general')),  -- 'county' added by forms.sql
   status           text not null default 'pending'
                      check (status in ('pending', 'in_review', 'needs_info', 'approved', 'rejected', 'superseded')),
   shelter_id       text,            -- null for a new shelter

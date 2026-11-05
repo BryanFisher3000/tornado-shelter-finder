@@ -30,6 +30,8 @@ function show(v: unknown) {
   return String(v);
 }
 
+const CO_LABELS: Record<string, string> = { agency: "Agency", director: "Director", phone: "Phone", email: "Email", address: "Address", website: "Website" };
+
 type Row = [string, string];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function describe(s: any): { title: string; rows: Row[] } {
@@ -49,8 +51,12 @@ function describe(s: any): { title: string; rows: Row[] } {
     rows.push(["Shelter ID", `${s.shelter_id} (version ${s.base_version ?? "?"})`],
       ["Issues", (s.report_reasons ?? []).map((r: string) => REASONS[r] ?? r).join("; ") || "None selected"]);
     for (const [k, v] of Object.entries(s.proposed_changes ?? {})) rows.push([`Change ${LABELS[k] ?? k}`, show(v)]);
+  } else if (s.kind === "county") {
+    title = `County contact correction: ${s.shelter_label || "county " + (s.county_id ?? "?")}`;
+    if (s.shelter_label) rows.push(["County", s.shelter_label]);
+    for (const [k, v] of Object.entries(s.proposed_changes ?? {})) rows.push([`Change ${CO_LABELS[k] ?? k}`, show(v)]);
   } else {
-    title = "App feedback";
+    title = s.channel === "website-form" ? "Website form message" : "App feedback";
   }
   if (who) title += ` from ${who}`;
   rows.push(["Comments", s.comment || "(none)"]);
@@ -100,7 +106,7 @@ Deno.serve(async (req) => {
     if (error) return new Response(error.message, { status: 500 });
     if (!subs || !subs.length) return new Response("nothing new", { status: 200 });
     const n = (k: string) => subs.filter((s) => s.kind === k).length;
-    const parts = [n("add") && plural(n("add"), "new shelter", "new shelters"), n("report") && plural(n("report"), "edit", "edits"),
+    const parts = [n("add") && plural(n("add"), "new shelter", "new shelters"), n("report") && plural(n("report"), "edit", "edits"), n("county") && plural(n("county"), "county contact", "county contacts"),
       n("general") && plural(n("general"), "feedback", "feedback")].filter(Boolean).join(", ");
     const subject = `Shelter Finder: ${plural(subs.length, "new submission", "new submissions")} (${parts})`;
     const items = subs.map((s) => ({ s, d: describe(s) }));

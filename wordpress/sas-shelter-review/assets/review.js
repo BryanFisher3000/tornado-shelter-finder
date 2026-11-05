@@ -6,7 +6,7 @@
   var CFG = window.SAS_REVIEW || {};
 
   var REASONS = { address_wrong: "Address is wrong", no_shelter: "No shelter at this location", not_public: "Not a public shelter" };
-  var KIND_LABEL = { add: "Add", report: "Edit / report", general: "Feedback" };
+  var KIND_LABEL = { add: "Add", report: "Edit / report", county: "County contact", general: "Feedback" };
   var STATUS_LABEL = { pending: "Pending", in_review: "In review", needs_info: "Needs info", approved: "Approved", rejected: "Rejected", superseded: "Superseded" };
   var REJECT_REASONS = [["spam", "Spam or advertising"], ["wrong", "Information is wrong"], ["duplicate", "Duplicate of an existing shelter"], ["unverifiable", "Can't verify it"], ["other", "Other"]];
   // Fields a submission can carry, in the order the diff shows them.
@@ -15,9 +15,11 @@
     ["lat", "Latitude"], ["lng", "Longitude"], ["capacity_label", "Capacity"], ["ada_accessible", "Wheelchair accessible"],
     ["pets_allowed", "Pets allowed"], ["availability", "Open"], ["access", "Access"], ["notes", "Notes"]
   ];
-  var LABEL = {}; FIELDS.forEach(function (f) { LABEL[f[0]] = f[1]; });
+  // Fields a county contact correction can carry.
+  var CO_FIELDS = [["agency", "Office / agency"], ["director", "Director / coordinator"], ["phone", "Phone"], ["email", "Email"], ["address", "Office address"], ["website", "Website"]];
+  var LABEL = {}; FIELDS.concat(CO_FIELDS).forEach(function (f) { LABEL[f[0]] = f[1]; });
 
-  var S = { me: CFG.me || "", subs: [], byId: {}, near: {}, people: {}, shList: [], shSel: null, shHist: [], coList: [], coSel: null };
+  var S = { me: CFG.me || "", subs: [], byId: {}, coById: {}, near: {}, people: {}, shList: [], shSel: null, shHist: [], coList: [], coSel: null };
   var ui = { view: "queue", tab: "open", kind: "all", q: "", sel: null, act: null, subq: "", substatus: "all", busy: false,
     shq: "", shstate: "", shstatus: "all", coq: "", costate: "", comissing: false };
   var SH_STATUS = { active: "In the app", hidden: "Hidden", retired: "Closed" };
@@ -49,7 +51,12 @@
     return { name: r.name, street: r.address_line, city: r.city, county: r.county, state: r.state, zip: r.zip, lat: r.lat != null ? String(r.lat) : "", lng: r.lng != null ? String(r.lng) : "",
       capacity_label: r.capacity_label, ada_accessible: r.ada_accessible, pets_allowed: r.pets_allowed, availability: r.availability, access: r.access, notes: r.notes };
   }
-  function current(s) { return s.shelter_id ? S.byId[s.shelter_id] || null : null; }
+  function current(s) {
+    if (s.kind === "county") return s.county_id ? S.coById[s.county_id] || null : null;
+    return s.shelter_id ? S.byId[s.shelter_id] || null : null;
+  }
+  // The current record in the diff's field names (a county row already uses them).
+  function curFlat(s) { var c = current(s); return s.kind === "county" ? c : flatShelter(c); }
   function proposed(s) {
     if (s.kind === "add" && s.proposed_shelter) {
       var p = s.proposed_shelter, a = p.address || {}, l = p.location || {};
@@ -59,17 +66,19 @@
     return s.proposed_changes || {};
   }
   function changedFields(s) {
-    var cur = flatShelter(current(s)) || {}, p = proposed(s);
-    return FIELDS.map(function (f) { return f[0]; }).filter(function (k) { return k in p && String(p[k] == null ? "" : p[k]) !== String(cur[k] == null ? "" : cur[k]); });
+    var cur = curFlat(s) || {}, p = proposed(s);
+    return (s.kind === "county" ? CO_FIELDS : FIELDS).map(function (f) { return f[0]; }).filter(function (k) { return k in p && String(p[k] == null ? "" : p[k]) !== String(cur[k] == null ? "" : cur[k]); });
   }
   function displayName(s) {
     if (s.kind === "add" && s.proposed_shelter) return s.proposed_shelter.name || "New shelter";
+    if (s.kind === "county") return s.shelter_label || "County contact";
     var c = current(s); if (c) return c.name;
     if (s.shelter_label) return s.shelter_label.split(" — ")[0];
     return s.kind === "general" ? "App feedback" : "Shelter " + (s.shelter_id || "");
   }
   function displayLoc(s) {
     if (s.kind === "add" && s.proposed_shelter) { var a = s.proposed_shelter.address || {}; return [a.city, a.state].filter(Boolean).join(", "); }
+    if (s.kind === "county") { var co = current(s); return co && co.agency ? co.agency : ""; }
     var c = current(s); if (c) return [c.city, c.state].filter(Boolean).join(", ");
     return s.kind === "general" ? (s.comment || "").slice(0, 40) : "";
   }
@@ -80,7 +89,13 @@
   function noteText(note) { return String(note || "").replace(/^\[(\w+)\]\s*/, ""); }
 
   function checks(s) {
-    var out = [], cur = current(s), c = flatShelter(cur), p = proposed(s), ch = changedFields(s);
+    var out = [], cur = current(s), c = s.kind === "county" ? null : flatShelter(cur), p = proposed(s), ch = changedFields(s);
+    if (s.kind === "county") {
+      if (!s.county_id) out.push({ lvl: "fail", t: "Not linked to a county in the list", d: "Make the change in County contacts, then mark it handled" });
+      else if (!cur) out.push({ lvl: "warn", t: "Loading the county's current details…", d: "" });
+      else if (!ch.length) out.push({ lvl: "warn", t: "Nothing differs from the list", d: "The list may already have these details" });
+      if (p.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email)) out.push({ lvl: "fail", t: "The new email doesn't look right", d: p.email });
+    }
     if (s.shelter_id && !cur && s.kind !== "add") out.push({ lvl: "fail", t: "Shelter " + s.shelter_id + " isn't in the shelter list", d: "There is nothing to change, so reject it or mark it handled" });
     if (cur && cur.status !== "active" && s.kind === "report") out.push({ lvl: "warn", t: "This shelter is " + (SH_STATUS[cur.status] || cur.status).toLowerCase() + " already", d: cur.hidden_reason || "It doesn't show in the app" });
     if (cur && s.base_version != null && cur.version > s.base_version) out.push({ lvl: "fail", t: "Shelter changed since this was sent (v" + s.base_version + " → v" + cur.version + ")", d: "Re-check against the current values" });
@@ -154,7 +169,11 @@
       S.subs = d.submissions || [];
       S.people = {};
       S.subs.forEach(function (s) { var k = personKey(s); if (!k) return; var p = S.people[k] = S.people[k] || { approved: 0, rejected: 0, total: 0 }; p.total++; if (s.status === "approved") p.approved++; if (s.status === "rejected") p.rejected++; });
-      return loadShelters(S.subs.map(function (s) { return s.shelter_id; })).catch(function () { toast("Couldn't load the shelters these submissions point at"); });
+      var coIds = S.subs.map(function (s) { return s.county_id; }).filter(function (id, i, a) { return id && a.indexOf(id) === i; });
+      return Promise.all([
+        loadShelters(S.subs.map(function (s) { return s.shelter_id; })).catch(function () { toast("Couldn't load the shelters these submissions point at"); }),
+        coIds.length ? api("GET", "counties?ids=" + coIds.slice(0, 200).join(",")).then(function (d) { (d.counties || []).forEach(function (r) { S.coById[r.id] = r; }); }).catch(function () { toast("Couldn't load the counties these corrections point at"); }) : null
+      ]);
     });
   }
   function refresh(quiet) {
@@ -223,7 +242,7 @@
     var counts = { open: 0, needs_info: 0, resolved: 0 };
     S.subs.forEach(function (s) { if (isOpen(s)) counts.open++; else if (s.status === "needs_info") counts.needs_info++; else counts.resolved++; });
     $("qtabs").innerHTML = [["open", "Queue"], ["needs_info", "Needs info"], ["resolved", "Resolved"]].map(function (t) { return '<button data-tab="' + t[0] + '" aria-pressed="' + (ui.tab === t[0]) + '">' + t[1] + '<span class="n">' + counts[t[0]] + "</span></button>"; }).join("");
-    $("chips").innerHTML = [["all", "All kinds"], ["add", "Adds"], ["report", "Edits / reports"], ["general", "Feedback"]].map(function (k) { return '<button class="chip" data-kind="' + k[0] + '" aria-pressed="' + (ui.kind === k[0]) + '">' + k[1] + "</button>"; }).join("");
+    $("chips").innerHTML = [["all", "All kinds"], ["add", "Adds"], ["report", "Edits / reports"], ["county", "County contacts"], ["general", "Feedback"]].map(function (k) { return '<button class="chip" data-kind="' + k[0] + '" aria-pressed="' + (ui.kind === k[0]) + '">' + k[1] + "</button>"; }).join("");
     var list = filtered();
     $("qlist").innerHTML = list.length ? list.map(function (s) {
       var lvl = isDecidable(s) ? flagLevel(s) : "ok", n = checks(s).filter(function (c) { return c.lvl === lvl; }).length;
@@ -237,22 +256,22 @@
     $("view-queue").classList.toggle("has-sel", !!s);
     if (s) loadNear(s);
     if (!s) { $("detail").innerHTML = '<div class="qempty" style="padding:60px 20px">Pick a submission from the queue to compare it with the shelter list.</div>'; $("side").innerHTML = ""; return; }
-    var cur = current(s), c = flatShelter(cur) || {}, p = proposed(s), ch = changedFields(s);
+    var cur = current(s), c = curFlat(s) || {}, p = proposed(s), ch = changedFields(s), isCo = s.kind === "county";
     var rows = ch.map(function (k) { return '<tr class="chg"><td class="f">' + LABEL[k] + "<small>" + k + '</small></td><td class="old">' + (cur ? '<span class="v">' + show(k, c[k]) + "</span>" : '<span class="empty-v">not in list yet</span>') + '</td><td class="new"><span class="v">' + show(k, p[k]) + "</span></td></tr>"; }).join("");
     var lat = p.lat || c.lat, lng = p.lng || c.lng;
     var links = [];
     if (lat && lng) links.push('<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + "," + lng) + '" target="_blank" rel="noopener">' + (s.kind === "add" ? "Proposed pin" : "Shelter pin") + " in Google Maps</a>");
     var street = p.street || c.street;
     if (street) links.push('<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([street, p.city || c.city, p.state || c.state, p.zip || c.zip].join(" ")) + '" target="_blank" rel="noopener">Look up the address</a>');
-    var addr = s.kind === "add" ? [p.street, p.city, p.state, p.zip] : cur ? [c.street, c.city, c.county && c.county + " County", c.state, c.zip] : [s.shelter_label && s.shelter_label.split(" — ")[1]];
+    var addr = isCo ? [] : s.kind === "add" ? [p.street, p.city, p.state, p.zip] : cur ? [c.street, c.city, c.county && c.county + " County", c.state, c.zip] : [s.shelter_label && s.shelter_label.split(" — ")[1]];
     $("detail").innerHTML = '<div class="detail-h"><button class="back" id="back">← Queue</button>' +
       '<div class="row"><span class="type ' + s.kind + '">' + KIND_LABEL[s.kind] + "</span>" + statusChip(s) + '<span class="mono" style="color:var(--muted)">#' + s.id + (s.shelter_id ? " · shelter " + esc(s.shelter_id) + (s.base_version != null ? " v" + s.base_version : "") : "") + "</span></div>" +
-      "<h1>" + esc(displayName(s)) + '</h1><div class="sub">' + (esc(addr.filter(Boolean).join(", ")) || "&nbsp;") + (cur ? ' · <span class="vchip ' + esc(cur.verification_status) + '">' + esc(String(cur.verification_status).replace(/_/g, " ")) + "</span>" + (cur.status !== "active" ? ' <span class="status rejected">' + esc(SH_STATUS[cur.status] || cur.status) + "</span>" : "") + ' <button class="linkish" data-shelter="' + esc(cur.id) + '">Open in Shelters</button>' : "") + "</div>" +
+      "<h1>" + esc(displayName(s)) + '</h1><div class="sub">' + (esc(addr.filter(Boolean).join(", ")) || "&nbsp;") + (cur && !isCo ? ' · <span class="vchip ' + esc(cur.verification_status) + '">' + esc(String(cur.verification_status).replace(/_/g, " ")) + "</span>" + (cur.status !== "active" ? ' <span class="status rejected">' + esc(SH_STATUS[cur.status] || cur.status) + "</span>" : "") + ' <button class="linkish" data-shelter="' + esc(cur.id) + '">Open in Shelters</button>' : "") + "</div>" +
       ((s.report_reasons || []).length ? '<div class="row">' + s.report_reasons.map(function (r) { return '<span class="rchip">' + esc(REASONS[r] || r) + "</span>"; }).join("") + "</div>" : "") + "</div>" +
       (s.comment ? '<div class="comment"><div class="who">' + esc(submitterName(s) || "Submitter") + " wrote, " + fmtDate(s.created_at) + "</div>" + esc(s.comment) + "</div>" : "") +
       '<div class="diffwrap">' + (s.kind === "general" ? '<p class="fine">General feedback. There are no shelter changes to apply.</p>' :
         '<div class="diffbar"><h3>' + (s.kind === "add" ? "Proposed shelter" : "Current vs. proposed") + '</h3><span class="hint">' + ch.length + " field" + (ch.length === 1 ? "" : "s") + "</span></div>" +
-        (rows ? '<div class="tablewrap"><table class="diff"><thead><tr><th>Field</th><th>' + (cur ? "In the list now (v" + cur.version + ")" : "In the list now") + "</th><th>Proposed</th></tr></thead><tbody>" + rows + "</tbody></table></div>" : '<p class="fine">No field changes, only the problems marked above.</p>')) +
+        (rows ? '<div class="tablewrap"><table class="diff"><thead><tr><th>Field</th><th>' + (cur && !isCo ? "In the list now (v" + cur.version + ")" : "In the list now") + "</th><th>Proposed</th></tr></thead><tbody>" + rows + "</tbody></table></div>" : '<p class="fine">No field changes, only the problems marked above.</p>')) +
       '<div class="geo">' + links.join("") + "</div></div>";
     renderSide(s);
   }
@@ -267,6 +286,7 @@
       var gone = (s.report_reasons || []).some(function (r) { return r === "no_shelter" || r === "not_public"; });
       var wrongAddr = (s.report_reasons || []).indexOf("address_wrong") >= 0;
       var what = s.kind === "add" ? "Adds this shelter to the list, so it shows in the app." : s.kind === "general" ? "Marks the feedback as handled." :
+        s.kind === "county" ? (changedFields(s).length ? "Updates this county's contact details. The public county page shows them right away." : "Marks it approved. There is nothing to change in the county list.") :
         [changedFields(s).length ? "Updates the shelter with the proposed values." : "", gone ? "Hides the shelter from the app." : "", wrongAddr ? "Fix the address yourself afterwards in Shelters; the submitter didn't send a new one." : "",
           !changedFields(s).length && !gone && !wrongAddr ? "Marks it approved. There is nothing to change in the shelter." : ""].filter(Boolean).join(" ");
       if (a === "approve") body = '<div class="summary">' + what + " It's saved with your WordPress name and can be undone from the shelter's history.</div>" + '<label for="note">Review note (internal)<textarea id="note" placeholder="e.g. Checked against the county shelter list"></textarea></label>';
