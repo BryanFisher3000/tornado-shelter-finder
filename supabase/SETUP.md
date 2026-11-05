@@ -58,5 +58,6 @@
 
 20. Upload the plugin zip again (v1.2.0 or later). On the county contacts page, replace the old
     list with the shortcode `[sas_county_contacts]`. Add `state="TX"` to open on one state.
+    Add `edit_url="/your-edit-page/?county={county}&state={state}"` to show an Edit link on each county.
     It reads `county_contacts` from Supabase and refreshes within an hour, or right away
     when a county is saved on the review page.

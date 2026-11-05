@@ -11,3 +11,4 @@
 .sas-county-card dd { margin: 0; overflow-wrap: anywhere; }
 .sas-county-none, .sas-county-note, .sas-county-empty { color: var(--sc-muted); margin: 0; }
 @media (max-width: 480px) { .sas-county-bar select, .sas-county-bar input { min-width: 0; width: 100%; } .sas-county-bar label { flex: 1 1 100%; } }
+.sas-county-edit { margin: 10px 0 0; font-size: 14px; }

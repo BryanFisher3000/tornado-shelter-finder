@@ -1,7 +1,8 @@
 <?php
 /**
  * Public county emergency management contacts page.
- * Shortcode: [sas_county_contacts]  (optional: state="TX" to open on one state)
+ * Shortcode: [sas_county_contacts]  (optional: state="TX" to open on one state;
+ *   edit_url="/edit-county/?county={county}&state={state}" adds an Edit link to each county)
  * Reads public.county_contacts in Supabase on the server and caches it for an hour;
  * saving a county on the review page clears the cache, so edits show right away.
  */
@@ -71,7 +72,7 @@ function sas_county_link( $url ) {
 add_shortcode(
 	'sas_county_contacts',
 	function ( $atts ) {
-		$atts  = shortcode_atts( array( 'state' => '' ), $atts, 'sas_county_contacts' );
+		$atts  = shortcode_atts( array( 'state' => '', 'edit_url' => '', 'edit_label' => 'Edit' ), $atts, 'sas_county_contacts' );
 		$rows  = sas_county_contacts_all();
 		if ( is_wp_error( $rows ) ) {
 			return '<p>County contacts are not available right now. Please try again later.</p>';
@@ -132,6 +133,9 @@ add_shortcode(
 								<?php if ( $r['website'] ) : ?><dt>Website</dt><dd><?php echo sas_county_link( $r['website'] ); // phpcs:ignore WordPress.Security.EscapeOutput ?></dd><?php endif; ?>
 								<?php if ( $r['address'] ) : ?><dt>Address</dt><dd><?php echo esc_html( $r['address'] ); ?></dd><?php endif; ?>
 							</dl>
+						<?php endif; ?>
+						<?php if ( $atts['edit_url'] ) : ?>
+							<p class="sas-county-edit"><a href="<?php echo esc_url( strtr( $atts['edit_url'], array( '{county}' => rawurlencode( $r['county'] ), '{state}' => rawurlencode( $r['state'] ) ) ) ); ?>"><?php echo esc_html( $atts['edit_label'] ); ?></a></p>
 						<?php endif; ?>
 					</div>
 				<?php endforeach; ?>
