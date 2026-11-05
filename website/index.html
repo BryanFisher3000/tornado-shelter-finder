@@ -1171,7 +1171,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
         '<p class="addr">' + (a.line ? esc(a.line) + "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "") + '</p>' +
         (cap ? '<p class="cap">' + esc(cap) + ' capacity</p>' : "") +
         '<p class="tags">' + esc(C.amenityLabels(s).join(" · ")) + '</p>' +
-        (s.notes ? '<p class="note">' + esc(s.notes) + '</p>' : "") +
       '</button>' +
       '<div class="acts">' +
         '<span class="dist">' + esc(C.formatMiles(dist)) + '</span>' +
