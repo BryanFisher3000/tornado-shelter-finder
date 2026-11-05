@@ -342,5 +342,6 @@ function sas_review_county_save( WP_REST_Request $req ) {
 	if ( is_wp_error( $rows ) ) {
 		return $rows;
 	}
+	sas_county_contacts_flush();
 	return empty( $rows ) ? new WP_Error( 'sas_missing', 'No county with that id.', array( 'status' => 404 ) ) : rest_ensure_response( array( 'county' => $rows[0] ) );
 }

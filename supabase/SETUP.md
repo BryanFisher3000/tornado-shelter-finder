@@ -53,3 +53,12 @@
 19. SQL Editor > New query: paste `digest.sql` and Run. It schedules one email at 13:00 UTC
     (7 AM Central, 8 AM in summer) listing everything not emailed yet, and turns off the
     per-submission email. Nothing is sent on days with no new submissions.
+
+## Public county contacts page
+
+20. Upload the plugin zip again (v1.2.0 or later). On the County Emergency Management Contacts page,
+    replace the Raw HTML element that holds the county list (its style and the whole list) with
+    the shortcode `[sas_county_contacts]`. It prints the same list, search, state filter and
+    Edit pop-up, filled from `county_contacts` in Supabase. It refreshes within an hour, or right
+    away when a county is saved on the review page. Use `edit_url="..."` to send the Edit links
+    somewhere other than the page's `edit/` subpage, or `edit_url=""` to hide them.
