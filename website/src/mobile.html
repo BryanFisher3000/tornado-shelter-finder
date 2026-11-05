@@ -147,10 +147,10 @@ body.searching .searchbar { z-index: 41; }
 /* detail pane */
 .detail { padding: .2rem 16px 1.4rem; }
 .detail address { font-style: italic; color: var(--ink-2); margin: 0 0 .7rem; font-size: 1.05rem; }
-/* shelter page: no line under the name; address and facts line up with the name (past the back arrow); buttons centered */
+/* shelter page: no line under the name; address, buttons and facts line up with the name (past the back arrow) */
 .sheet[data-pane="detail"] .sheet-body { border-top-color: transparent; }
 .detail address, .detail .facts { margin-left: var(--title-indent, 2.6rem); }
-.detail .actions { justify-content: center; gap: .45rem; }
+.detail .actions { justify-content: flex-start; gap: .45rem; margin-left: var(--title-indent, 2.6rem); }
 /* same size as the Directions button on the list cards */
 .detail .actions .pill { padding: .3rem .45rem; gap: .25rem; font-size: .8rem; border-radius: 5px; }
 .detail .actions .pill svg { width: .85rem; height: .85rem; }
