@@ -14,7 +14,8 @@
       <div class="views" role="group" aria-label="View">
         <button data-view="queue" aria-pressed="true">Review queue</button>
         <button data-view="subs" aria-pressed="false">All submissions</button>
-        <button data-view="apply" aria-pressed="false">To apply</button>
+        <button data-view="shelters" aria-pressed="false">Shelters</button>
+        <button data-view="counties" aria-pressed="false">County contacts</button>
       </div>
       <div class="toolbar"><div class="stats" id="stats"></div><button class="reopen" id="refresh">Refresh</button></div>
     </div>
@@ -36,10 +37,22 @@
       <div class="tablewrap" style="border:0;border-radius:0"><table class="log"><thead><tr><th>Sent</th><th>Kind</th><th>Shelter</th><th>Status</th><th>From</th><th>Decided</th></tr></thead><tbody id="subs-body"></tbody></table></div>
     </main>
 
-    <main id="view-apply" class="pane" hidden>
-      <div class="pane-h"><h2>Approved changes to make in the sheet</h2><span class="mono" id="apply-count"></span></div>
-      <p class="fine" style="padding:10px 14px 0;margin:0">The app reads its shelters from the Location tab of the SAS Shelter Finder Data sheet. Make these changes there, then rebuild the shelter list as usual.</p>
-      <ul class="applylist" id="apply-list"></ul>
+    <main id="view-shelters" class="panes two" hidden>
+      <section class="pane">
+        <div class="pane-h"><h2>Shelters</h2><span class="mono" id="sh-count"></span></div>
+        <div class="audit-tools"><input id="shq" type="search" placeholder="Name, address, city, county or id" aria-label="Search shelters"><input id="shstate" class="state-in" maxlength="2" placeholder="State" aria-label="State"><div class="chips" id="sh-tools" style="border:0;padding:0"></div></div>
+        <div class="tablewrap" style="border:0;border-radius:0"><table class="log"><thead><tr><th>Shelter</th><th>Where</th><th>Status</th><th>Last change</th></tr></thead><tbody id="sh-body"></tbody></table></div>
+      </section>
+      <section class="pane detail" id="sh-edit" aria-live="polite"></section>
+    </main>
+
+    <main id="view-counties" class="panes two" hidden>
+      <section class="pane">
+        <div class="pane-h"><h2>County EM contacts</h2><span class="mono" id="co-count"></span></div>
+        <div class="audit-tools"><input id="coq" type="search" placeholder="County, agency, director or email" aria-label="Search counties"><input id="costate" class="state-in" maxlength="2" placeholder="State" aria-label="State"><label class="chk"><input type="checkbox" id="comissing"> Missing a contact</label></div>
+        <div class="tablewrap" style="border:0;border-radius:0"><table class="log"><thead><tr><th>County</th><th>Agency</th><th>Contact</th></tr></thead><tbody id="co-body"></tbody></table></div>
+      </section>
+      <section class="pane detail" id="co-edit" aria-live="polite"></section>
     </main>
 
     <div class="keys" id="keys"><span><kbd>J</kbd> <kbd>K</kbd> next / previous</span><span><kbd>A</kbd> approve</span><span><kbd>Q</kbd> ask a question</span><span><kbd>R</kbd> reject</span><span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> confirm</span></div>

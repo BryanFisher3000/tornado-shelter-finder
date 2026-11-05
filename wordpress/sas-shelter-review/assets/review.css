@@ -260,6 +260,23 @@
 #sas-review .stats { margin-left: 0; width: 100%; }
 #sas-review .detail-h h1 { font-size: 22px; }
 }
+/* Shelters and County contacts tabs */
+#sas-review .panes.two { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+#sas-review .panes.two .detail { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+#sas-review .edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#sas-review .edit-grid input { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 7px 9px; background: var(--surface-2); font-weight: 400; color: var(--ink); min-width: 0; }
+#sas-review .edit-grid textarea { min-height: 52px; }
+#sas-review .audit-tools input.state-in { flex: 0 0 72px; text-transform: uppercase; }
+#sas-review .audit-tools .chk { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+#sas-review table.log tr.cur td { background: var(--surface-2); }
+#sas-review .timeline .reopen { margin-top: 6px; font-size: 12.5px; padding: 4px 8px; }
+@media (max-width: 1000px) {
+#sas-review .panes.two { grid-template-columns: minmax(0, 1fr); }
+#sas-review .panes.two .detail, #sas-review .panes.two:not(.has-sel) .detail { position: static; max-height: none; display: block; }
+}
+@media (max-width: 520px) {
+#sas-review .edit-grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media (prefers-reduced-motion: reduce) {
 #sas-review, #sas-review * { transition: none !important; animation: none !important; }
 }

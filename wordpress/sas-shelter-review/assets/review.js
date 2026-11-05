@@ -4,7 +4,6 @@
 (function () {
   "use strict";
   var CFG = window.SAS_REVIEW || {};
-  var SHELTERS_URLS = [CFG.sheltersUrl, "https://raw.githubusercontent.com/BryanFisher3000/tornado-shelter-finder/main/website/data/shelters.json"].filter(Boolean);
 
   var REASONS = { address_wrong: "Address is wrong", no_shelter: "No shelter at this location", not_public: "Not a public shelter" };
   var KIND_LABEL = { add: "Add", report: "Edit / report", general: "Feedback" };
@@ -18,8 +17,10 @@
   ];
   var LABEL = {}; FIELDS.forEach(function (f) { LABEL[f[0]] = f[1]; });
 
-  var S = { me: CFG.me || "", subs: [], shelters: null, byId: {}, people: {} };
-  var ui = { view: "queue", tab: "open", kind: "all", q: "", sel: null, act: null, subq: "", substatus: "all", busy: false };
+  var S = { me: CFG.me || "", subs: [], byId: {}, near: {}, people: {}, shList: [], shSel: null, shHist: [], coList: [], coSel: null };
+  var ui = { view: "queue", tab: "open", kind: "all", q: "", sel: null, act: null, subq: "", substatus: "all", busy: false,
+    shq: "", shstate: "", shstatus: "all", coq: "", costate: "", comissing: false };
+  var SH_STATUS = { active: "In the app", hidden: "Hidden", retired: "Closed" };
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -42,12 +43,11 @@
   var toastT;
   function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3500); }
 
-  // Flatten a shelters.json record into the diff's field names.
+  // Put a shelters table row into the diff's field names.
   function flatShelter(r) {
     if (!r) return null;
-    var a = r.address || {}, l = r.location || {};
-    return { name: r.name, street: a.line, city: a.city, county: a.county, state: a.state, zip: a.zip, lat: l.lat != null ? String(l.lat) : "", lng: l.lng != null ? String(l.lng) : "",
-      capacity_label: r.capacity && r.capacity.label, ada_accessible: r.ada_accessible, pets_allowed: r.pets_allowed, availability: r.availability, access: r.access, notes: r.notes };
+    return { name: r.name, street: r.address_line, city: r.city, county: r.county, state: r.state, zip: r.zip, lat: r.lat != null ? String(r.lat) : "", lng: r.lng != null ? String(r.lng) : "",
+      capacity_label: r.capacity_label, ada_accessible: r.ada_accessible, pets_allowed: r.pets_allowed, availability: r.availability, access: r.access, notes: r.notes };
   }
   function current(s) { return s.shelter_id ? S.byId[s.shelter_id] || null : null; }
   function proposed(s) {
@@ -70,7 +70,7 @@
   }
   function displayLoc(s) {
     if (s.kind === "add" && s.proposed_shelter) { var a = s.proposed_shelter.address || {}; return [a.city, a.state].filter(Boolean).join(", "); }
-    var c = current(s); if (c) return c.address.city + ", " + c.address.state;
+    var c = current(s); if (c) return [c.city, c.state].filter(Boolean).join(", ");
     return s.kind === "general" ? (s.comment || "").slice(0, 40) : "";
   }
   function submitterName(s) { var m = s.submitter || {}; return [m.first_name, m.last_name].filter(Boolean).join(" "); }
@@ -81,19 +81,23 @@
 
   function checks(s) {
     var out = [], cur = current(s), c = flatShelter(cur), p = proposed(s), ch = changedFields(s);
-    if (s.shelter_id && !cur) out.push({ lvl: "fail", t: "Shelter " + s.shelter_id + " isn't in the current list", d: "It may have been removed or renamed in the sheet since this was sent" });
+    if (s.shelter_id && !cur && s.kind !== "add") out.push({ lvl: "fail", t: "Shelter " + s.shelter_id + " isn't in the shelter list", d: "There is nothing to change, so reject it or mark it handled" });
+    if (cur && cur.status !== "active" && s.kind === "report") out.push({ lvl: "warn", t: "This shelter is " + (SH_STATUS[cur.status] || cur.status).toLowerCase() + " already", d: cur.hidden_reason || "It doesn't show in the app" });
     if (cur && s.base_version != null && cur.version > s.base_version) out.push({ lvl: "fail", t: "Shelter changed since this was sent (v" + s.base_version + " → v" + cur.version + ")", d: "Re-check against the current values" });
     if (s.kind === "add") {
-      var dup = null, near = null;
-      if (S.shelters) S.shelters.some(function (r) {
-        var a = r.address || {};
-        if ((p.street && normAddr(a.line) === normAddr(p.street) && (!p.zip || a.zip === p.zip)) || (normName(r.name) === normName(p.name) && a.city === p.city)) { dup = r; return true; }
-        if (!near && p.lat && r.location && miles(+p.lat, +p.lng, r.location.lat, r.location.lng) < 0.03) near = r;
+      var dup = null, near = null, nearby = S.near[s.id];
+      if (s.status !== "approved" && nearby) nearby.some(function (r) {
+        if ((p.street && normAddr(r.address_line) === normAddr(p.street) && (!p.zip || r.zip === p.zip)) || (normName(r.name) === normName(p.name) && r.city === p.city)) { dup = r; return true; }
+        if (!near && p.lat && miles(+p.lat, +p.lng, r.lat, r.lng) < 0.125) near = r;
         return false;
       });
-      if (dup) out.push({ lvl: "fail", t: "Likely duplicate of " + dup.name, d: dup.address.line + ", " + dup.address.city + " " + dup.address.state + " (" + dup.id + ")" });
-      else if (near) out.push({ lvl: "warn", t: "Another shelter is within 50 m", d: near.name + " (" + near.id + ")" });
-      else out.push({ lvl: "ok", t: "No matching shelter in the list", d: "Checked address, name and pins within 50 m of " + (S.shelters ? S.shelters.length.toLocaleString() : "?") + " shelters" });
+      var where = function (r) { return [r.address_line, r.city, r.state].filter(Boolean).join(", ") + " (" + (SH_STATUS[r.status] || r.status).toLowerCase() + ")"; };
+      if (s.status === "approved") out.push({ lvl: "ok", t: "Added to the shelter list", d: s.shelter_id ? "Shelter " + s.shelter_id : "" });
+      else if (!p.lat || !p.lng) out.push({ lvl: "warn", t: "Couldn't check for duplicates", d: "There is no map pin to search near" });
+      else if (!nearby) out.push({ lvl: "warn", t: "Checking for nearby shelters…", d: "" });
+      else if (dup) out.push({ lvl: "fail", t: "Likely duplicate of " + dup.name, d: where(dup) });
+      else if (near) out.push({ lvl: "warn", t: "Another shelter is within 200 m", d: near.name + ", " + where(near) });
+      else out.push({ lvl: "ok", t: "No matching shelter nearby", d: "Checked names, addresses and pins within about 2 km, hidden ones included" });
       if (!p.lat || !p.lng) out.push({ lvl: "warn", t: "No map pin", d: "Needs coordinates before it can show on the map" });
       var bad = [];
       if (!p.street) bad.push("address"); if (p.state && !/^[A-Z]{2}$/.test(p.state)) bad.push("state"); if (p.zip && !/^\d{5}$/.test(p.zip)) bad.push("ZIP");
@@ -105,7 +109,7 @@
     }
     if (s.kind === "report" && (s.report_reasons || []).indexOf("no_shelter") >= 0) {
       var n = S.subs.filter(function (o) { return o.shelter_id === s.shelter_id && (o.report_reasons || []).indexOf("no_shelter") >= 0 && o.status !== "rejected"; }).length;
-      out.push({ lvl: "warn", t: n > 1 ? n + " separate \"no shelter\" reports" : "Says there's no shelter here", d: n > 1 ? "Independent reports agree" : "Approving means removing it from the Location tab" });
+      out.push({ lvl: "warn", t: n > 1 ? n + " separate \"no shelter\" reports" : "Says there's no shelter here", d: (n > 1 ? "Independent reports agree. " : "") + "Approving hides it from the app" });
     }
     if (s.kind === "report" && !ch.length && !(s.report_reasons || []).length) out.push({ lvl: "warn", t: "No changes or problems selected", d: "Only a comment" });
     var k = personKey(s), hist = k ? S.people[k] : null;
@@ -117,13 +121,20 @@
   function flagLevel(s) { var c = checks(s); return c.some(function (x) { return x.lvl === "fail"; }) ? "fail" : c.some(function (x) { return x.lvl === "warn"; }) ? "warn" : "ok"; }
 
   // ---------- data ----------
-  function loadShelters() {
-    var i = 0;
-    function next() {
-      if (i >= SHELTERS_URLS.length) return Promise.reject(new Error("shelter list unavailable"));
-      return fetch(SHELTERS_URLS[i++], { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(next);
-    }
-    return next().then(function (d) { S.shelters = d.shelters || []; S.byId = {}; S.shelters.forEach(function (r) { S.byId[r.id] = r; }); });
+  // Load the shelters the submissions point at (any status), 100 ids per request.
+  function loadShelters(ids) {
+    ids = ids.filter(function (id, i) { return id && ids.indexOf(id) === i; });
+    var chunks = []; for (var i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+    return Promise.all(chunks.map(function (c) { return api("GET", "shelters?ids=" + encodeURIComponent(c.join(","))); })).then(function (rs) {
+      rs.forEach(function (d) { (d.shelters || []).forEach(function (r) { S.byId[r.id] = r; }); });
+    });
+  }
+  function loadNear(s) {
+    var p = proposed(s);
+    if (s.kind !== "add" || !p.lat || !p.lng || S.near[s.id]) return;
+    S.near[s.id] = null;
+    api("GET", "shelters?near=" + encodeURIComponent(p.lat + "," + p.lng)).then(function (d) { S.near[s.id] = d.shelters || []; if (String(ui.sel) === String(s.id)) renderDetail(); renderQueue(); })
+      .catch(function () { delete S.near[s.id]; });
   }
   function api(method, path, body) {
     return fetch(CFG.api + path, {
@@ -132,7 +143,7 @@
       body: body ? JSON.stringify(body) : undefined
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? "Your WordPress sign-in has expired. Reload the page." : d.message || "HTTP " + r.status);
+        if (!r.ok) { var e = new Error(r.status === 401 || r.status === 403 ? "Your WordPress sign-in has expired. Reload the page." : d.message || "HTTP " + r.status); e.code = d.code; e.status = r.status; throw e; }
         return d;
       });
     });
@@ -143,6 +154,7 @@
       S.subs = d.submissions || [];
       S.people = {};
       S.subs.forEach(function (s) { var k = personKey(s); if (!k) return; var p = S.people[k] = S.people[k] || { approved: 0, rejected: 0, total: 0 }; p.total++; if (s.status === "approved") p.approved++; if (s.status === "rejected") p.rejected++; });
+      return loadShelters(S.subs.map(function (s) { return s.shelter_id; })).catch(function () { toast("Couldn't load the shelters these submissions point at"); });
     });
   }
   function refresh(quiet) {
@@ -155,15 +167,27 @@
     return api("POST", "submissions/" + s.id, Object.assign({ action: action }, extra || {})).then(function (d) {
       ui.busy = false;
       if (d.submission) Object.assign(s, d.submission);
+      if (d.shelter) S.byId[d.shelter.id] = d.shelter;
       if (msg) toast(msg);
-      return loadSubs().then(render);
-    }).catch(function (e) { ui.busy = false; toast("Not saved: " + (e.message || e)); render(); });
+      return loadSubs().then(render).then(function () { return true; });
+    }).catch(function (e) {
+      ui.busy = false;
+      // The shelter changed after the person saw it: show the current values and let the reviewer decide.
+      if (e.code === "sas_changed" && action === "approve" && !(extra && extra.force)) {
+        return loadShelters([s.shelter_id]).then(function () {
+          render();
+          if (window.confirm(e.message + "\n\nApply the proposed values over the current ones?")) return update(s, action, Object.assign({}, extra, { force: true }), msg);
+          return false;
+        });
+      }
+      toast("Not saved: " + (e.message || e)); render(); return false;
+    });
   }
 
   // ---------- start ----------
   function boot() {
     if (!CFG.keySet) { $("detail").innerHTML = '<div class="qempty" style="padding:40px 20px">The Supabase secret key is not set yet. Add <code>SAS_SUPABASE_SECRET_KEY</code> to wp-config.php, then reload.</div>'; return; }
-    Promise.all([loadShelters().catch(function () { toast("Couldn't load the shelter list, so diffs show only the proposed values"); S.shelters = []; }), loadSubs()]).then(function () {
+    loadSubs().then(function () {
       var h = location.hash.slice(1);
       if (/^\d+$/.test(h) && subById(h)) openSub(h); else render();
     }).catch(function (e) { $("detail").innerHTML = '<div class="qempty" style="padding:40px 20px">Could not load submissions: ' + esc(e.message || e) + "</div>"; });
@@ -174,14 +198,14 @@
   // ---------- render ----------
   function render() {
     $("keys").hidden = ui.view !== "queue";
-    ["queue", "subs", "apply"].forEach(function (v) { $("view-" + v).hidden = ui.view !== v; var b = document.querySelector('[data-view="' + v + '"]'); if (b) b.setAttribute("aria-pressed", ui.view === v); });
+    ["queue", "subs", "shelters", "counties"].forEach(function (v) { $("view-" + v).hidden = ui.view !== v; var b = document.querySelector('[data-view="' + v + '"]'); if (b) b.setAttribute("aria-pressed", ui.view === v); });
     renderStats();
-    if (ui.view === "queue") { renderQueue(); renderDetail(); } else if (ui.view === "subs") renderSubs(); else renderApply();
+    if (ui.view === "queue") { renderQueue(); renderDetail(); } else if (ui.view === "subs") renderSubs(); else if (ui.view === "shelters") renderShelters(); else renderCounties();
   }
   function renderStats() {
     var open = S.subs.filter(isOpen), oldest = open.reduce(function (o, s) { return !o || new Date(s.created_at) < new Date(o.created_at) ? s : o; }, null);
-    var toApply = S.subs.filter(function (s) { return s.status === "approved" && s.kind !== "general"; }).length;
-    $("stats").innerHTML = [[open.length, "in queue"], [open.filter(function (s) { return flagLevel(s) === "fail"; }).length, "need a closer look"], [oldest ? age(oldest.created_at) : "–", "oldest wait"], [toApply, "approved"]]
+    var approved = S.subs.filter(function (s) { return s.status === "approved" && s.kind !== "general"; }).length;
+    $("stats").innerHTML = [[open.length, "in queue"], [open.filter(function (s) { return flagLevel(s) === "fail"; }).length, "need a closer look"], [oldest ? age(oldest.created_at) : "–", "oldest wait"], [approved, "approved"]]
       .map(function (x) { return '<div class="stat"><b>' + x[0] + "</b><span>" + x[1] + "</span></div>"; }).join("");
   }
   function filtered() {
@@ -211,6 +235,7 @@
   function renderDetail() {
     var s = subById(ui.sel);
     $("view-queue").classList.toggle("has-sel", !!s);
+    if (s) loadNear(s);
     if (!s) { $("detail").innerHTML = '<div class="qempty" style="padding:60px 20px">Pick a submission from the queue to compare it with the shelter list.</div>'; $("side").innerHTML = ""; return; }
     var cur = current(s), c = flatShelter(cur) || {}, p = proposed(s), ch = changedFields(s);
     var rows = ch.map(function (k) { return '<tr class="chg"><td class="f">' + LABEL[k] + "<small>" + k + '</small></td><td class="old">' + (cur ? '<span class="v">' + show(k, c[k]) + "</span>" : '<span class="empty-v">not in list yet</span>') + '</td><td class="new"><span class="v">' + show(k, p[k]) + "</span></td></tr>"; }).join("");
@@ -222,7 +247,7 @@
     var addr = s.kind === "add" ? [p.street, p.city, p.state, p.zip] : cur ? [c.street, c.city, c.county && c.county + " County", c.state, c.zip] : [s.shelter_label && s.shelter_label.split(" — ")[1]];
     $("detail").innerHTML = '<div class="detail-h"><button class="back" id="back">← Queue</button>' +
       '<div class="row"><span class="type ' + s.kind + '">' + KIND_LABEL[s.kind] + "</span>" + statusChip(s) + '<span class="mono" style="color:var(--muted)">#' + s.id + (s.shelter_id ? " · shelter " + esc(s.shelter_id) + (s.base_version != null ? " v" + s.base_version : "") : "") + "</span></div>" +
-      "<h1>" + esc(displayName(s)) + '</h1><div class="sub">' + (esc(addr.filter(Boolean).join(", ")) || "&nbsp;") + (cur ? ' · <span class="vchip ' + esc(cur.verification_status) + '">' + esc(String(cur.verification_status).replace(/_/g, " ")) + "</span>" : "") + "</div>" +
+      "<h1>" + esc(displayName(s)) + '</h1><div class="sub">' + (esc(addr.filter(Boolean).join(", ")) || "&nbsp;") + (cur ? ' · <span class="vchip ' + esc(cur.verification_status) + '">' + esc(String(cur.verification_status).replace(/_/g, " ")) + "</span>" + (cur.status !== "active" ? ' <span class="status rejected">' + esc(SH_STATUS[cur.status] || cur.status) + "</span>" : "") + ' <button class="linkish" data-shelter="' + esc(cur.id) + '">Open in Shelters</button>' : "") + "</div>" +
       ((s.report_reasons || []).length ? '<div class="row">' + s.report_reasons.map(function (r) { return '<span class="rchip">' + esc(REASONS[r] || r) + "</span>"; }).join("") + "</div>" : "") + "</div>" +
       (s.comment ? '<div class="comment"><div class="who">' + esc(submitterName(s) || "Submitter") + " wrote, " + fmtDate(s.created_at) + "</div>" + esc(s.comment) + "</div>" : "") +
       '<div class="diffwrap">' + (s.kind === "general" ? '<p class="fine">General feedback. There are no shelter changes to apply.</p>' :
@@ -239,7 +264,12 @@
     else if (isDecidable(s)) {
       var a = ui.act, btn = function (key, l, kb, dis) { return '<button data-act="' + key + '" aria-pressed="' + (a === key) + '"' + (dis ? ' disabled title="No email to send a question to"' : "") + ">" + l + "<kbd>" + kb + "</kbd></button>"; };
       var body = "";
-      if (a === "approve") body = '<div class="summary">' + (s.kind === "add" ? "Marks it approved. It shows up in the app after it's added to the Location tab (see To apply)." : s.kind === "general" ? "Marks the feedback as handled." : "Marks it approved. The changes show up in the app after they're made in the Location tab (see To apply).") + '</div><label for="note">Review note (internal)<textarea id="note" placeholder="e.g. Checked against the county shelter list"></textarea></label>';
+      var gone = (s.report_reasons || []).some(function (r) { return r === "no_shelter" || r === "not_public"; });
+      var wrongAddr = (s.report_reasons || []).indexOf("address_wrong") >= 0;
+      var what = s.kind === "add" ? "Adds this shelter to the list, so it shows in the app." : s.kind === "general" ? "Marks the feedback as handled." :
+        [changedFields(s).length ? "Updates the shelter with the proposed values." : "", gone ? "Hides the shelter from the app." : "", wrongAddr ? "Fix the address yourself afterwards in Shelters; the submitter didn't send a new one." : "",
+          !changedFields(s).length && !gone && !wrongAddr ? "Marks it approved. There is nothing to change in the shelter." : ""].filter(Boolean).join(" ");
+      if (a === "approve") body = '<div class="summary">' + what + " It's saved with your WordPress name and can be undone from the shelter's history.</div>" + '<label for="note">Review note (internal)<textarea id="note" placeholder="e.g. Checked against the county shelter list"></textarea></label>';
       if (a === "request_info") body = '<label for="note">Question for ' + esc(email) + '<textarea id="note" placeholder="Say what\'s missing or needs a source"></textarea></label><div class="summary">Opens your email app with the question, and moves this to Needs info.</div>';
       if (a === "reject") body = '<label for="reason">Reason<select id="reason"><option value="">Choose a reason</option>' + REJECT_REASONS.map(function (r) { return '<option value="' + r[0] + '">' + r[1] + "</option>"; }).join("") + '</select></label><label for="note">Review note (internal)<textarea id="note" placeholder="Optional unless the reason is Other"></textarea></label>';
       var label = { approve: s.kind === "general" ? "Mark handled" : "Approve", request_info: "Email the question", reject: "Reject submission" }[a];
@@ -274,33 +304,124 @@
         "<td>" + esc(submitterName(s) || "Not signed in") + '<div style="color:var(--muted);font-size:12.5px">' + esc(submitterEmail(s)) + "</div></td><td>" + (s.reviewed_at ? fmtDate(s.reviewed_at) : '<span class="empty-v">open</span>') + "</td></tr>";
     }).join("") || '<tr><td colspan="6" class="qempty">No submissions match.</td></tr>';
   }
-  // Approved changes, written the way the Location tab of the sheet stores them, so they can be copied in.
-  function sheetValue(k, v) {
-    if (k === "ada_accessible" || k === "pets_allowed") return v === "yes" ? "Y" : v === "no" ? "N" : "";
-    if (k === "availability") return v === "always" ? "Always" : v === "county_activated" ? "County activated" : "Emergencies";
-    return v == null ? "" : String(v);
+  // ---------- Shelters tab: search, edit, hide and undo, straight in the shelter list ----------
+  var EDIT_FIELDS = FIELDS.concat([["status", "Shown in the app"], ["hidden_reason", "Why hidden"]]);
+  var CHOICES = {
+    ada_accessible: [["yes", "Yes"], ["no", "No"], ["unknown", "Unknown"]],
+    pets_allowed: [["yes", "Yes"], ["no", "No"], ["unknown", "Unknown"]],
+    availability: [["emergencies_only", "During emergencies"], ["always", "Year-round"], ["county_activated", "When the county opens it"]],
+    access: [["public", "Public"], ["registration_required", "Registration required"], ["restricted", "Restricted"]],
+    status: [["active", "Yes, in the app"], ["hidden", "No, hidden"], ["retired", "No, closed"]]
+  };
+  function searchShelters() {
+    S.shSearched = true;
+    var qs = "shelters?q=" + encodeURIComponent(ui.shq) + "&state=" + encodeURIComponent(ui.shstate) + (ui.shstatus !== "all" ? "&status=" + ui.shstatus : "");
+    $("sh-count").textContent = "Searching…";
+    return api("GET", qs).then(function (d) { S.shList = d.shelters || []; S.shList.forEach(function (r) { S.byId[r.id] = r; }); renderShelters(); })
+      .catch(function (e) { $("sh-count").textContent = ""; toast("Search failed: " + (e.message || e)); });
   }
-  var SHEET_COL = { name: "Name", street: "Address", city: "City", county: "County", state: "State", zip: "Zip", lat: "Latitude", lng: "Longitude", capacity_label: "Capacity", ada_accessible: "ADA", pets_allowed: "Pets", availability: "Open", notes: "Note" };
-  function renderApply() {
-    var list = S.subs.filter(function (s) { return s.status === "approved" && s.kind !== "general"; }).sort(function (a, b) { return new Date(b.reviewed_at || b.created_at) - new Date(a.reviewed_at || a.created_at); });
-    $("apply-count").textContent = list.length;
-    $("apply-list").innerHTML = list.map(function (s) {
-      var p = proposed(s), cur = current(s), ch = changedFields(s), gone = (s.report_reasons || []).indexOf("no_shelter") >= 0 || (s.report_reasons || []).indexOf("not_public") >= 0;
-      var body;
-      if (s.kind === "add") {
-        var cols = ["lat", "lng", "name", "street", "city", "county", "state", "zip", "capacity_label", "ada_accessible", "pets_allowed", "availability", "notes"];
-        var tsv = cols.map(function (k) { return sheetValue(k, p[k]); }).join("\t");
-        body = '<p>Add a row to the Location tab:</p><div class="tablewrap"><table class="log"><tr>' + cols.map(function (k) { return "<th>" + SHEET_COL[k] + "</th>"; }).join("") + "</tr><tr>" + cols.map(function (k) { return "<td>" + esc(sheetValue(k, p[k])) + "</td>"; }).join("") + '</tr></table></div><button class="reopen" data-copy="' + esc(tsv) + '">Copy row for the sheet</button>';
-      } else {
-        var wrongAddr = (s.report_reasons || []).indexOf("address_wrong") >= 0;
-        body = (wrongAddr ? "<p><b>Check the address and map pin</b>; the submitter says the address is wrong." + (s.comment ? " They wrote: “" + esc(s.comment) + "”" : "") + "</p>" : "") + (gone ? '<p><b>Move this row to the Hidden tab</b> (' + esc((s.report_reasons || []).map(function (r) { return REASONS[r]; }).join(", ")) + ").</p>" : "") +
-          (ch.length ? '<p>In the Location tab, find <b>' + esc(cur ? cur.name : s.shelter_label || s.shelter_id) + "</b>" + (cur ? " (" + esc(cur.address.line + ", " + cur.address.city) + ")" : "") + " and change:</p><ul>" + ch.map(function (k) { return "<li>" + SHEET_COL[k] + ": <code>" + esc(sheetValue(k, p[k])) + "</code></li>"; }).join("") + "</ul>" : "") +
-          (!gone && !ch.length && !wrongAddr ? "<p>Nothing to change in the sheet. " + esc((s.report_reasons || []).map(function (r) { return REASONS[r]; }).join(", ")) + "</p>" : "");
-      }
-      return '<li class="apply"><div class="row"><span class="type ' + s.kind + '">' + KIND_LABEL[s.kind] + '</span><button class="linkish strong" data-open="' + s.id + '">' + esc(displayName(s)) + '</button><span class="mono" style="color:var(--muted)">#' + s.id + " · approved " + (s.reviewed_at ? fmtDate(s.reviewed_at) : "") + "</span></div>" + body + (s.reviewer_note ? '<p class="fine">Note: ' + esc(noteText(s.reviewer_note)) + "</p>" : "") + "</li>";
-    }).join("") || '<li class="qempty">Nothing approved yet.</li>';
+  function openShelter(id) {
+    ui.view = "shelters"; S.shSel = S.byId[id] || { id: id }; S.shHist = null; render();
+    if (!S.shSearched) searchShelters();
+    if (window.innerWidth < 1000) $("sh-edit").scrollIntoView({ block: "start" });
+    return api("GET", "shelters/" + encodeURIComponent(id)).then(function (d) { S.byId[id] = S.shSel = d.shelter; S.shHist = d.history || []; renderShelters(); })
+      .catch(function (e) { toast("Couldn't open the shelter: " + (e.message || e)); });
+  }
+  function renderShelters() {
+    $("sh-tools").innerHTML = [["all", "All"], ["active", "In the app"], ["hidden", "Hidden"], ["retired", "Closed"]].map(function (x) { return '<button class="chip" data-shstatus="' + x[0] + '" aria-pressed="' + (ui.shstatus === x[0]) + '">' + x[1] + "</button>"; }).join("");
+    $("sh-count").textContent = S.shList.length >= 200 ? "first 200, narrow the search" : S.shList.length + " found";
+    $("sh-body").innerHTML = S.shList.map(function (r) {
+      return '<tr' + (S.shSel && S.shSel.id === r.id ? ' class="cur"' : "") + '><td><button class="linkish strong" data-shpick="' + esc(r.id) + '">' + esc(r.name) + '</button><div class="mono" style="color:var(--muted)">' + esc(r.id) + "</div></td><td>" + esc([r.city, r.state].filter(Boolean).join(", ")) +
+        '</td><td><span class="status ' + (r.status === "active" ? "approved" : "rejected") + '">' + esc(SH_STATUS[r.status] || r.status) + "</span></td><td>" + (r.updated_at ? fmtDate(r.updated_at) : "") + '<div style="color:var(--muted);font-size:12.5px">' + esc(String(r.updated_by || "").replace(/\s*\(.*\)$/, "")) + "</div></td></tr>";
+    }).join("") || '<tr><td colspan="4" class="qempty">No shelters match.</td></tr>';
+    var r = S.shSel;
+    if (!r || !r.name) { $("sh-edit").innerHTML = '<div class="qempty" style="padding:40px 20px">' + (r ? "Loading…" : "Search, then pick a shelter to edit it, hide it or see its history.") + "</div>"; return; }
+    var f = flatShelter(r); f.status = r.status; f.hidden_reason = r.hidden_reason;
+    var input = function (k) {
+      var v = f[k] == null ? "" : f[k];
+      if (CHOICES[k]) return '<select data-f="' + k + '">' + CHOICES[k].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === v ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>";
+      if (k === "notes" || k === "hidden_reason") return '<textarea data-f="' + k + '" rows="2">' + esc(v) + "</textarea>";
+      return '<input data-f="' + k + '" value="' + esc(v) + '"' + (k === "lat" || k === "lng" ? ' inputmode="decimal"' : "") + ">";
+    };
+    var hist = S.shHist == null ? '<p class="fine">Loading history…</p>' : S.shHist.length ? '<ul class="timeline">' + S.shHist.map(function (h) {
+      var changes = !h.old_row ? "Added" + (h.new_row && h.new_row.source ? " from " + esc(h.new_row.source) : "") : !h.new_row ? "Deleted" : diffRows(h.old_row, h.new_row);
+      return '<li class="' + (h.old_row ? "submit" : "approve") + '"><div class="t">' + fmtDate(h.changed_at) + " · v" + (h.version + 1) + '</div><div class="x">' + changes + "</div>" +
+        '<div class="c">' + esc(h.changed_by || "") + (h.submission_id ? ' · <button class="linkish" data-open="' + h.submission_id + '">submission #' + h.submission_id + "</button>" : "") + "</div>" +
+        '<button class="reopen" data-undo="' + h.id + '">' + (h.old_row ? "Undo this change" : "Undo adding it (hides it)") + "</button></li>";
+    }).join("") + "</ul>" : '<p class="fine">No changes yet.</p>';
+    $("sh-edit").innerHTML = '<div class="detail-h"><div class="row"><span class="mono" style="color:var(--muted)">' + esc(r.id) + " · v" + r.version + (r.source ? " · " + esc(r.source) : "") + "</span></div><h1>" + esc(r.name) + '</h1><div class="geo"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.lat + "," + r.lng) + '" target="_blank" rel="noopener">Pin in Google Maps</a></div></div>' +
+      '<div class="decide edit-grid">' + EDIT_FIELDS.map(function (x) { return '<label>' + x[1] + input(x[0]) + "</label>"; }).join("") + "</div>" +
+      (r.evidence ? '<p class="fine" style="padding:0 16px">Evidence: ' + esc(r.evidence) + "</p>" : "") +
+      '<div class="decide"><div class="err" id="sh-err" hidden></div><button class="go" id="sh-save">Save changes</button><div class="summary">Changes show in the app right away and are saved with your WordPress name.</div></div>' +
+      '<section class="pane" style="margin:12px 16px"><div class="pane-h"><h2>History</h2></div>' + hist + "</section>";
+  }
+  function diffRows(a, b) {
+    var cols = { name: "Name", address_line: "Address", city: "City", county: "County", state: "State", zip: "ZIP", lat: "Latitude", lng: "Longitude", capacity_label: "Capacity", ada_accessible: "Wheelchair", pets_allowed: "Pets", availability: "Open", access: "Access", notes: "Notes", status: "Shown", hidden_reason: "Why hidden" };
+    var out = Object.keys(cols).filter(function (k) { return String(a[k] == null ? "" : a[k]) !== String(b[k] == null ? "" : b[k]); })
+      .map(function (k) { return cols[k] + ": " + (a[k] == null || a[k] === "" ? "empty" : esc(a[k])) + " → " + (b[k] == null || b[k] === "" ? "empty" : esc(b[k])); });
+    return out.length ? out.join("<br>") : "No visible change";
+  }
+  function saveShelter() {
+    var r = S.shSel; if (!r || ui.busy) return;
+    var f = flatShelter(r); f.status = r.status; f.hidden_reason = r.hidden_reason;
+    var changes = {};
+    document.querySelectorAll("#sh-edit [data-f]").forEach(function (el) { var k = el.dataset.f; if (String(el.value).trim() !== String(f[k] == null ? "" : f[k])) changes[k] = el.value.trim(); });
+    var err = $("sh-err");
+    if (!Object.keys(changes).length) { err.textContent = "Nothing changed."; err.hidden = false; return; }
+    ui.busy = true;
+    api("POST", "shelters/" + encodeURIComponent(r.id), { version: r.version, changes: changes }).then(function (d) {
+      ui.busy = false; toast("Saved " + d.shelter.name); refreshShelter(d.shelter);
+    }).catch(function (e) { ui.busy = false; err.textContent = e.message || String(e); err.hidden = false; });
+  }
+  function undoShelter(hid) {
+    var r = S.shSel; if (!r || ui.busy) return;
+    if (!window.confirm("Put this shelter back the way it was before that change?")) return;
+    ui.busy = true;
+    api("POST", "shelters/" + encodeURIComponent(r.id) + "/undo", { history_id: hid, version: r.version }).then(function (d) {
+      ui.busy = false; toast("Undone. The undo is in the history too."); refreshShelter(d.shelter);
+    }).catch(function (e) { ui.busy = false; toast("Not undone: " + (e.message || e)); });
+  }
+  function refreshShelter(row) {
+    S.byId[row.id] = row;
+    S.shList = S.shList.map(function (x) { return x.id === row.id ? row : x; });
+    openShelter(row.id);
   }
 
+  // ---------- County contacts tab ----------
+  var CO_FIELDS = [["agency", "Agency"], ["director", "Director"], ["phone", "Phone"], ["email", "Email"], ["address", "Address"], ["website", "Website"], ["source_url", "Source"], ["source_date", "Source date"]];
+  function searchCounties() {
+    S.coSearched = true;
+    $("co-count").textContent = "Searching…";
+    return api("GET", "counties?q=" + encodeURIComponent(ui.coq) + "&state=" + encodeURIComponent(ui.costate) + (ui.comissing ? "&missing=1" : "")).then(function (d) {
+      S.coList = d.counties || [];
+      if (S.coSel) S.coSel = S.coList.find(function (c) { return c.id === S.coSel.id; }) || S.coSel;
+      renderCounties();
+    }).catch(function (e) { $("co-count").textContent = ""; toast("Search failed: " + (e.message || e)); });
+  }
+  function renderCounties() {
+    $("co-count").textContent = S.coList.length >= 200 ? "first 200, narrow the search" : S.coList.length + " found";
+    $("co-body").innerHTML = S.coList.map(function (c) {
+      var empty = !c.agency && !c.director && !c.phone && !c.email;
+      return '<tr' + (S.coSel && S.coSel.id === c.id ? ' class="cur"' : "") + '><td><button class="linkish strong" data-copick="' + c.id + '">' + esc(c.county) + ", " + esc(c.state) + "</button></td><td>" + (empty ? '<span class="empty-v">no contact yet</span>' : esc(c.agency || "") + '<div style="color:var(--muted);font-size:12.5px">' + esc(c.director || "") + "</div>") +
+        '</td><td class="mono">' + esc(c.phone || "") + '<div>' + esc(c.email || "") + "</div></td></tr>";
+    }).join("") || '<tr><td colspan="3" class="qempty">No counties match.</td></tr>';
+    var c = S.coSel;
+    if (!c) { $("co-edit").innerHTML = '<div class="qempty" style="padding:40px 20px">Pick a county to edit its emergency management contact.</div>'; return; }
+    $("co-edit").innerHTML = '<div class="detail-h"><h1>' + esc(c.county) + " County, " + esc(c.state) + '</h1><div class="sub">' + (c.updated_by ? "Last changed by " + esc(c.updated_by) + (c.updated_at ? " on " + fmtDate(c.updated_at) : "") : "&nbsp;") + "</div></div>" +
+      '<div class="decide edit-grid">' + CO_FIELDS.map(function (x) { return "<label>" + x[1] + '<input data-cf="' + x[0] + '" value="' + esc(c[x[0]] || "") + '"></label>'; }).join("") + "</div>" +
+      '<div class="decide"><div class="err" id="co-err" hidden></div><button class="go" id="co-save">Save contact</button></div>';
+  }
+  function saveCounty() {
+    var c = S.coSel; if (!c || ui.busy) return;
+    var changes = {};
+    document.querySelectorAll("#co-edit [data-cf]").forEach(function (el) { var k = el.dataset.cf; if (el.value.trim() !== String(c[k] || "")) changes[k] = el.value.trim(); });
+    var err = $("co-err");
+    if (!Object.keys(changes).length) { err.textContent = "Nothing changed."; err.hidden = false; return; }
+    ui.busy = true;
+    api("POST", "counties/" + c.id, { changes: changes }).then(function (d) {
+      ui.busy = false; S.coSel = d.county; S.coList = S.coList.map(function (x) { return x.id === d.county.id ? d.county : x; }); renderCounties(); toast("Saved " + d.county.county + " County");
+    }).catch(function (e) { ui.busy = false; err.textContent = e.message || String(e); err.hidden = false; });
+  }
   // ---------- actions ----------
   function openSub(id) {
     var s = subById(id); if (!s) return;
@@ -330,14 +451,14 @@
       location.href = "mailto:" + encodeURIComponent(submitterEmail(s)) + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body);
     }
     var next = filtered().filter(function (x) { return x.id !== s.id && (x.status === "pending" || (x.status === "in_review" && mine(x))); })[0];
-    update(s, ui.act, { note: note, reason: reason }, { approved: "Approved #" + s.id, rejected: "Rejected #" + s.id, needs_info: "Moved #" + s.id + " to Needs info" }[status]).then(function () { if (next) select(next.id); else { ui.sel = null; render(); } });
+    update(s, ui.act, { note: note, reason: reason }, { approved: "Approved #" + s.id, rejected: "Rejected #" + s.id, needs_info: "Moved #" + s.id + " to Needs info" }[status]).then(function (ok) { if (!ok) return; if (next) select(next.id); else { ui.sel = null; render(); } });
   }
 
   document.addEventListener("click", function (e) {
     var t = e.target.closest("button"); if (!t) return;
     var d = t.dataset;
     if (t.id === "refresh") refresh();
-    else if (d.view) { ui.view = d.view; render(); }
+    else if (d.view) { ui.view = d.view; render(); if (d.view === "shelters" && !S.shSearched) searchShelters(); if (d.view === "counties" && !S.coSearched) searchCounties(); }
     else if (d.tab) { ui.tab = d.tab; ui.sel = null; render(); }
     else if (d.kind) { ui.kind = d.kind; render(); }
     else if (d.sel) select(d.sel);
@@ -348,11 +469,21 @@
     else if (t.id === "back") { ui.sel = null; render(); }
     else if (t.id === "takeover") { var s = subById(ui.sel); update(s, "takeover", null, "You've taken over #" + s.id); }
     else if (t.id === "reopen") { var s2 = subById(ui.sel); ui.tab = "open"; update(s2, "reopen", null, "#" + s2.id + " is back in the queue"); }
-    else if (d.copy) {
-      var txt = d.copy;
-      try { navigator.clipboard.writeText(txt).then(function () { toast("Copied. Paste it into a new row of the Location tab."); }, function () { toast("Couldn't copy. Select the row in the table instead."); }); } catch (err) { toast("Couldn't copy. Select the row in the table instead."); }
-    }
+    else if (d.shelter) openShelter(d.shelter);
+    else if (d.shstatus) { ui.shstatus = d.shstatus; searchShelters(); }
+    else if (d.shpick) openShelter(d.shpick);
+    else if (t.id === "sh-save") saveShelter();
+    else if (d.undo) undoShelter(+d.undo);
+    else if (d.copick) { S.coSel = S.coList.find(function (c) { return String(c.id) === d.copick; }) || null; renderCounties(); if (window.innerWidth < 1000) $("co-edit").scrollIntoView({ block: "start" }); }
+    else if (t.id === "co-save") saveCounty();
   });
+  var debounce = {};
+  function later(k, f) { clearTimeout(debounce[k]); debounce[k] = setTimeout(f, 300); }
+  $("shq").addEventListener("input", function (e) { ui.shq = e.target.value; later("sh", searchShelters); });
+  $("shstate").addEventListener("input", function (e) { ui.shstate = e.target.value; later("sh", searchShelters); });
+  $("coq").addEventListener("input", function (e) { ui.coq = e.target.value; later("co", searchCounties); });
+  $("costate").addEventListener("input", function (e) { ui.costate = e.target.value; later("co", searchCounties); });
+  $("comissing").addEventListener("change", function (e) { ui.comissing = e.target.checked; searchCounties(); });
   $("q").addEventListener("input", function (e) { ui.q = e.target.value; renderQueue(); });
   $("subq").addEventListener("input", function (e) { ui.subq = e.target.value; renderSubs(); });
   document.addEventListener("keydown", function (e) {
