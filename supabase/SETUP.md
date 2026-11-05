@@ -42,3 +42,6 @@
     Do the same for `import_hidden` (Hidden file) and `import_county_contacts` (County EM Contacts file).
 16. Run `shelters-import.sql` (Claude can run it). It prints counts to compare with the sheet.
     It is safe to run again: rows already copied are skipped.
+17. Run `snapshot.sql`. It adds `shelters_snapshot()`, which returns the active shelters in the same shape as
+    `website/data/shelters.json`. The Android build calls it (`website/tools/fetch_shelters.py`) so each new
+    build bundles the latest list; if Supabase can't be reached, the committed copy is used.
