@@ -45,3 +45,11 @@
 17. Run `snapshot.sql`. It adds `shelters_snapshot()`, which returns the active shelters in the same shape as
     `website/data/shelters.json`. The Android build calls it (`website/tools/fetch_shelters.py`) so each new
     build bundles the latest list; if Supabase can't be reached, the committed copy is used.
+
+## Daily digest email (replaces one email per submission)
+
+18. Edge Functions > notify-submission > Code: replace the code with `functions/notify-submission/index.ts`
+    from this folder and Deploy. Leave "Verify JWT" off, as it is now.
+19. SQL Editor > New query: paste `digest.sql` and Run. It schedules one email at 13:00 UTC
+    (7 AM Central, 8 AM in summer) listing everything not emailed yet, and turns off the
+    per-submission email. Nothing is sent on days with no new submissions.
