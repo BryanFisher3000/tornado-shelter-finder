@@ -676,16 +676,19 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       L.geoJSON(topojson.mesh(basemap, basemap.objects.states, function (a, b) { return a !== b; }), { pane: "base", interactive: false, style: function () { return { color: cssVar("--state"), weight: 1.2, fill: false }; } }).addTo(map);
     }
     map.createPane("radar"); map.getPane("radar").style.zIndex = 350; map.getPane("radar").style.pointerEvents = "none";
-    // Hide the light-blue low-end returns (under ~20 dBZ: drizzle, virga, clutter) so the radar matches what
-    // weather.com and other consumer apps show. Keeps greens, yellows, reds, magenta and purple.
+    // Hide the bluish low end (light returns, drizzle, virga, clutter: everything weather.com leaves off) so only
+    // rain that matters shows. A pixel is kept when it is greener than blue (greens, yellows), redder than green
+    // (oranges, reds, magenta, purple) or near white (extreme cores). Blues, slate and gray-lavender are dropped.
     if (!document.getElementById("radar-rain")) {
       var fx = document.createElement("div");
       fx.innerHTML = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="radar-rain" color-interpolation-filters="sRGB">' +
-        '<feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  6 4 -5 0 0.2" result="m"/>' +
-        '<feComposite in="m" in2="SourceAlpha" operator="in"/></filter></svg>';
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 6 -6 0 -0.3" result="green"/>' +
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  6 -6 0 0 -0.5" result="red"/>' +
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  5 5 5 0 -13.5" result="white"/>' +
+        '<feMerge result="keep"><feMergeNode in="green"/><feMergeNode in="red"/><feMergeNode in="white"/></feMerge>' +
+        '<feComposite in="SourceGraphic" in2="keep" operator="in"/></filter></svg>';
       document.body.appendChild(fx.firstChild);
     }
-    // radar data comes in ~1 km cells; soften the edges so it reads like a TV weather map
     var smoothRadar = function () { var z = map.getZoom(); map.getPane("radar").style.filter = "url(#radar-rain) blur(" + (z >= 11 ? 3 : z >= 9 ? 2 : z >= 7 ? 1 : 0) + "px)"; };
     map.on("zoomend", smoothRadar); smoothRadar();
     map.createPane("warn"); map.getPane("warn").style.zIndex = 380;
