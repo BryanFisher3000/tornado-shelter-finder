@@ -148,11 +148,11 @@ body.searching .searchbar { z-index: 41; }
 .detail { padding: .2rem 16px 1.4rem; }
 .detail address { font-style: italic; color: var(--ink-2); margin: 0 0 .7rem; font-size: 1.05rem; }
 .detail .dist { color: var(--muted); }
-.actions { display: flex; gap: .55rem; overflow-x: auto; padding: .2rem 0 .9rem; scrollbar-width: none; }
+.actions { display: flex; gap: .4rem; overflow-x: auto; padding: .2rem 0 .9rem; scrollbar-width: none; }
 .actions::-webkit-scrollbar { display: none; }
-.pill { flex: none; display: inline-flex; gap: .45rem; align-items: center; border: 0; border-radius: 6px; padding: .62rem 1.05rem; background: var(--chip-on); color: var(--red-deep); text-decoration: none; font-size: 1rem; font-weight: 500; cursor: pointer; }
+.pill { flex: none; display: inline-flex; gap: .45rem; align-items: center; border: 0; border-radius: 6px; padding: .45rem .7rem; background: var(--chip-on); color: var(--red-deep); text-decoration: none; font-size: .9rem; white-space: nowrap; font-weight: 500; cursor: pointer; }
 .pill.primary { background: var(--red); color: var(--on-red); --dir-arrow: var(--red); }
-.pill svg { width: 1.15rem; height: 1.15rem; }
+.pill svg { width: 1rem; height: 1rem; }
 .detail .facts { font-size: 1.08rem; gap: .35rem; padding: .8rem 0; border-top: 1px solid var(--line); }
 .note { margin: .3rem 0 0; padding: .8rem .9rem; background: var(--bg); border-radius: 6px; color: var(--ink-2); }
 .tag { display: inline-block; margin: .1rem .3rem .1rem 0; padding: .15rem .5rem; border-radius: 6px; background: var(--chip); font-size: .85rem; color: var(--ink-2); }
@@ -325,8 +325,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
     <p class="sub" id="sub" aria-live="polite">Loading shelters…</p>
     <div class="chips" id="chips" role="group" aria-label="Filters" hidden>
-      <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair Accessible</button>
-      <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets Allowed</button>
+      <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair accessible</button>
+      <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
     </div>
   </div>
   <div class="sheet-body" id="body">
@@ -485,12 +485,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function miles(mi) { return mi == null ? "" : (mi < 100 ? mi.toFixed(2) : Math.round(mi).toLocaleString("en-US")) + " mi"; }
   function distOf(s) { return state.origin ? C.distanceMiles(state.origin, s.location) : null; }
   function facts(s) {
-    // one short phrase per fact ("Open During Emergencies", "50+ Capacity"); unknowns are left out
+    // one short phrase per fact ("Open during emergencies", "50+ capacity"); unknowns are left out
     var cap = s.capacity && s.capacity.label;
-    var lines = [s.availability === "always" ? "Open Year-Round" : "Open During Emergencies",
-      cap ? cap + " Capacity" : null,
-      s.ada_accessible === "yes" ? "Wheelchair Accessible" : s.ada_accessible === "no" ? "Not Wheelchair Accessible" : null,
-      s.pets_allowed === "yes" ? "Pets Allowed" : s.pets_allowed === "no" ? "Pets Not Allowed" : null];
+    var lines = [s.availability === "always" ? "Open year-round" : "Open during emergencies",
+      cap ? cap + " capacity" : null,
+      s.ada_accessible === "yes" ? "Wheelchair accessible" : s.ada_accessible === "no" ? "Not wheelchair accessible" : null,
+      s.pets_allowed === "yes" ? "Pets allowed" : s.pets_allowed === "no" ? "Pets not allowed" : null];
     return '<ul class="facts">' + lines.filter(Boolean).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
   }
   function addrHtml(s) {

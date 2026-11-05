@@ -294,9 +294,9 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       </label>
       <button class="locate" id="locate" type="button"><svg aria-hidden="true"><use href="#i-target"/></svg>Current location</button>
       <div class="chips" role="group" aria-label="Filters">
-        <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair Accessible</button>
-        <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets Allowed</button>
-        <button type="button" class="chip" data-filter="always" aria-pressed="false">Open Year-Round</button>
+        <button type="button" class="chip" data-filter="ada" aria-pressed="false">Wheelchair accessible</button>
+        <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
+        <button type="button" class="chip" data-filter="always" aria-pressed="false">Open year-round</button>
       </div>
       <p class="status" id="status" aria-live="polite">Loading shelters…</p>
     </form>
@@ -421,7 +421,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       '<button type="button" class="info" data-act="select" aria-label="Show ' + esc(s.name) + ' on the map">' +
         '<h3>' + esc(s.name) + '</h3>' +
         '<p class="addr">' + (a.line ? esc(a.line) + "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "") + '</p>' +
-        (cap ? '<p class="cap">' + esc(cap) + ' Capacity</p>' : "") +
+        (cap ? '<p class="cap">' + esc(cap) + ' capacity</p>' : "") +
         '<p class="tags">' + esc(C.amenityLabels(s).join(" · ")) + '</p>' +
         (s.notes ? '<p class="note">' + esc(s.notes) + '</p>' : "") +
       '</button>' +
@@ -680,7 +680,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     fbShelter = s;
     var a = s.address;
     $("#fb-summary").innerHTML = "<p>" + esc(s.name) + "</p><p>" + esc(a.line) + "</p><p>" + esc(a.city) + ", " + esc(a.state) + "</p>" +
-      (s.capacity && s.capacity.label ? '<p style="margin-top:.6rem">' + esc(s.capacity.label) + " Capacity</p>" : "") + (s.notes ? "<p>" + esc(s.notes) + "</p>" : "");
+      (s.capacity && s.capacity.label ? '<p style="margin-top:.6rem">' + esc(s.capacity.label) + " capacity</p>" : "") + (s.notes ? "<p>" + esc(s.notes) + "</p>" : "");
     ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
     $("#fb-text").value = "";
     showFbStep("compose");
