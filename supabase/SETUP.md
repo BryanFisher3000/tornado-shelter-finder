@@ -56,9 +56,9 @@
 
 ## Public county contacts page
 
-20. Upload the plugin zip again (v1.2.0 or later). On the county contacts page, replace the old
-    list with the shortcode `[sas_county_contacts]`. Add `state="TX"` to open on one state.
-    Each county gets an Edit link to /tornado-shelter-finder/county-emergency-management-contacts/edit/
-    with ?county=...&state=... added (use `edit_url="..."` to change it, `edit_url=""` to hide it).
-    It reads `county_contacts` from Supabase and refreshes within an hour, or right away
-    when a county is saved on the review page.
+20. Upload the plugin zip again (v1.2.0 or later). On the County Emergency Management Contacts page,
+    replace the Raw HTML element that holds the county list (its style and the whole list) with
+    the shortcode `[sas_county_contacts]`. It prints the same list, search, state filter and
+    Edit pop-up, filled from `county_contacts` in Supabase. It refreshes within an hour, or right
+    away when a county is saved on the review page. Use `edit_url="..."` to send the Edit links
+    somewhere other than the page's `edit/` subpage, or `edit_url=""` to hide them.
