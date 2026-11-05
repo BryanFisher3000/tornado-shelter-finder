@@ -135,7 +135,7 @@ function sas_county_row_html( $r, $state, $edit_url ) {
 	$h .= '</td>';
 	$web = '' !== $v['website'] ? '<a href="' . esc_url( $v['website'] ) . '" target="_blank" rel="noopener nofollow">Website</a>' : '';
 	if ( '' === $v['director'] && '' === $v['phone'] && '' === $v['email'] && '' === $v['address'] ) {
-		$h .= '<td colspan="4" class="na">Not listed yet — contact the county government' . ( $web ? ' via its website' : '' ) . '. Know the right contact? Use Edit.</td>';
+		$h .= '<td colspan="4" class="na">Not listed yet — contact the county government' . ( $web ? ' via its website' : '' ) . '. Know the right contact? Use Suggest an Edit.</td>';
 	} else {
 		$h .= '<td data-l="Director">' . $e( $v['director'] ) . '</td>';
 		$h .= '<td class="p" data-l="Phone">' . ( '' !== $v['phone'] ? '<a href="tel:' . $a( sas_county_tel( $v['phone'] ) ) . '">' . $e( $v['phone'] ) . '</a>' : '' ) . '</td>';
@@ -144,7 +144,7 @@ function sas_county_row_html( $r, $state, $edit_url ) {
 	}
 	$h .= '<td class="w">' . $web . '</td>';
 	if ( '' !== $edit_url ) {
-		$h .= '<td class="e"><a class="fb" href="' . esc_attr( $edit_url ) . '">Edit</a></td>';
+		$h .= '<td class="e"><a class="fb" href="' . esc_attr( $edit_url ) . '">Suggest an Edit</a></td>';
 	}
 	return $h . '</tr>';
 }
