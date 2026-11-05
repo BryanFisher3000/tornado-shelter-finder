@@ -1084,7 +1084,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
         '<p class="addr">' + (a.line ? esc(a.line) + "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "") + '</p>' +
         (cap ? '<p class="cap">' + esc(cap) + ' capacity</p>' : "") +
         '<p class="tags">' + esc(C.amenityLabels(s).join(" · ")) + '</p>' +
-        (s.notes ? '<p class="note">' + esc(s.notes) + '</p>' : "") +
       '</button>' +
       '<div class="acts">' +
         '<span class="dist">' + esc(C.formatMiles(dist)) + '</span>' +
@@ -1341,7 +1340,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     fbShelter = s;
     var a = s.address;
     $("#fb-summary").innerHTML = "<p>" + esc(s.name) + "</p><p>" + esc(a.line) + "</p><p>" + esc(a.city) + ", " + esc(a.state) + "</p>" +
-      (s.capacity && s.capacity.label ? '<p style="margin-top:.6rem">' + esc(s.capacity.label) + " capacity</p>" : "") + (s.notes ? "<p>" + esc(s.notes) + "</p>" : "");
+      (s.capacity && s.capacity.label ? '<p style="margin-top:.6rem">' + esc(s.capacity.label) + " capacity</p>" : "");
     ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
     $("#fb-text").value = "";
     showFbStep("compose");
