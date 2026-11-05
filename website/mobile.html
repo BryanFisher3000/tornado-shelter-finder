@@ -792,11 +792,7 @@ body.searching .searchbar { z-index: 41; }
 .c-left .pill.sm svg { width: .85rem; height: .85rem; }
 .c-main h3 { margin: 0 0 .1rem; font-weight: 500; font-size: 1.22rem; line-height: 1.2; }
 .c-main address { font-style: italic; color: var(--ink-2); font-size: 1rem; margin-bottom: .45rem; }
-.facts { margin: 0; display: grid; gap: .15rem; font-size: .92rem; }
-.facts div { display: flex; gap: .3rem; flex-wrap: wrap; align-items: baseline; }
-.facts dt { color: var(--ink-2); }
-.facts dd { margin: 0; font-size: 1.04rem; color: var(--ink); }
-.facts dd.unk { color: var(--muted); font-size: .95rem; }
+.facts { margin: 0; padding: 0; list-style: none; display: grid; gap: .15rem; font-size: 1.02rem; color: var(--ink); }
 
 /* numbered pin (list + map) */
 .npin { position: relative; display: block; width: 2rem; height: 2.5rem; flex: none; }
@@ -818,8 +814,7 @@ body.searching .searchbar { z-index: 41; }
 .pill { flex: none; display: inline-flex; gap: .45rem; align-items: center; border: 0; border-radius: 6px; padding: .62rem 1.05rem; background: var(--chip-on); color: var(--red-deep); text-decoration: none; font-size: 1rem; font-weight: 500; cursor: pointer; }
 .pill.primary { background: var(--red); color: var(--on-red); --dir-arrow: var(--red); }
 .pill svg { width: 1.15rem; height: 1.15rem; }
-.detail .facts { font-size: 1rem; gap: .35rem; padding: .8rem 0; border-top: 1px solid var(--line); }
-.detail .facts dd { font-size: 1.08rem; }
+.detail .facts { font-size: 1.08rem; gap: .35rem; padding: .8rem 0; border-top: 1px solid var(--line); }
 .note { margin: .3rem 0 0; padding: .8rem .9rem; background: var(--bg); border-radius: 6px; color: var(--ink-2); }
 .tag { display: inline-block; margin: .1rem .3rem .1rem 0; padding: .15rem .5rem; border-radius: 6px; background: var(--chip); font-size: .85rem; color: var(--ink-2); }
 
@@ -1150,16 +1145,14 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // ---------- formatting, per the result card example ----------
   function miles(mi) { return mi == null ? "" : (mi < 100 ? mi.toFixed(2) : Math.round(mi).toLocaleString("en-US")) + " mi"; }
   function distOf(s) { return state.origin ? C.distanceMiles(state.origin, s.location) : null; }
-  function yesNo(v) { return v === "yes" ? "Yes" : v === "no" ? "No" : null; }
-  function fact(label, val) {
-    return "<div><dt>" + label + ":</dt><dd" + (val ? "" : ' class="unk"') + ">" + esc(val || "") + "</dd></div>";
-  }
   function facts(s) {
-    return '<dl class="facts">' +
-      fact("Open", s.availability === "always" ? "Year-Round" : "During Emergencies") +
-      fact("Capacity", s.capacity && s.capacity.label) +
-      fact("Wheelchair Accessible", yesNo(s.ada_accessible)) +
-      fact("Pets Allowed", yesNo(s.pets_allowed)) + "</dl>";
+    // one short phrase per fact ("Open During Emergencies", "50+ Capacity"); unknowns are left out
+    var cap = s.capacity && s.capacity.label;
+    var lines = [s.availability === "always" ? "Open Year-Round" : "Open During Emergencies",
+      cap ? cap + " Capacity" : null,
+      s.ada_accessible === "yes" ? "Wheelchair Accessible" : s.ada_accessible === "no" ? "Not Wheelchair Accessible" : null,
+      s.pets_allowed === "yes" ? "Pets Allowed" : s.pets_allowed === "no" ? "Pets Not Allowed" : null];
+    return '<ul class="facts">' + lines.filter(Boolean).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>";
   }
   function addrHtml(s) {
     var a = s.address;
@@ -1320,11 +1313,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       '<div class="actions">' +
         '<a class="pill primary" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener"><svg><use href="#i-dir"/></svg>Directions</a>' +
         '<button type="button" class="pill" data-act="save" data-id="' + s.id + '"><svg><use href="#' + (isSaved(s.id) ? "i-star" : "i-star-o") + '"/></svg>' + (isSaved(s.id) ? "Saved" : "Save") + "</button>" +
-        '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest Edit</button>' +
+        '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest an Edit</button>' +
       "</div>" + facts(s) +
       (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
       (s.notes ? '<p class="note">' + esc(s.notes) + "</p>" : "") +
-      '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Suggest Edit.</p>';
+      '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Suggest an Edit.</p>';
   }
 
   // ---------- map ----------

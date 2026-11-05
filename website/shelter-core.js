@@ -259,11 +259,11 @@
 
   function amenityLabels(s) {
     var out = [];
-    if (s.ada_accessible === "yes") out.push("ADA Accessible");
-    else if (s.ada_accessible === "no") out.push("Not ADA Accessible");
+    out.push(s.availability === "always" ? "Open Year-Round" : "Open During Emergencies");
+    if (s.ada_accessible === "yes") out.push("Wheelchair Accessible");
+    else if (s.ada_accessible === "no") out.push("Not Wheelchair Accessible");
     if (s.pets_allowed === "yes") out.push("Pets Allowed");
-    else if (s.pets_allowed === "no") out.push("No Pets");
-    out.push(s.availability === "always" ? "Always Open" : "Opens in Emergencies");
+    else if (s.pets_allowed === "no") out.push("Pets Not Allowed");
     if (s.access === "registration_required") out.push("Registration required");
     else if (s.access === "restricted") out.push("Restricted access");
     return out;
