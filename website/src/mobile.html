@@ -309,9 +309,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="menu" id="menu" role="menu" hidden>
   <button type="button" role="menuitem" data-go="saved"><svg class="i"><use href="#i-star"/></svg>Saved Shelters</button>
   <button type="button" role="menuitem" data-go="add"><svg class="i"><use href="#i-plus"/></svg>Add a Shelter</button>
+  <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
   <button type="button" role="menuitem" data-go="profile"><svg class="i"><use href="#i-user"/></svg>Profile</button>
-  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Store</button>
-  <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings &amp; Feedback</button>
+  <button type="button" role="menuitem" data-go="feedback"><svg class="i"><use href="#i-mail"/></svg>Send Feedback</button>
+  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Products</button>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
 </div>
 
@@ -386,6 +387,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="btns"><button class="btn red" type="submit">Add</button></div>
       </form>
     </div>
+    <div class="pane settings" id="pane-feedback" hidden>
+      <div style="padding:.6rem 0 .6rem">
+        <label for="set-fb" style="display:block;margin-bottom:.5rem">Tell us what would make the shelter finder better. To fix a shelter's details, open the shelter and tap Suggest an Edit.</label>
+        <textarea id="set-fb" placeholder="My feedback"></textarea>
+        <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
+      </div>
+    </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
       <div class="set-row"><label for="set-notify">Notifications<small class="hint">Tornado warnings are coming soon</small></label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
@@ -397,11 +405,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       <div class="set-row"><span>App Version</span><span class="v" id="set-version">2.0 (web)</span></div>
       <a class="set-row link" id="set-terms" href="#" target="_blank" rel="noopener"><span>Terms of Use</span><span class="v">Coming soon</span></a>
       <a class="set-row link" id="set-privacy" href="#" target="_blank" rel="noopener"><span>Privacy Policy</span><span class="v">Coming soon</span></a>
-      <div style="padding:1rem 0 .6rem">
-        <label for="set-fb" style="display:block;margin-bottom:.5rem">Feedback</label>
-        <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
-        <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
-      </div>
       <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand set-brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
       <p class="fine">By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
     </div>
@@ -581,17 +584,18 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function setSub(text, isError) { var el = $("#sub"); el.textContent = text || ""; el.hidden = !text; el.classList.toggle("error", !!isError); }
   function showPane(name, opts) {
     opts = opts || {};
-    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "profile" || name === "add")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
+    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
     state.pane = name;
-    ["intro", "list", "detail", "saved", "settings", "profile", "add"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
+    ["intro", "list", "detail", "saved", "settings", "feedback", "profile", "add"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
     var sub = true;
     $("#chips").hidden = name !== "list";
-    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "profile" || name === "add");
+    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add");
     $("#close").hidden = !(name === "list" || name === "detail");
     if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
     else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
     else if (name === "saved") { $("#title").textContent = "Saved Shelters"; renderSaved(); sub = false; }
-    else if (name === "settings") { $("#title").textContent = "Settings & Feedback"; sub = false; refreshPerms(); }
+    else if (name === "settings") { $("#title").textContent = "Settings"; sub = false; refreshPerms(); }
+    else if (name === "feedback") { $("#title").textContent = "Send Feedback"; sub = false; }
     else if (name === "profile") { $("#title").textContent = "Profile"; sub = false; renderProfile(); }
     else if (name === "add") { $("#title").textContent = "Add a Shelter"; sub = false; renderAdd(); }
     if (!sub) setSub("");
