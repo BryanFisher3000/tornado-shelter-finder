@@ -1458,8 +1458,15 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   // ---- boot ----
   setView(isPhone() ? "map" : "list");
   var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
-  // Prefer the live API's full list; fall back to the bundled copy (always there in the app, so it works offline).
-  var sheltersJSON = API ? getJSON(API + "/v1/shelters/snapshot").then(function (j) { return j.shelters ? j : { source: "Shelter API", count: j.length, shelters: j }; }).catch(function () { return getJSON("data/shelters.json"); }) : getJSON("data/shelters.json");
+  // Live list from the Supabase shelters table (what reviewers approve); the bundled copy is the offline fallback.
+  var liveShelters = function (base, key) {
+    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 6000);
+    return fetch(base + "/rest/v1/rpc/shelters_snapshot", { method: "POST", headers: { apikey: key, "Content-Type": "application/json" }, body: "{}", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error("shelters_snapshot " + r.status); return r.json(); })
+      .then(function (j) { if (!j || !Array.isArray(j.shelters) || j.shelters.length < 100) throw new Error("shelters_snapshot looks empty"); j.count = j.shelters.length; return j; })
+      .catch(function (e) { clearTimeout(t); throw e; });
+  };
+  var sheltersJSON = liveShelters("https://svptjcclszprsmjoldaz.supabase.co", APP.supabaseKey || "sb_publishable_jKaaBPri_pJorALxmh4Ndg_LClnGIZk").catch(function () { return getJSON("data/shelters.json"); });
   Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
     var data = res[0];
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
