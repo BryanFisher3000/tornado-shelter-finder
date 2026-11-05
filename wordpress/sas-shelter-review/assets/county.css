@@ -1,0 +1,13 @@
+.sas-county { --sc-line: #E2DEDA; --sc-muted: #6B5E5E; --sc-accent: #EA2627; font-size: 16px; }
+.sas-county-bar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; margin: 0 0 20px; }
+.sas-county-bar label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 14px; }
+.sas-county-bar select, .sas-county-bar input { font: inherit; font-weight: 400; padding: 8px 10px; border: 1px solid #CDC8C3; border-radius: 6px; min-width: 220px; max-width: 100%; box-sizing: border-box; }
+.sas-county-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.sas-county-card { border: 1px solid var(--sc-line); border-top: 3px solid var(--sc-accent); border-radius: 6px; padding: 12px 14px; background: #fff; min-width: 0; }
+.sas-county-card[hidden] { display: none; }
+.sas-county-card h3 { margin: 0 0 8px; font-size: 18px; }
+.sas-county-card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.sas-county-card dt { color: var(--sc-muted); font-size: 14px; }
+.sas-county-card dd { margin: 0; overflow-wrap: anywhere; }
+.sas-county-none, .sas-county-note, .sas-county-empty { color: var(--sc-muted); margin: 0; }
+@media (max-width: 480px) { .sas-county-bar select, .sas-county-bar input { min-width: 0; width: 100%; } .sas-county-bar label { flex: 1 1 100%; } }
