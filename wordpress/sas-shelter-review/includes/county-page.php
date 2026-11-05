@@ -41,6 +41,16 @@ function sas_county_contacts_all() {
 	return $rows;
 }
 
+/** True while a page builder or the block editor renders the page for editing, not for a visitor. */
+function sas_county_in_editor() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$editor = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+		|| isset( $_REQUEST['vcv-ajax'] ) || isset( $_REQUEST['vcv-action'] ) || isset( $_REQUEST['vcv-editable'] )
+		|| isset( $_REQUEST['vcv-source-id'] ) || isset( $_REQUEST['vc_editable'] ) || isset( $_REQUEST['elementor-preview'] );
+	// phpcs:enable
+	return (bool) apply_filters( 'sas_county_in_editor', $editor );
+}
+
 function sas_county_contacts_flush() {
 	delete_transient( SAS_COUNTY_CACHE );
 }
@@ -144,6 +154,11 @@ add_shortcode(
 	function ( $atts ) {
 		$atts = shortcode_atts( array( 'edit_url' => 'edit/' ), $atts, 'sas_county_contacts' );
 		$edit = trim( html_entity_decode( (string) $atts['edit_url'] ) );
+		if ( sas_county_in_editor() ) {
+			// Page builders render shortcodes inside the editor; the full list (2,000+ rows) makes
+			// Visual Composer hang, so the editor gets a small placeholder and visitors the list.
+			return '<div style="padding:16px;border:1px dashed #999;font:15px/1.4 sans-serif;color:#444">County EM contacts list ([sas_county_contacts]). Visitors see the full list from Supabase here.</div>';
+		}
 		$rows = sas_county_contacts_all();
 		if ( is_wp_error( $rows ) ) {
 			return '<p>County contacts are not available right now. Please try again later.</p>';
