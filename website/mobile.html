@@ -884,6 +884,10 @@ a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: v
 .acct-form .add-lead { margin: .4rem 0 .6rem; font-size: 1.12rem; line-height: 1.45; color: var(--ink-2); }
 .acct-form label:not(.chk):not(.fld) select { width: 100%; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .6rem .55rem; font-size: 1rem; color: var(--ink); }
 .acct-form .err:empty { display: none; }
+.acct-form.em-auth { padding: .3rem 0 0; gap: .6rem; }
+.acct-form.em-auth[hidden] { display: none; }
+.acct-form.em-auth .btns .btn { width: 100%; justify-content: center; }
+button.link { background: none; border: 0; padding: 0; font: inherit; color: var(--red); text-decoration: underline; cursor: pointer; }
 .loc-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .92rem; color: var(--ink-2); }
 .btn.sm { padding: .4rem .8rem; font-size: .9rem; }
 .gate { text-align: center; padding: 1.6rem .4rem 2rem; display: grid; gap: .8rem; justify-items: center; }
@@ -911,7 +915,18 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 .fb .summary { background: var(--bg); border-radius: 6px; padding: .7rem .85rem; font-size: .95rem; }
 .fb .summary p { margin: 0; }
 .fb fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .45rem; }
-.fb legend { font-size: 1.05rem; padding: 0 0 .35rem; }
+.fb .grp { display: grid; gap: .45rem; }
+.fb .glabel { font-size: 1rem; font-weight: 500; }
+.fb .radios { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
+.fb .radios label { display: flex; gap: .4rem; align-items: center; cursor: pointer; }
+.fb .radios label[hidden] { display: none; }
+.fb .radios input { width: 1.1rem; height: 1.1rem; accent-color: var(--red); margin: 0; }
+.fb .addr { display: grid; gap: .5rem; margin: 0 0 .3rem 1.75rem; }
+.fb .addr[hidden] { display: none; }
+.fb .addr label { display: grid; gap: .2rem; font-size: .85rem; }
+.fb .addr input, .fb .addr select { width: 100%; box-sizing: border-box; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .5rem .55rem; font: inherit; font-size: 1rem; color: var(--ink); }
+.fb .addr .row2 { display: grid; grid-template-columns: 1fr 5.5rem; gap: .5rem; }
+.fb .addr .zip { max-width: 8rem; }
 .fb label.fld { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .fb label.fld select { background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .35rem .5rem; font: inherit; }
 .fb label.chk { display: flex; gap: .6rem; align-items: center; cursor: pointer; }
@@ -1014,6 +1029,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           <button type="button" class="btn sso-btn" data-sso="google"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/></svg>Continue with Google</button>
           <button type="button" class="btn sso-btn apple" data-sso="apple"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.9a4.8 4.8 0 0 0-4.1 2.5c-1.8 3-.5 7.5 1.2 10 .8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4a10 10 0 0 0 1.4-2.8 4.3 4.3 0 0 1-2.6-4.1zM14 5.4a4.3 4.3 0 0 0 1-3.2 4.5 4.5 0 0 0-2.9 1.5 4.2 4.2 0 0 0-1 3.1 3.7 3.7 0 0 0 2.9-1.4z"/></svg>Continue with Apple</button>
           <button type="button" class="btn sso-btn facebook" data-sso="facebook"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z"/></svg>Continue with Facebook</button>
+          <button type="button" class="btn sso-btn" id="em-open"><svg class="i"><use href="#i-mail"/></svg>Continue with Email</button>
+          <div class="acct-form em-auth" id="em-auth" hidden>
+            <div class="row2" id="em-names"><label>First Name<input id="em-first" autocomplete="given-name"></label><label>Last Name<input id="em-last" autocomplete="family-name"></label></div>
+            <label>Email<input id="em-email" type="email" autocomplete="email" inputmode="email"></label>
+            <label>Password<input id="em-pass" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></label>
+            <p class="fine err" id="em-msg" aria-live="polite"></p>
+            <div class="btns"><button type="button" class="btn red" id="em-go">Create Account</button></div>
+            <p class="fine" id="em-switch-row"><span id="em-switch-q">Already have an account?</span> <button type="button" class="link" id="em-switch">Sign in</button></p>
+          </div>
           <p class="fine" id="sso-msg" aria-live="polite" hidden></p>
         </div>
         <button type="button" class="btn plain" id="acct-signout" hidden>Sign Out</button>
@@ -1045,7 +1069,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
-        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select></label>
+        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option></select></label>
         <label>Open<select id="as-open"><option value="emergencies_only">During Emergencies</option><option value="always">Year-Round</option></select></label>
         <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
         <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
@@ -1081,21 +1105,49 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <header><button type="button" class="icon-btn" id="fb-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button><h2 id="fb-title">Suggest an Edit</h2></header>
     <div id="fb-compose" style="display:grid;gap:.8rem">
       <div class="summary" id="fb-summary"></div>
-      <fieldset>
-        <legend>Shelter Details</legend>
-        <label class="fld" for="fb-cap">Capacity
-          <select id="fb-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option><option value="Limited">Limited</option></select>
-        </label>
-        <label class="chk"><input type="checkbox" id="fb-ada">Wheelchair Accessible</label>
-        <label class="chk"><input type="checkbox" id="fb-pets">Pets Allowed</label>
-        <label class="chk"><input type="checkbox" id="fb-always">Open Year-Round</label>
-      </fieldset>
-      <fieldset>
-        <legend>What would you like us to know?</legend>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-cap-l">
+        <div class="glabel" id="fb-cap-l">Capacity</div>
+        <div class="radios" id="fb-cap">
+          <label><input type="radio" name="fb-cap" value="">Unknown</label>
+          <label><input type="radio" name="fb-cap" value="<25">&lt;25</label>
+          <label><input type="radio" name="fb-cap" value="<50">&lt;50</label>
+          <label><input type="radio" name="fb-cap" value="50+">50+</label>
+        </div>
+      </div>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-open-l">
+        <div class="glabel" id="fb-open-l">Open</div>
+        <div class="radios">
+          <label><input type="radio" name="fb-open" value="">Unknown</label>
+          <label><input type="radio" name="fb-open" value="emergencies_only">During emergencies</label>
+          <label><input type="radio" name="fb-open" value="always">Year-round</label>
+        </div>
+      </div>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-ada-l">
+        <div class="glabel" id="fb-ada-l">Wheelchair accessible</div>
+        <div class="radios">
+          <label><input type="radio" name="fb-ada" value="">Unknown</label>
+          <label><input type="radio" name="fb-ada" value="yes">Yes</label>
+          <label><input type="radio" name="fb-ada" value="no">No</label>
+        </div>
+      </div>
+      <div class="grp" role="radiogroup" aria-labelledby="fb-pets-l">
+        <div class="glabel" id="fb-pets-l">Pets allowed</div>
+        <div class="radios">
+          <label><input type="radio" name="fb-pets" value="">Unknown</label>
+          <label><input type="radio" name="fb-pets" value="yes">Yes</label>
+          <label><input type="radio" name="fb-pets" value="no">No</label>
+        </div>
+      </div>
+      <div class="grp">
         <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
+        <div class="addr" id="fb-addr" hidden>
+          <label>Street address<input id="fb-street" autocomplete="off"></label>
+          <div class="row2"><label>City<input id="fb-city" autocomplete="off"></label><label>State<select id="fb-state"></select></label></div>
+          <label class="zip">ZIP<input id="fb-zip" inputmode="numeric" maxlength="10" autocomplete="off"></label>
+        </div>
         <label class="chk"><input type="checkbox" id="fb-r2" value="no_shelter">No shelter at this location</label>
         <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
-      </fieldset>
+      </div>
       <label class="sr" for="fb-text">Comments</label>
       <textarea id="fb-text" placeholder="Anything to note"></textarea>
       <div class="btns"><button class="btn red" type="submit">Send</button></div>
@@ -1250,6 +1302,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function showPane(name, opts) {
     opts = opts || {};
     if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
+    if (name !== "profile" && state.afterProfile === "edit") { state.afterProfile = null; save("pendingEdit", null); }
     state.pane = name;
     ["intro", "list", "detail", "saved", "settings", "feedback", "profile", "add"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
     var sub = true;
@@ -1793,30 +1846,63 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     return (APP.name || "Shelter Finder website 2.0") + " on " + d;
   }
   function openFeedback(s) {
+    if (!canAdd(profile())) {
+      // suggesting an edit needs an account, so our team can follow up
+      save("pendingEdit", { id: s.id, at: Date.now() });
+      state.afterProfile = "edit";
+      showPane("profile", { snap: "full" });
+      return;
+    }
+    save("pendingEdit", null);
     fbShelter = s;
     $("#fb-summary").innerHTML = "<p><strong>" + esc(s.name) + "</strong></p><p>" + addrHtml(s) + "</p>";
     ["#fb-r1", "#fb-r2", "#fb-r3"].forEach(function (id) { $(id).checked = false; });
     $("#fb-text").value = "";
     // start from what the shelter list says now; only changed details are sent
     var cap = s.capacity && s.capacity.label || "";
-    if (cap && !Array.prototype.some.call($("#fb-cap").options, function (o) { return o.value === cap; })) $("#fb-cap").add(new Option(cap, cap));
-    $("#fb-cap").value = cap;
-    $("#fb-ada").checked = s.ada_accessible === "yes";
-    $("#fb-pets").checked = s.pets_allowed === "yes";
-    $("#fb-always").checked = s.availability === "always";
+    setRadio("fb-cap", cap);
+    setRadio("fb-open", s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "");
+    setRadio("fb-ada", s.ada_accessible === "yes" || s.ada_accessible === "no" ? s.ada_accessible : "");
+    setRadio("fb-pets", s.pets_allowed === "yes" || s.pets_allowed === "no" ? s.pets_allowed : "");
+    var a = s.address || {};
+    $("#fb-street").value = a.line || ""; $("#fb-city").value = a.city || ""; $("#fb-zip").value = a.zip || "";
+    var st = $("#fb-state");
+    st.innerHTML = '<option value=""></option>' + STATES.map(function (x) { return '<option value="' + x + '">' + x + "</option>"; }).join("");
+    if (a.state && STATES.indexOf(a.state) < 0) st.add(new Option(a.state, a.state));
+    st.value = a.state || "";
+    $("#fb-addr").hidden = true;
     fbStep("compose");
     $("#fb-dialog").showModal();
   }
+  function fbRadios(name) { return Array.prototype.slice.call(document.querySelectorAll('input[name="' + name + '"]')); }
+  function setRadio(name, v) {
+    var rs = fbRadios(name), hit = false;
+    rs.forEach(function (r) { r.checked = r.value === v; hit = hit || r.checked; });
+    if (!hit) rs[0].checked = true;
+  }
+  function radioVal(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ""; }
+  $("#fb-r1").addEventListener("change", function () {
+    $("#fb-addr").hidden = !this.checked;
+  });
   function detailChanges(s) {
     var out = [], yn = function (v) { return v === "yes" ? "Yes" : v === "no" ? "No" : "Unknown"; };
-    var cap = $("#fb-cap").value, oldCap = s.capacity && s.capacity.label || "";
+    var cap = radioVal("fb-cap"), oldCap = s.capacity && s.capacity.label || "";
     if (cap !== oldCap) out.push({ field: "capacity_label", label: "Capacity", from: oldCap || "Unknown", to: cap || "Unknown", value: cap || null });
-    [["ada_accessible", "Wheelchair Accessible", "#fb-ada"], ["pets_allowed", "Pets Allowed", "#fb-pets"]].forEach(function (f) {
-      var was = s[f[0]] === "yes", now = $(f[2]).checked;
-      if (now !== was) out.push({ field: f[0], label: f[1], from: yn(s[f[0]]), to: now ? "Yes" : "No", value: now ? "yes" : "no" });
+    var OPEN = { always: "Year-round", emergencies_only: "During emergencies", "": "Unknown" };
+    var open = radioVal("fb-open"), oldOpen = s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "";
+    if (open !== oldOpen) out.push({ field: "availability", label: "Open", from: OPEN[oldOpen], to: OPEN[open], value: open || null });
+    [["ada_accessible", "Wheelchair accessible", "fb-ada"], ["pets_allowed", "Pets allowed", "fb-pets"]].forEach(function (f) {
+      var was = s[f[0]] === "yes" || s[f[0]] === "no" ? s[f[0]] : "", now = radioVal(f[2]);
+      if (now !== was) out.push({ field: f[0], label: f[1], from: yn(was), to: yn(now), value: now || "unknown" });
     });
-    var always = $("#fb-always").checked;
-    if (always !== (s.availability === "always")) out.push({ field: "availability", label: "Open", from: s.availability === "always" ? "Year-Round" : "During Emergencies", to: always ? "Year-Round" : "During Emergencies", value: always ? "always" : "emergencies_only" });
+    if ($("#fb-r1").checked) {
+      var a = s.address || {};
+      [["address_line", "Street address", "#fb-street", a.line], ["address_city", "City", "#fb-city", a.city], ["address_state", "State", "#fb-state", a.state], ["address_zip", "ZIP", "#fb-zip", a.zip]].forEach(function (f) {
+        var now = $(f[2]).value.trim(), was = f[3] || "";
+        if (f[0] === "address_state") now = now.toUpperCase();
+        if (now !== was) out.push({ field: f[0], label: f[1], from: was || "(blank)", to: now || "(blank)", value: now || null });
+      });
+    }
     return out;
   }
   function fbStep(step) { $("#fb-compose").hidden = step !== "compose"; $("#fb-ready").hidden = step !== "ready"; $("#fb-sending").hidden = step !== "sending"; $("#fb-sent").hidden = step !== "sent"; $("#fb-copied").textContent = ""; $("#fb-title").textContent = step === "compose" ? "Suggest an Edit" : step === "sent" ? "Thank You" : step === "sending" ? "Sending" : "Send My Note"; }
@@ -1879,7 +1965,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   try {
     if (SUPA.url && SUPA.key && window.supabase) sb = window.supabase.createClient(SUPA.url, SUPA.key, { auth: { flowType: "pkce", persistSession: true, autoRefreshToken: true, detectSessionInUrl: !APP.oauth } });
   } catch (err) { sb = null; }
-  var PROVIDERS = { google: "Google", apple: "Apple", facebook: "Facebook" };
+  var PROVIDERS = { google: "Google", apple: "Apple", facebook: "Facebook", email: "email" };
   var PF = ["first", "last", "phone", "email", "street", "city", "state", "zip"];
   var DB = { first: "first_name", last: "last_name", phone: "phone", email: "email", street: "street", city: "city", state: "state", zip: "zip" };
   function profile() { return load("profile", {}); }
@@ -1894,10 +1980,24 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var st = $("#acct-state");
     st.textContent = on ? "Signed In" : "Signed Out"; st.classList.toggle("on", on);
     var who = (p.first ? p.first + " " + p.last : p.email || "").trim();
-    $("#acct-note").textContent = !on ? "The list and map are open to everyone. Sign in to add shelters."
+    $("#acct-note").textContent = !on ? (load("pendingEdit", null) ? "Sign in to suggest an edit. It helps our team follow up with you." : "The list and map are open to everyone. Sign in to add shelters or suggest edits.")
       : (who ? "Signed in as " + who : "Signed in") + (p.provider && PROVIDERS[p.provider] ? " with " + PROVIDERS[p.provider] : "") + "." + (profileReady(p) ? " You can add shelters." : " Finish My Details below to add shelters.");
     $("#sso").hidden = on; $("#acct-signout").hidden = !on;
     $("#sso-msg").hidden = true;
+    if (on) $("#em-auth").hidden = true;
+    $("#profile-form").hidden = !!sb && !on; // with sign-in live, My Details shows once signed in
+  }
+  // after signing in (and finishing My Details), go back to what the person was doing
+  function resumeAfterSignIn() {
+    if (!canAdd(profile())) return false;
+    var pend = load("pendingEdit", null);
+    if (pend && Date.now() - pend.at < 30 * 60 * 1000 && state.store) {
+      save("pendingEdit", null); state.afterProfile = null;
+      var s = state.store.getSync(pend.id);
+      if (s) { openShelter(pend.id); openFeedback(s); return true; }
+    }
+    if (state.afterProfile === "add") { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; return true; }
+    return false;
   }
   function ssoMsg(t) { var m = $("#sso-msg"); m.hidden = !t; m.textContent = t || ""; }
   // a Supabase user signed in: remember them and fill My Details from their profile row or provider
@@ -1906,19 +2006,20 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var p = profile(), meta = user.user_metadata || {};
     p.uid = user.id; p.provider = (user.app_metadata || {}).provider || p.provider;
     var full = String(meta.full_name || meta.name || "").trim();
-    if (!p.first) p.first = meta.given_name || full.split(" ")[0] || "";
-    if (!p.last) p.last = meta.family_name || full.split(" ").slice(1).join(" ") || "";
+    if (!p.first) p.first = meta.first_name || meta.given_name || full.split(" ")[0] || "";
+    if (!p.last) p.last = meta.last_name || meta.family_name || full.split(" ").slice(1).join(" ") || "";
     if (!p.email) p.email = user.email || meta.email || "";
     save("profile", p); renderProfile(); renderAdd();
     sb.from("profiles").select("*").eq("id", user.id).maybeSingle().then(function (r) {
-      if (!r || !r.data) return;
       var q = profile();
-      PF.forEach(function (k) { if (r.data[DB[k]] && !q[k]) q[k] = r.data[DB[k]]; });
-      save("profile", q);
-      if (state.pane === "profile") renderProfile();
-      if (state.pane === "add") renderAdd();
-      if (state.afterProfile === "add" && profileReady(q)) { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; }
-    });
+      if (r && r.data) {
+        PF.forEach(function (k) { if (r.data[DB[k]] && !q[k]) q[k] = r.data[DB[k]]; });
+        save("profile", q);
+        if (state.pane === "profile") renderProfile();
+        if (state.pane === "add") renderAdd();
+      }
+      resumeAfterSignIn();
+    }, function () { resumeAfterSignIn(); });
   }
   function pushProfile(p) {
     if (!sb || !p.uid) return;
@@ -1953,7 +2054,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (bad) { $("#pf-msg").textContent = "Please add a valid " + bad + "."; return; }
     p.saved_at = new Date().toISOString();
     save("profile", p); pushProfile(p);
-    if (state.afterProfile === "add" && canAdd(p)) { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; return; }
+    if (resumeAfterSignIn()) return;
     renderProfile();
     $("#acct-note").textContent = canAdd(p) ? "Profile saved. You can add shelters." : "Profile saved. Sign in above to add shelters.";
   });
@@ -1995,6 +2096,67 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       if (APP.oauth && r.data && r.data.url) { APP.oauth.open(r.data.url); ssoMsg(""); }
     }, function () { ssoMsg("Couldn't reach the sign-in service. Check your connection and try again."); });
   }
+  var emMode = "signup";
+  function emSetMode(m) {
+    emMode = m;
+    $("#em-names").hidden = m !== "signup";
+    $("#em-go").textContent = m === "signup" ? "Create Account" : "Sign In";
+    $("#em-switch-q").textContent = m === "signup" ? "Already have an account?" : "New here?";
+    $("#em-switch").textContent = m === "signup" ? "Sign in" : "Create an account";
+    $("#em-pass").autocomplete = m === "signup" ? "new-password" : "current-password";
+    $("#em-msg").textContent = "";
+  }
+  $("#em-open").addEventListener("click", function () {
+    var box = $("#em-auth"); box.hidden = !box.hidden;
+    if (!box.hidden) {
+      var p = profile();
+      if (!$("#em-first").value) $("#em-first").value = p.first || "";
+      if (!$("#em-last").value) $("#em-last").value = p.last || "";
+      if (!$("#em-email").value) $("#em-email").value = p.email || "";
+      emSetMode(emMode);
+      (emMode === "signup" ? $("#em-first") : $("#em-email")).focus();
+    }
+  });
+  $("#em-switch").addEventListener("click", function () { emSetMode(emMode === "signup" ? "signin" : "signup"); });
+  $("#em-go").addEventListener("click", function () {
+    var v = function (id) { return $(id).value.trim(); }, msg = $("#em-msg"), bad = null;
+    var need = emMode === "signup" ? [["#em-first", "first name"], ["#em-last", "last name"], ["#em-email", "email"], ["#em-pass", "password"]] : [["#em-email", "email"], ["#em-pass", "password"]];
+    need.forEach(function (f) {
+      var val = f[0] === "#em-pass" ? $(f[0]).value : v(f[0]);
+      var ok = !!val && (f[0] !== "#em-email" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val)) && (f[0] !== "#em-pass" || emMode !== "signup" || val.length >= 8);
+      $(f[0]).setAttribute("aria-invalid", String(!ok)); if (!ok && !bad) bad = f[1];
+    });
+    if (bad) { msg.textContent = bad === "password" && emMode === "signup" ? "Please choose a password with at least 8 characters." : "Please add a valid " + bad + "."; return; }
+    if (!sb) { msg.textContent = "Email sign-in is being set up. For now, fill in My Details below and tap Save Profile."; return; }
+    var email = v("#em-email"), pass = $("#em-pass").value, go = $("#em-go");
+    go.disabled = true; msg.textContent = emMode === "signup" ? "Creating your account…" : "Signing in…";
+    var done = function () { go.disabled = false; };
+    if (emMode === "signup") {
+      var first = v("#em-first"), last = v("#em-last");
+      var p = profile(); p.first = first; p.last = last; p.email = email; save("profile", p);
+      sb.auth.signUp({ email: email, password: pass, options: {
+        emailRedirectTo: APP.oauth ? "https://survive-a-storm.com/tornado-shelter-finder/" : location.origin + location.pathname,
+        data: { first_name: first, last_name: last, full_name: first + " " + last }
+      } }).then(function (r) {
+        done();
+        if (r.error) { msg.textContent = /registered|exists/i.test(r.error.message) ? "There's already an account with that email. Tap Sign in below." : "Couldn't create the account: " + r.error.message; return; }
+        $("#em-pass").value = "";
+        if (r.data && r.data.session) { msg.textContent = ""; return; } // signed in right away
+        emSetMode("signin");
+        msg.textContent = "Almost done. We sent a confirmation link to " + email + ". Tap it, then come back here and sign in.";
+      }, function () { done(); msg.textContent = "Couldn't reach the sign-in service. Check your connection and try again."; });
+    } else {
+      sb.auth.signInWithPassword({ email: email, password: pass }).then(function (r) {
+        done();
+        if (r.error) {
+          var m = r.error.message || "";
+          msg.textContent = /confirm/i.test(m) ? "Please confirm your email first. Look for our link in your inbox." : /invalid/i.test(m) ? "That email and password don't match." : "Couldn't sign in: " + m;
+          return;
+        }
+        $("#em-pass").value = ""; msg.textContent = "";
+      }, function () { done(); msg.textContent = "Couldn't reach the sign-in service. Check your connection and try again."; });
+    }
+  });
   $("#acct-signout").addEventListener("click", function () {
     if (sb) sb.auth.signOut();
     var p = profile(); delete p.provider; delete p.uid; p.first = p.last = p.email = ""; save("profile", p); renderProfile();
