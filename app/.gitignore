@@ -9,4 +9,5 @@ ios/App/build/
 ios/App/App/public/
 ios/DerivedData/
 *.keystore
+!android/app/debug.keystore
 *.jks

@@ -1,0 +1,305 @@
+/* SAS Shelter Review: every rule is scoped to #sas-review so the theme and the dashboard don't restyle each other. */
+#sas-review { --bg: #F3F2F4;
+  --surface: #FFFFFF;
+  --surface-2: #F8F7F6;
+  --ink: #1A1815;
+  --muted: #6B5E5E;
+  --faint: #8B8188;
+  --line: #E2DEDA;
+  --line-strong: #CDC8C3;
+  --accent: #EA2627;
+  --accent-deep: #9C1F23;
+  --accent-soft: #FDE8E8;
+  --ok: #2F7D4F;
+  --ok-soft: #E3F2E8;
+  --warn: #A3640F;
+  --warn-soft: #FBF0DC;
+  --bad: #B3261E;
+  --bad-soft: #FBE4E2;
+  --add-bg: #E6F4EA;
+  --del-bg: #FCE9E7;
+  --info: #3A5A85;
+  --info-soft: #E5ECF5;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 6px; }
+#sas-review, #sas-review * { box-sizing: border-box; }
+#sas-review [hidden] { display: none !important; }
+#sas-review { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); border-radius: 8px; }
+#sas-review button, #sas-review input, #sas-review select, #sas-review textarea { font: inherit; color: inherit; }
+#sas-review button { cursor: pointer; }
+#sas-review :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#sas-review .mono { font-family: var(--f-mono); font-size: 0.82em; font-variant-numeric: tabular-nums; }
+#sas-review .app { display: flex; flex-direction: column; min-height: 100%; padding-inline: 16px; padding-block: 0 24px; max-width: 1560px; margin: 0 auto; }
+#sas-review .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-block: 14px; border-bottom: 1px solid var(--line-strong); }
+#sas-review .brand { display: flex; align-items: center; gap: 10px; }
+#sas-review .brand svg { flex: none; }
+#sas-review .brand-name { font-family: var(--f-display); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; color: var(--accent); line-height: 1; }
+#sas-review .brand-title { font-family: var(--f-display); font-weight: 600; font-size: 22px; line-height: 1.05; }
+#sas-review .stats { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-left: auto; }
+#sas-review .stat { display: flex; flex-direction: column; }
+#sas-review .stat b { font-family: var(--f-display); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+#sas-review .stat span { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+#sas-review .views { display: flex; flex-wrap: wrap; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 2px; }
+#sas-review .views button { border: 0; background: transparent; padding: 6px 12px; border-radius: 4px; font-weight: 500; color: var(--muted); }
+#sas-review .views button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+#sas-review .sample-note { font-size: 12.5px; color: var(--muted); padding-block: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+#sas-review .sample-note .tag { background: var(--warn-soft); color: var(--warn); font-weight: 600; padding: 1px 7px; border-radius: 3px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+#sas-review .linkish { background: none; border: 0; padding: 0; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 2px; font-size: inherit; }
+#sas-review .panes { display: grid; grid-template-columns: 320px minmax(0, 1fr) 340px; gap: 16px; align-items: start; flex: 1; }
+#sas-review .pane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
+#sas-review .pane-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+#sas-review .pane-h h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase; }
+#sas-review .queue { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 140px); display: flex; flex-direction: column; }
+#sas-review .qtabs { display: flex; border-bottom: 1px solid var(--line); }
+#sas-review .qtabs button { flex: 1; border: 0; background: none; padding: 9px 4px; font-size: 13px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+#sas-review .qtabs button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+#sas-review .qtabs .n { font-variant-numeric: tabular-nums; color: var(--faint); margin-left: 3px; }
+#sas-review .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+#sas-review .chip { border: 1px solid var(--line-strong); background: var(--surface); padding: 2px 10px; border-radius: 999px; font-size: 12.5px; color: var(--muted); }
+#sas-review .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+#sas-review .qsearch { padding: 10px 14px 0; }
+#sas-review .qsearch input { width: 100%; border: 1px solid var(--line-strong); border-radius: var(--r); padding: 6px 10px; background: var(--surface-2); }
+#sas-review .qlist { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; }
+#sas-review .qitem { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 9px 10px; border-radius: var(--r); }
+#sas-review .qitem:hover { background: var(--surface-2); }
+#sas-review .qitem[aria-current="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+#sas-review .qitem .nm { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sas-review .qitem .age { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+#sas-review .qitem .meta { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); min-width: 0; }
+#sas-review .qitem .meta .loc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sas-review .qempty { padding: 28px 16px; color: var(--muted); text-align: center; font-size: 14px; }
+#sas-review .type { font-family: var(--f-display); font-weight: 600; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px; flex: none; }
+#sas-review .type.add { background: var(--ok-soft); color: var(--ok); }
+#sas-review .type.edit { background: var(--info-soft); color: var(--info); }
+#sas-review .type.report { background: var(--bad-soft); color: var(--bad); }
+#sas-review .flagdot { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; flex: none; }
+#sas-review .flagdot.warn { color: var(--warn); }
+#sas-review .flagdot.fail { color: var(--bad); }
+#sas-review .flagdot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+#sas-review .status { font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; flex: none; }
+#sas-review .status.pending { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+#sas-review .status.needs_info { background: var(--warn-soft); color: var(--warn); }
+#sas-review .status.in_review { background: var(--info-soft); color: var(--info); }
+#sas-review .status.superseded { background: var(--bad-soft); color: var(--bad); }
+#sas-review .status.approved { background: var(--ok-soft); color: var(--ok); }
+#sas-review .status.rejected { background: var(--bad-soft); color: var(--bad); }
+#sas-review .detail-h { padding: 16px 18px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+#sas-review .detail-h .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#sas-review .detail-h h1 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 26px; line-height: 1.1; text-wrap: balance; }
+#sas-review .detail-h .sub { color: var(--muted); font-size: 13.5px; }
+#sas-review .comment { margin: 0 18px; margin-top: 14px; padding: 10px 14px; background: var(--surface-2); border-left: 3px solid var(--line-strong); border-radius: 0 var(--r) var(--r) 0; font-size: 14px; }
+#sas-review .comment .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+#sas-review .diffwrap { padding: 14px 18px 18px; }
+#sas-review .diffbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#sas-review .diffbar h3 { margin: 0; font-family: var(--f-display); font-size: 15px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+#sas-review .diffbar .hint { font-size: 12.5px; color: var(--muted); }
+#sas-review .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+#sas-review table.diff { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+#sas-review table.diff th { text-align: left; font-weight: 600; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+#sas-review table.diff td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+#sas-review table.diff tr:last-child td { border-bottom: 0; }
+#sas-review table.diff td.f { width: 118px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+#sas-review table.diff td.f small { display: block; font-family: var(--f-mono); font-size: 10.5px; color: var(--faint); }
+#sas-review table.diff td.pick { width: 36px; text-align: center; }
+#sas-review table.diff tr.same td { color: var(--faint); }
+#sas-review table.diff tr.same td.f { color: var(--faint); }
+#sas-review table.diff tr.chg td.old { background: var(--del-bg); }
+#sas-review table.diff tr.chg td.old .v { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--bad) 60%, transparent); }
+#sas-review table.diff tr.chg td.new { background: var(--add-bg); }
+#sas-review table.diff tr.chg.declined td.new { background: transparent; color: var(--faint); }
+#sas-review table.diff tr.chg.declined td.new .v { text-decoration: line-through; }
+#sas-review table.diff tr.chg.declined td.old { background: transparent; }
+#sas-review table.diff tr.chg.declined td.old .v { text-decoration: none; }
+#sas-review .empty-v { color: var(--faint); font-style: italic; }
+#sas-review .newcell { display: flex; gap: 6px; align-items: flex-start; justify-content: space-between; }
+#sas-review .edit-btn { border: 0; background: none; color: var(--muted); padding: 0 2px; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; flex: none; }
+#sas-review .edit-btn:hover { color: var(--accent-deep); }
+#sas-review .modtag { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--info); background: var(--info-soft); padding: 0 5px; border-radius: 3px; }
+#sas-review .inl { width: 100%; border: 1px solid var(--line-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface); }
+#sas-review .toggle-same { margin-top: 8px; }
+#sas-review .geo { margin-top: 10px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+#sas-review .geo a { color: var(--accent-deep); }
+#sas-review .side { display: grid; gap: 16px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 140px); overflow-y: auto; }
+#sas-review .checks { list-style: none; margin: 0; padding: 6px 14px 12px; display: grid; gap: 2px; }
+#sas-review .checks li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px dashed var(--line); }
+#sas-review .checks li:last-child { border-bottom: 0; }
+#sas-review .checks .ic { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; margin-top: 1px; }
+#sas-review .checks .ok .ic { background: var(--ok-soft); color: var(--ok); }
+#sas-review .checks .warn .ic { background: var(--warn-soft); color: var(--warn); }
+#sas-review .checks .fail .ic { background: var(--bad-soft); color: var(--bad); }
+#sas-review .checks .d { color: var(--muted); font-size: 12.5px; }
+#sas-review .who-card { padding: 12px 14px; display: grid; gap: 8px; font-size: 13.5px; }
+#sas-review .who-card .handle { font-weight: 600; font-size: 15px; }
+#sas-review .trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#sas-review .trust div { background: var(--surface-2); border-radius: 4px; padding: 6px 8px; }
+#sas-review .trust b { display: block; font-family: var(--f-display); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#sas-review .trust span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+#sas-review .decide { padding: 12px 14px 14px; display: grid; gap: 10px; }
+#sas-review .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+#sas-review .seg button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--r); padding: 8px 4px; font-weight: 600; font-size: 13.5px; display: grid; gap: 1px; }
+#sas-review .seg button kbd { font-family: var(--f-mono); font-size: 10.5px; font-weight: 400; color: var(--faint); }
+#sas-review .seg button[data-act="approve"][aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+#sas-review .seg button[data-act="request_info"][aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+#sas-review .seg button[data-act="reject"][aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+#sas-review .seg button[aria-pressed="true"] kbd { color: inherit; opacity: .8; }
+#sas-review .decide label { font-size: 12.5px; font-weight: 600; color: var(--muted); display: grid; gap: 4px; }
+#sas-review .decide select, #sas-review .decide textarea { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 7px 9px; background: var(--surface-2); font-weight: 400; color: var(--ink); }
+#sas-review .decide textarea { min-height: 72px; resize: vertical; }
+#sas-review .go { border: 0; border-radius: var(--r); padding: 10px 12px; font-weight: 600; font-size: 14.5px; background: var(--accent); color: #fff; }
+#sas-review .go:disabled { background: var(--line-strong); color: var(--muted); cursor: not-allowed; }
+#sas-review .decide .err { color: var(--bad); font-size: 12.5px; }
+#sas-review .decide .summary { font-size: 13px; color: var(--muted); }
+#sas-review .resolved-box { padding: 12px 14px; font-size: 13.5px; display: grid; gap: 6px; }
+#sas-review .reopen { justify-self: start; border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--r); padding: 5px 10px; font-size: 13px; }
+#sas-review .timeline { list-style: none; margin: 0; padding: 8px 14px 14px; display: grid; }
+#sas-review .timeline li { position: relative; padding: 6px 0 10px 18px; font-size: 13px; border-left: 1px solid var(--line-strong); margin-left: 4px; }
+#sas-review .timeline li:last-child { border-left-color: transparent; }
+#sas-review .timeline li::before { content: ""; position: absolute; left: -5px; top: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--line-strong); }
+#sas-review .timeline li.approve::before { border-color: var(--ok); background: var(--ok); }
+#sas-review .timeline li.reject::before { border-color: var(--bad); background: var(--bad); }
+#sas-review .timeline li.request_info::before, #sas-review .timeline li.undo::before { border-color: var(--warn); background: var(--warn); }
+#sas-review .timeline li.submit::before, #sas-review .timeline li.import::before { border-color: var(--info); }
+#sas-review .timeline .t { color: var(--muted); font-size: 12px; }
+#sas-review .timeline .x { color: var(--ink); }
+#sas-review .timeline .c { color: var(--muted); margin-top: 2px; }
+#sas-review .timeline .c code { font-family: var(--f-mono); font-size: 11.5px; }
+#sas-review .audit { padding: 0; }
+#sas-review .audit-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); align-items: center; }
+#sas-review .audit-tools input { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 6px 10px; background: var(--surface-2); min-width: 0; flex: 1 1 200px; max-width: 320px; }
+#sas-review table.log { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
+#sas-review table.log th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+#sas-review table.log td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+#sas-review table.log td.when { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); }
+#sas-review table.log .chg { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+#sas-review table.log button.linkish { font-weight: 600; text-decoration: none; color: var(--ink); text-align: left; }
+#sas-review table.log button.linkish:hover { text-decoration: underline; }
+#sas-review .keys { margin-top: 14px; font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+#sas-review .keys kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 3px; padding: 0 5px; background: var(--surface); color: var(--ink); }
+#sas-review .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: var(--r); font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100% - 32px); }
+#sas-review .vchip { font-size: 11.5px; font-weight: 600; padding: 0 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: .04em; }
+#sas-review .vchip.verified { background: var(--ok-soft); color: var(--ok); }
+#sas-review .vchip.unverified { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+#sas-review .vchip.flagged { background: var(--warn-soft); color: var(--warn); }
+#sas-review .rchip { font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bad-soft); color: var(--bad); }
+#sas-review .banner { background: var(--bad-soft); color: var(--ink); padding: 8px 10px; border-radius: var(--r); font-size: 13px; }
+#sas-review .decide label.cb { display: flex; gap: 8px; align-items: center; font-weight: 500; color: var(--ink); font-size: 13px; }
+#sas-review .seg button:disabled { opacity: .45; cursor: not-allowed; }
+#sas-review .undo { margin-top: 6px; font-size: 12px; padding: 3px 8px; }
+#sas-review .overview { display: grid; gap: 14px; }
+#sas-review .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+#sas-review .tile { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 2px; }
+#sas-review .tile:hover { border-color: var(--line-strong); }
+#sas-review .tile b { font-family: var(--f-display); font-size: 30px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+#sas-review .tile span { font-size: 12.5px; color: var(--muted); }
+#sas-review .tile.warn b { color: var(--warn); }
+#sas-review .ov-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+#sas-review .alist { list-style: none; margin: 0; padding: 6px 14px 12px; }
+#sas-review .alist li { padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+#sas-review .alist li:last-child { border-bottom: 0; }
+#sas-review .alist .d { color: var(--muted); font-size: 12.5px; }
+#sas-review .linkish.strong { color: var(--ink); font-weight: 600; text-decoration: none; text-align: left; }
+#sas-review .linkish.strong:hover { text-decoration: underline; color: var(--accent-deep); }
+#sas-review table.log.st { min-width: 0; }
+#sas-review table.log.st td { font-variant-numeric: tabular-nums; }
+#sas-review table.log td.hot { color: var(--warn); font-weight: 600; }
+#sas-review .hotx { color: var(--warn); font-size: 12.5px; }
+#sas-review .fine { font-size: 12.5px; color: var(--muted); }
+#sas-review .shelters { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+#sas-review .slist table.log { min-width: 560px; }
+#sas-review .audit-tools select { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 6px 8px; background: var(--surface-2); }
+#sas-review table.log tr.sel td { background: var(--accent-soft); }
+#sas-review .seditor { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 40px); overflow-y: auto; }
+#sas-review .sform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; padding: 14px; }
+#sas-review .sform label { display: grid; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--muted); min-width: 0; }
+#sas-review .sform label small { font-weight: 400; color: var(--faint); }
+#sas-review .sform label.wide, #sas-review .sform .wide { grid-column: 1 / -1; }
+#sas-review .sform input, #sas-review .sform select, #sas-review .sform textarea { border: 1px solid var(--line-strong); border-radius: 4px; padding: 6px 8px; background: var(--surface-2); color: var(--ink); font-weight: 400; font-size: 14px; width: 100%; min-width: 0; }
+#sas-review .sform textarea { min-height: 60px; resize: vertical; }
+#sas-review .sactions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#sas-review .sactions .err { color: var(--bad); font-size: 13px; }
+#sas-review .vchip.map_listed, #sas-review .vchip.confirmed { background: var(--ok-soft); color: var(--ok); }
+#sas-review .vchip.older_source { background: var(--warn-soft); color: var(--warn); }
+#sas-review .vchip.hidden, #sas-review .vchip.retired { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+#sas-review .timeline li.edit::before, #sas-review .timeline li.promote::before { border-color: var(--info); background: var(--info); }
+#sas-review .email { margin-top: 16px; border: 1px solid var(--line); border-radius: var(--r); }
+#sas-review .email summary { cursor: pointer; padding: 10px 14px; font-weight: 600; font-size: 13.5px; }
+#sas-review .mail { border-top: 1px solid var(--line); font-size: 14px; }
+#sas-review .mail-h { padding: 10px 14px; background: var(--surface-2); display: grid; gap: 2px; font-size: 13px; }
+#sas-review .mail-h span { display: inline-block; width: 64px; color: var(--muted); }
+#sas-review .mail-b { padding: 12px 14px; display: grid; gap: 8px; max-width: 640px; }
+#sas-review .mail-b p { margin: 0; }
+#sas-review .mail-b .q { color: var(--muted); font-style: italic; }
+#sas-review .mail-b table { border-collapse: collapse; font-size: 13px; }
+#sas-review .mail-b th, #sas-review .mail-b td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+#sas-review .mail-b th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+#sas-review .dlist { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+#sas-review .dlist a { color: var(--accent-deep); }
+#sas-review .mail-btn { justify-self: start; background: var(--accent); color: #fff; text-decoration: none; padding: 8px 14px; border-radius: var(--r); font-weight: 600; }
+@media (max-width: 1100px) {
+#sas-review .ov-grid { grid-template-columns: minmax(0, 1fr); }
+#sas-review .shelters { grid-template-columns: minmax(0, 1fr); }
+#sas-review .seditor { position: static; max-height: none; }
+}
+@media (max-width: 520px) {
+#sas-review .sform { grid-template-columns: minmax(0, 1fr); }
+}
+#sas-review .back { display: none; border: 0; background: none; color: var(--accent-deep); padding: 0; font-weight: 600; justify-self: start; }
+@media (max-width: 1180px) {
+#sas-review .panes { grid-template-columns: 290px minmax(0, 1fr); }
+#sas-review .side { grid-column: 2; position: static; max-height: none; overflow: visible; }
+}
+@media (max-width: 820px) {
+#sas-review .panes { grid-template-columns: minmax(0, 1fr); }
+#sas-review .side { grid-column: 1; }
+#sas-review .queue { position: static; max-height: none; }
+#sas-review .panes.has-sel .queue { display: none; }
+#sas-review .panes:not(.has-sel) .detail, #sas-review .panes:not(.has-sel) .side { display: none; }
+#sas-review .back { display: inline-block; }
+#sas-review .stats { margin-left: 0; width: 100%; }
+#sas-review .detail-h h1 { font-size: 22px; }
+}
+/* Shelters and County contacts tabs */
+#sas-review .panes.two { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+#sas-review .panes.two .detail { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+#sas-review .edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#sas-review .edit-grid input { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 7px 9px; background: var(--surface-2); font-weight: 400; color: var(--ink); min-width: 0; }
+#sas-review .edit-grid textarea { min-height: 52px; }
+#sas-review .audit-tools input.state-in { flex: 0 0 72px; text-transform: uppercase; }
+#sas-review .audit-tools .chk { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+#sas-review table.log tr.cur td { background: var(--surface-2); }
+#sas-review .timeline .reopen { margin-top: 6px; font-size: 12.5px; padding: 4px 8px; }
+@media (max-width: 1000px) {
+#sas-review .panes.two { grid-template-columns: minmax(0, 1fr); }
+#sas-review .panes.two .detail, #sas-review .panes.two:not(.has-sel) .detail { position: static; max-height: none; display: block; }
+}
+@media (max-width: 520px) {
+#sas-review .edit-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+#sas-review, #sas-review * { transition: none !important; animation: none !important; }
+}
+#sas-review .type.general { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+#sas-review .vchip.unverified, #sas-review .vchip.older_source { background: var(--warn-soft); color: var(--warn); }
+#sas-review .gate { max-width: 440px; margin: 12vh auto 0; display: grid; gap: 14px; text-align: center; padding: 28px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+#sas-review .gate h1 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 26px; }
+#sas-review .gate p { margin: 0; color: var(--muted); }
+#sas-review .gate .go { justify-self: center; padding-inline: 22px; }
+#sas-review .who { font-size: 13px; color: var(--muted); }
+#sas-review .applylist { list-style: none; margin: 0; padding: 0 14px 14px; display: grid; gap: 0; }
+#sas-review .applylist li.apply { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 6px; font-size: 14px; }
+#sas-review .applylist li.apply p { margin: 0; }
+#sas-review .applylist li.apply ul { margin: 0; padding-left: 20px; }
+#sas-review .applylist code { font-family: var(--f-mono); font-size: 12.5px; background: var(--surface-2); padding: 0 4px; border-radius: 3px; }
+#sas-review .applylist .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#sas-review .applylist table.log { min-width: 900px; font-size: 12.5px; }
+#sas-review .applylist .reopen { justify-self: start; }
+#sas-review .toolbar { display: flex; gap: 10px; align-items: center; }
+
+#sas-review .app { min-height: 0; padding-block: 0 20px; }
+#sas-review button { text-transform: none; letter-spacing: normal; box-shadow: none; min-height: 0; line-height: 1.3; }
+#sas-review h1, #sas-review h2, #sas-review h3 { color: var(--ink); }
+#sas-review table { margin: 0; }
+#sas-review td, #sas-review th { border-left: 0; border-right: 0; }
+.sas-review-gate { padding: 24px; border: 1px solid #E2DEDA; border-radius: 6px; background: #F8F7F6; font-size: 16px; }

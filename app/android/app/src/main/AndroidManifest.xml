@@ -18,6 +18,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- sign-in (Supabase) returns here: com.surviveastorm.shelterfinder://auth -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.surviveastorm.shelterfinder" android:host="auth" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -36,6 +43,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <queries>
+        <!-- maps apps the Settings page can offer for Directions -->
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="geo" /></intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
