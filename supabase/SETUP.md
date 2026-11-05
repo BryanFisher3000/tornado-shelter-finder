@@ -30,3 +30,15 @@
     refusal. The page is marked noindex and not cached.
     Optional: `[sas_shelter_review shelters_url="https://.../shelters.json"]` to load shelters from somewhere
     other than the copy on GitHub `main`.
+
+## Shelter list in Supabase (replaces the Google Sheet)
+
+13. SQL Editor > New query: paste `shelters.sql` and Run. It creates `shelters`, `shelter_history`,
+    `county_contacts` and three holding tables for the import (`import_location`, `import_hidden`,
+    `import_county_contacts`).
+14. In the SAS Shelter Finder Data sheet, open each tab and use File > Download > Comma-separated values:
+    Location, Hidden, County EM Contacts.
+15. Table Editor: open `import_location`, then Insert > Import data from CSV, and pick the Location file.
+    Do the same for `import_hidden` (Hidden file) and `import_county_contacts` (County EM Contacts file).
+16. Run `shelters-import.sql` (Claude can run it). It prints counts to compare with the sheet.
+    It is safe to run again: rows already copied are skipped.
