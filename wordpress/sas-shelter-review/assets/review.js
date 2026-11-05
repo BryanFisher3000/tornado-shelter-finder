@@ -63,7 +63,14 @@
       return { name: p.name, street: a.street, city: a.city, county: a.county, state: a.state, zip: a.zip, lat: l.lat != null ? String(l.lat) : "", lng: l.lng != null ? String(l.lng) : "",
         capacity_label: p.capacity_label, ada_accessible: p.ada_accessible, pets_allowed: p.pets_allowed, availability: p.availability };
     }
-    return s.proposed_changes || {};
+    // Same as sas_review_report_changes(): the app's address_* keys, and Unknown for Open leaves it as is.
+    var pc = s.proposed_changes || {}, out = {};
+    Object.keys(pc).forEach(function (k) { out[k] = pc[k]; });
+    [["address_line", "street"], ["address_city", "city"], ["address_state", "state"], ["address_zip", "zip"]].forEach(function (m) {
+      if (m[0] in out) { if (!(m[1] in out)) out[m[1]] = out[m[0]]; delete out[m[0]]; }
+    });
+    if ("availability" in out && (out.availability == null || out.availability === "" || out.availability === "unknown")) delete out.availability;
+    return out;
   }
   function changedFields(s) {
     var cur = curFlat(s) || {}, p = proposed(s);
@@ -96,6 +103,9 @@
       else if (!ch.length) out.push({ lvl: "warn", t: "Nothing differs from the list", d: "The list may already have these details" });
       if (p.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email)) out.push({ lvl: "fail", t: "The new email doesn't look right", d: p.email });
     }
+    var pcRaw = s.proposed_changes || {};
+    if (s.kind === "report" && "availability" in pcRaw && (pcRaw.availability == null || pcRaw.availability === "" || pcRaw.availability === "unknown"))
+      out.push({ lvl: "ok", t: "Open: the person picked Unknown", d: "Approving keeps the list's current value" });
     if (s.shelter_id && !cur && s.kind !== "add") out.push({ lvl: "fail", t: "Shelter " + s.shelter_id + " isn't in the shelter list", d: "There is nothing to change, so reject it or mark it handled" });
     if (cur && cur.status !== "active" && s.kind === "report") out.push({ lvl: "warn", t: "This shelter is " + (SH_STATUS[cur.status] || cur.status).toLowerCase() + " already", d: cur.hidden_reason || "It doesn't show in the app" });
     if (cur && s.base_version != null && cur.version > s.base_version) out.push({ lvl: "fail", t: "Shelter changed since this was sent (v" + s.base_version + " → v" + cur.version + ")", d: "Re-check against the current values" });

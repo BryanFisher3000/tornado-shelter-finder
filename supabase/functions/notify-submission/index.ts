@@ -19,7 +19,9 @@ const REASONS: Record<string, string> = {
 };
 const LABELS: Record<string, string> = {
   capacity_label: "Capacity", ada_accessible: "Wheelchair Accessible", pets_allowed: "Pets Allowed", availability: "Open",
+  address_line: "Street address", address_city: "City", address_state: "State", address_zip: "ZIP",
 };
+const ADDRESS_KEYS = new Set(["address_line", "address_city", "address_state", "address_zip"]);
 
 function esc(s: unknown) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -50,7 +52,9 @@ function describe(s: any): { title: string; rows: Row[] } {
     if (s.shelter_label) rows.push(["Shelter", s.shelter_label]);
     rows.push(["Shelter ID", `${s.shelter_id} (version ${s.base_version ?? "?"})`],
       ["Issues", (s.report_reasons ?? []).map((r: string) => REASONS[r] ?? r).join("; ") || "None selected"]);
-    for (const [k, v] of Object.entries(s.proposed_changes ?? {})) rows.push([`Change ${LABELS[k] ?? k}`, show(v)]);
+    for (const [k, v] of Object.entries(s.proposed_changes ?? {})) {
+      rows.push([`Change ${LABELS[k] ?? k}`, ADDRESS_KEYS.has(k) && (v == null || v === "") ? "(blank)" : show(v)]);
+    }
   } else if (s.kind === "county") {
     title = `County contact correction: ${s.shelter_label || "county " + (s.county_id ?? "?")}`;
     if (s.shelter_label) rows.push(["County", s.shelter_label]);

@@ -86,6 +86,28 @@ function sas_review_shelter_patch( $changes ) {
 	return $out;
 }
 
+/**
+ * A report's proposed_changes in the page's field names. The app sends address corrections as
+ * address_line / address_city / address_state / address_zip (null for a field left blank), and
+ * availability null when the person picked Unknown; the list always has an Open value, so an
+ * Unknown there leaves it as it is.
+ */
+function sas_review_report_changes( $pc ) {
+	$pc = is_array( $pc ) ? $pc : array();
+	foreach ( array( 'address_line' => 'street', 'address_city' => 'city', 'address_state' => 'state', 'address_zip' => 'zip' ) as $from => $to ) {
+		if ( array_key_exists( $from, $pc ) ) {
+			if ( ! array_key_exists( $to, $pc ) ) {
+				$pc[ $to ] = $pc[ $from ];
+			}
+			unset( $pc[ $from ] );
+		}
+	}
+	if ( array_key_exists( 'availability', $pc ) && ( null === $pc['availability'] || '' === $pc['availability'] || 'unknown' === $pc['availability'] ) ) {
+		unset( $pc['availability'] );
+	}
+	return $pc;
+}
+
 function sas_review_get_shelter( $id ) {
 	$rows = sas_review_supabase( 'GET', 'shelters?select=*&id=eq.' . rawurlencode( $id ) );
 	if ( is_wp_error( $rows ) ) {
@@ -181,7 +203,7 @@ function sas_review_apply_submission( $sub, $force ) {
 	if ( ! $force && null !== $sub['base_version'] && (int) $shelter['version'] > (int) $sub['base_version'] ) {
 		return new WP_Error( 'sas_changed', 'This shelter was changed after the person sent this. Check the current values, then approve again to apply it anyway.', array( 'status' => 409, 'shelter' => $shelter ) );
 	}
-	$patch = sas_review_shelter_patch( is_array( $sub['proposed_changes'] ) ? $sub['proposed_changes'] : array() );
+	$patch = sas_review_shelter_patch( sas_review_report_changes( $sub['proposed_changes'] ) );
 	if ( is_wp_error( $patch ) ) {
 		return $patch;
 	}
