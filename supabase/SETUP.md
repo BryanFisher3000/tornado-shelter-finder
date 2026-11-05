@@ -28,8 +28,8 @@
 12. Create a page (for example `/tornado-shelter-finder/review/`) and add the shortcode `[sas_shelter_review]`
     in a Visual Composer text block. Signed-out visitors get a sign-in link; signed-in users below Editor get a
     refusal. The page is marked noindex and not cached.
-    Optional: `[sas_shelter_review shelters_url="https://.../shelters.json"]` to load shelters from somewhere
-    other than the copy on GitHub `main`.
+    The page has four tabs: Review queue, All submissions, Shelters (search, edit, hide, history with undo)
+    and County contacts. Approving a submission updates the `shelters` table directly (after step 13).
 
 ## Shelter list in Supabase (replaces the Google Sheet)
 

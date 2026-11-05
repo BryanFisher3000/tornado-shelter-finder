@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: SAS Shelter Review
- * Description: Review dashboard for Tornado Shelter Finder submissions. Add the [sas_shelter_review] shortcode to a page; signed-in Editors and Administrators can review, approve and reject submissions from the app and website.
- * Version: 1.0.0
+ * Description: Review dashboard for Tornado Shelter Finder submissions and the shelter list. Add the [sas_shelter_review] shortcode to a page; signed-in Editors and Administrators can approve or reject submissions from the app and website (approvals update the shelter list in Supabase), and edit shelters and county EM contacts directly.
+ * Version: 1.1.0
  * Author: Survive-A-Storm
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -17,10 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SAS_REVIEW_VERSION', '1.0.0' );
+define( 'SAS_REVIEW_VERSION', '1.1.0' );
 if ( ! defined( 'SAS_SUPABASE_URL' ) ) {
 	define( 'SAS_SUPABASE_URL', 'https://svptjcclszprsmjoldaz.supabase.co' );
 }
+
+require_once __DIR__ . '/includes/shelters.php';
 
 /** Who may review: Editors and above by default (they can edit other people's posts). */
 function sas_review_can_review() {
@@ -107,10 +109,19 @@ add_action(
 						'default' => '',
 						'enum'    => array( '', 'spam', 'wrong', 'duplicate', 'unverifiable', 'other' ),
 					),
+					'force'  => array( 'type' => 'boolean', 'default' => false ),
 				),
 				'callback'            => 'sas_review_decide',
 			)
 		);
+		register_rest_route( 'sas/v1', '/shelters', array( 'methods' => 'GET', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_shelters_search' ) );
+		register_rest_route( 'sas/v1', '/shelters/(?P<id>[a-z0-9]{6,40})', array(
+			array( 'methods' => 'GET', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_shelter_get' ),
+			array( 'methods' => 'POST', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_shelter_save' ),
+		) );
+		register_rest_route( 'sas/v1', '/shelters/(?P<id>[a-z0-9]{6,40})/undo', array( 'methods' => 'POST', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_shelter_undo' ) );
+		register_rest_route( 'sas/v1', '/counties', array( 'methods' => 'GET', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_counties_search' ) );
+		register_rest_route( 'sas/v1', '/counties/(?P<id>\\d+)', array( 'methods' => 'POST', 'permission_callback' => 'sas_review_can_review', 'callback' => 'sas_review_county_save' ) );
 	}
 );
 
@@ -138,6 +149,21 @@ function sas_review_decide( WP_REST_Request $req ) {
 			break;
 		case 'approve':
 			$patch = array( 'status' => 'approved', 'reviewed_by' => $me, 'reviewed_at' => $now, 'reviewer_note' => '' !== $note ? $note : null );
+			// Make the change in the shelter list first; the submission is only marked approved if that worked.
+			$sub = sas_review_supabase( 'GET', 'submissions?select=*&id=eq.' . $id . '&status=in.(pending,in_review,needs_info,superseded)' );
+			if ( is_wp_error( $sub ) ) {
+				return $sub;
+			}
+			if ( empty( $sub ) ) {
+				return new WP_Error( 'sas_stale', 'This submission was already decided. Refresh to see the latest.', array( 'status' => 409 ) );
+			}
+			$applied = sas_review_apply_submission( $sub[0], ! empty( $req['force'] ) );
+			if ( is_wp_error( $applied ) ) {
+				return $applied;
+			}
+			if ( $applied ) {
+				$patch['shelter_id'] = $applied['id'];
+			}
 			break;
 		case 'request_info':
 			if ( '' === $note ) {
@@ -168,17 +194,12 @@ function sas_review_decide( WP_REST_Request $req ) {
 		}
 		return new WP_Error( 'sas_stale', 'This submission was already decided. Refresh to see the latest.', array( 'status' => 409 ) );
 	}
-	return rest_ensure_response( array( 'submission' => $rows[0] ) );
+	return rest_ensure_response( array( 'submission' => $rows[0], 'shelter' => isset( $applied ) && $applied ? $applied : null ) );
 }
 
 add_shortcode(
 	'sas_shelter_review',
-	function ( $atts ) {
-		$atts = shortcode_atts(
-			array( 'shelters_url' => 'https://raw.githubusercontent.com/BryanFisher3000/tornado-shelter-finder/main/website/data/shelters.json' ),
-			$atts,
-			'sas_shelter_review'
-		);
+	function () {
 		if ( ! is_user_logged_in() ) {
 			return '<div class="sas-review-gate"><p>Sign in to WordPress as an Editor or Administrator to review shelter submissions.</p><p><a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">Sign in</a></p></div>';
 		}
@@ -196,7 +217,6 @@ add_shortcode(
 				'api'         => esc_url_raw( rest_url( 'sas/v1/' ) ),
 				'nonce'       => wp_create_nonce( 'wp_rest' ),
 				'me'          => sas_review_reviewer_name(),
-				'sheltersUrl' => esc_url_raw( $atts['shelters_url'] ),
 				'keySet'      => defined( 'SAS_SUPABASE_SECRET_KEY' ) && SAS_SUPABASE_SECRET_KEY,
 			)
 		);
