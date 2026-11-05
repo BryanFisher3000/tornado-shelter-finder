@@ -1,7 +1,7 @@
 # Shelter Finder app (iPhone and Android)
 
 The Survive-A-Storm Tornado Shelter Finder as a phone app. It is built from the
-website's own page (`../website/src/index.html`), shared data layer
+website's phone screen (`../website/src/mobile.html`, version 2, laid out like the Google Maps app), shared data layer
 (`../website/shelter-core.js`) and shelter list (`../website/data/shelters.json`),
 so the app and the website always show the same shelters, search, map and feedback.
 Capacitor wraps that page in a native iOS and Android shell.

@@ -213,12 +213,19 @@
    * A Submission (kind "report") in the spec's shape, plus the email the
    * layout spec asks for, pre-filled with the shelter's data.
    */
-  function buildReport(s, reasons, comment, device) {
+  /* changes (optional): [{ field, label, from, to, value }] for shelter details the person
+   * corrected, e.g. { field: "pets_allowed", label: "Pets Allowed", from: "No", to: "Yes", value: "yes" }. */
+  function buildReport(s, reasons, comment, device, changes) {
+    changes = changes || [];
+    var proposed = {};
+    changes.forEach(function (c) { proposed[c.field] = c.value; });
     var submission = {
       kind: s ? "report" : "general",
       shelter_id: s ? s.id : null,
+      shelter_label: s ? s.name + " — " + fullAddress(s) : null,
       base_version: s ? s.version : null,
       report_reasons: reasons || [],
+      proposed_changes: proposed,
       comment: comment || "",
       submitter_device: device || "",
       channel: "web"
@@ -232,6 +239,11 @@
       "Issues: " + ((reasons || []).map(function (r) { return REPORT_REASONS[r] || r; }).join("; ") || "None selected"),
       ""
     ] : [];
+    if (s && changes.length) {
+      lines.push("Suggested changes:");
+      changes.forEach(function (c) { lines.push("  " + c.label + ": " + c.from + " -> " + c.to); });
+      lines.push("");
+    }
     lines.push("Comments:", comment || "(none)", "", "Sent from: " + (device || "Shelter Finder website"));
     var subject = s ? "Shelter feedback: " + s.name + " (" + s.address.city + ", " + s.address.state + ")"
       : "Shelter Finder feedback";
@@ -247,11 +259,11 @@
 
   function amenityLabels(s) {
     var out = [];
-    if (s.ada_accessible === "yes") out.push("ADA accessible");
-    else if (s.ada_accessible === "no") out.push("Not ADA accessible");
-    if (s.pets_allowed === "yes") out.push("Pets allowed");
-    else if (s.pets_allowed === "no") out.push("No pets");
-    out.push(s.availability === "always" ? "Always open" : "Opens in emergencies");
+    if (s.ada_accessible === "yes") out.push("ADA Accessible");
+    else if (s.ada_accessible === "no") out.push("Not ADA Accessible");
+    if (s.pets_allowed === "yes") out.push("Pets Allowed");
+    else if (s.pets_allowed === "no") out.push("No Pets");
+    out.push(s.availability === "always" ? "Always Open" : "Opens in Emergencies");
     if (s.access === "registration_required") out.push("Registration required");
     else if (s.access === "restricted") out.push("Restricted access");
     return out;

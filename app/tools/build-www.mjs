@@ -33,12 +33,17 @@ fs.writeFileSync(path.join(www, "fonts.css"), fontCss);
 
 fs.copyFileSync(mod("leaflet/dist/leaflet.js"), path.join(www, "vendor/leaflet.js"));
 fs.copyFileSync(path.join(path.dirname(mod("topojson-client/package.json")), "dist/topojson-client.min.js"), path.join(www, "vendor/topojson-client.min.js"));
+fs.copyFileSync(path.join(path.dirname(mod("@supabase/supabase-js/package.json")), "dist/umd/supabase.js"), path.join(www, "vendor/supabase.js"));
+// Capacitor's JS runtime: gives window.Capacitor.registerPlugin, which app-shell.js uses for every native plugin
+fs.copyFileSync(path.join(path.dirname(mod("@capacitor/core/package.json")), "dist/capacitor.js"), path.join(www, "vendor/capacitor.js"));
 fs.copyFileSync(path.join(site, "shelter-core.js"), path.join(www, "shelter-core.js"));
 for (const f of fs.readdirSync(path.join(site, "data"))) fs.copyFileSync(path.join(site, "data", f), path.join(www, "data", f));
 fs.writeFileSync(path.join(www, "app-config.js"), fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version));
 for (const f of ["app-shell.js", "app.css"]) fs.copyFileSync(path.join(root, "src", f), path.join(www, f));
 
-let html = fs.readFileSync(path.join(site, "src/index.html"), "utf8");
+// The app ships the phone screen (src/mobile.html, version 2). SAS_PAGE=index.html builds the v1 page instead.
+const page = process.env.SAS_PAGE || "mobile.html";
+let html = fs.readFileSync(path.join(site, "src", page), "utf8");
 const logo = "data:image/png;base64," + fs.readFileSync(path.join(site, "tools/logo.png")).toString("base64");
 const swap = (from, to) => {
   if (!html.includes(from)) throw new Error("website page changed; can't find: " + from.slice(0, 80));
@@ -50,7 +55,8 @@ html = html.replace(/<link rel="preconnect"[^>]*>\n?/g, "");
 html = html.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="fonts.css">');
 swap('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>', '<script src="vendor/leaflet.js"></script>');
 swap('<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>', '<script src="vendor/topojson-client.min.js"></script>');
-swap('<script src="shelter-core.js"></script>', '<script src="app-config.js"></script>\n<script src="app-shell.js"></script>\n<script src="shelter-core.js"></script>');
+swap('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>', '<script src="vendor/supabase.js"></script>');
+swap('<script src="shelter-core.js"></script>', '<script src="vendor/capacitor.js"></script>\n<script src="app-config.js"></script>\n<script src="app-shell.js"></script>\n<script src="shelter-core.js"></script>');
 html = html.replace("By using this site you agree", "By using this app you agree");
 
 const head = `<!doctype html>
@@ -66,4 +72,4 @@ const bodyStart = html.indexOf('<svg width="0" height="0"');
 if (bodyStart < 0) throw new Error("website page changed; can't find the icon sprite that starts its body");
 html = head + html.slice(0, bodyStart) + '<link rel="stylesheet" href="app.css">\n</head>\n<body>\n' + html.slice(bodyStart) + "\n</body>\n</html>\n";
 fs.writeFileSync(path.join(www, "index.html"), html);
-console.log(`www/ built from ${site} (v${pkg.version})`);
+console.log(`www/ built from ${site}/src/${page} (v${pkg.version})`);

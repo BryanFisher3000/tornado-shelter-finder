@@ -955,9 +955,9 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       </label>
       <button class="locate" id="locate" type="button"><svg aria-hidden="true"><use href="#i-target"/></svg>Current location</button>
       <div class="chips" role="group" aria-label="Filters">
-        <button type="button" class="chip" data-filter="ada" aria-pressed="false">ADA accessible</button>
-        <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets allowed</button>
-        <button type="button" class="chip" data-filter="always" aria-pressed="false">Always open</button>
+        <button type="button" class="chip" data-filter="ada" aria-pressed="false">ADA Accessible</button>
+        <button type="button" class="chip" data-filter="pets" aria-pressed="false">Pets Allowed</button>
+        <button type="button" class="chip" data-filter="always" aria-pressed="false">Always Open</button>
       </div>
       <p class="status" id="status" aria-live="polite">Loading shelters…</p>
     </form>
@@ -1300,7 +1300,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       runQuery({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: "your location" }).then(function () { if (isPhone() && state.view === "search") setView("list"); });
     }, function () {
       btn.removeAttribute("aria-busy");
-      if (!quiet) setStatus("Your location isn't available here. Allow location for this site, or search a city, state or ZIP.", true);
+      if (!quiet) setStatus("My Location isn't available here. Allow location for this site, or search a city, state or ZIP.", true);
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   }
 
@@ -1458,8 +1458,15 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   // ---- boot ----
   setView(isPhone() ? "map" : "list");
   var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
-  // Prefer the live API's full list; fall back to the bundled copy (always there in the app, so it works offline).
-  var sheltersJSON = API ? getJSON(API + "/v1/shelters/snapshot").then(function (j) { return j.shelters ? j : { source: "Shelter API", count: j.length, shelters: j }; }).catch(function () { return getJSON("data/shelters.json"); }) : getJSON("data/shelters.json");
+  // Live list from the Supabase shelters table (what reviewers approve); the bundled copy is the offline fallback.
+  var liveShelters = function (base, key) {
+    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 6000);
+    return fetch(base + "/rest/v1/rpc/shelters_snapshot", { method: "POST", headers: { apikey: key, "Content-Type": "application/json" }, body: "{}", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error("shelters_snapshot " + r.status); return r.json(); })
+      .then(function (j) { if (!j || !Array.isArray(j.shelters) || j.shelters.length < 100) throw new Error("shelters_snapshot looks empty"); j.count = j.shelters.length; return j; })
+      .catch(function (e) { clearTimeout(t); throw e; });
+  };
+  var sheltersJSON = liveShelters("https://svptjcclszprsmjoldaz.supabase.co", APP.supabaseKey || "sb_publishable_jKaaBPri_pJorALxmh4Ndg_LClnGIZk").catch(function () { return getJSON("data/shelters.json"); });
   Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
     var data = res[0];
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });

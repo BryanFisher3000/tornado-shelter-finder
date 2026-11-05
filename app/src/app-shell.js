@@ -12,9 +12,70 @@
   window.SAS_APP.channel = platform;
   document.documentElement.classList.add("native", platform);
 
+  // vendor/capacitor.js adds registerPlugin; fall back to the bridge's own plugin list just in case
+  if (typeof Cap.registerPlugin !== "function") Cap.registerPlugin = function (n) { return (Cap.Plugins || {})[n]; };
   var Geo = Cap.registerPlugin("Geolocation");
   var Launcher = Cap.registerPlugin("AppLauncher");
   var Browser = Cap.registerPlugin("Browser");
+  var Device = Cap.registerPlugin("Device");
+
+  // Sign-in: open the Google/Apple/Facebook page in a browser sheet; it comes back to
+  // com.surviveastorm.shelterfinder://auth?code=..., which Android/iOS hand to the app.
+  var AppPlugin = Cap.registerPlugin("App");
+  var OAUTH_RETURN = "com.surviveastorm.shelterfinder://auth";
+  window.SAS_APP.oauth = {
+    redirect: OAUTH_RETURN,
+    open: function (url) { return Browser.open({ url: url, presentationStyle: "popover" }); },
+    onReturn: function (cb) {
+      AppPlugin.addListener("appUrlOpen", function (e) {
+        if (!e || !e.url || e.url.indexOf(OAUTH_RETURN) !== 0) return;
+        Browser.close().catch(function () {});
+        cb(e.url);
+      });
+    }
+  };
+
+  // Built-in Google sign-in (Android account picker / iOS Google sheet). Returns a Google ID token
+  // that the page hands to Supabase (signInWithIdToken). Needs googleWebClientId in app-config.js.
+  if (window.SAS_APP.googleWebClientId) {
+    var Social = Cap.registerPlugin("SocialLogin");
+    var socialReady = null;
+    window.SAS_APP.nativeGoogle = {
+      signIn: function (hashedNonce) {
+        socialReady = socialReady || Social.initialize({ google: { webClientId: window.SAS_APP.googleWebClientId, iOSClientId: window.SAS_APP.googleIosClientId || undefined, iOSServerClientId: window.SAS_APP.googleWebClientId, mode: "online", skipAuthOnlyAuthorizationAfterSignIn: true } });
+        return socialReady.then(function () {
+          return Social.login({ provider: "google", options: { nonce: hashedNonce } });
+        }).then(function (res) {
+          var r = res && res.result || {};
+          if (!r.idToken) throw new Error("Google didn't return a sign-in token.");
+          return r.idToken;
+        });
+      }
+    };
+  }
+
+  // Settings shows the phone model and operating system version.
+  window.SAS_APP.deviceInfo = function () { return Device.getInfo(); };
+
+  // Settings switches: My Location and Notifications. Each reports "granted", "denied" or "prompt".
+  var Notes = Cap.registerPlugin("LocalNotifications");
+  var NativeSettings = Cap.registerPlugin("NativeSettings");
+  function geoState(p) { return p.location === "granted" || p.coarseLocation === "granted" ? "granted" : /^prompt/.test(p.location) ? "prompt" : "denied"; }
+  function noteState(p) { return p.display === "granted" ? "granted" : /^prompt/.test(p.display) ? "prompt" : "denied"; }
+  window.SAS_APP.permissions = {
+    location: {
+      check: function () { return Geo.checkPermissions().then(geoState); },
+      request: function () { return Geo.requestPermissions({ permissions: ["location"] }).then(geoState); }
+    },
+    notifications: {
+      check: function () { return Notes.checkPermissions().then(noteState); },
+      request: function () { return Notes.requestPermissions().then(noteState); }
+    }
+  };
+  // Opens this app's page in the phone's Settings, where a denied permission can be turned back on.
+  window.SAS_APP.openAppSettings = function () {
+    return NativeSettings.open({ optionAndroid: "application_details", optionIOS: "app" });
+  };
 
   // navigator.geolocation → native plugin (asks permission the native way)
   if (navigator.geolocation) {
