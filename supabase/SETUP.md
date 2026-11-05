@@ -17,3 +17,16 @@
 7. Apple sign-in (needed before the iPhone app ships): requires the Apple Developer Program ($99/yr). We'll do this step together later.
 8. After you sign in once in the app, run in SQL Editor to make yourself a reviewer:
    `update public.profiles set is_reviewer = true where email = '<your email>';`
+
+## Review dashboard (WordPress plugin)
+
+9. SQL Editor > New query: paste `review.sql` from this folder and Run. It adds the `reviewed_by` column.
+10. Project Settings > API Keys: copy the **secret** key (starts with `sb_secret_`). Don't send it to anyone.
+    Add it to `wp-config.php` on the WordPress server, above "That's all, stop editing":
+    `define( 'SAS_SUPABASE_SECRET_KEY', 'sb_secret_...' );`
+11. Zip the `wordpress/sas-shelter-review` folder, then WordPress > Plugins > Add New > Upload Plugin, and Activate.
+12. Create a page (for example `/tornado-shelter-finder/review/`) and add the shortcode `[sas_shelter_review]`
+    in a Visual Composer text block. Signed-out visitors get a sign-in link; signed-in users below Editor get a
+    refusal. The page is marked noindex and not cached.
+    Optional: `[sas_shelter_review shelters_url="https://.../shelters.json"]` to load shelters from somewhere
+    other than the copy on GitHub `main`.
