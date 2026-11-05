@@ -1326,7 +1326,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest an Edit</button>' +
       "</div>" + facts(s) +
       (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
-      (s.notes ? '<p class="note">' + esc(s.notes) + "</p>" : "") +
       '<p class="fine" style="margin-top:1rem">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Suggest an Edit.</p>';
   }
 
