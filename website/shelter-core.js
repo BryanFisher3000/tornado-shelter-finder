@@ -176,9 +176,25 @@
     return [a.line, a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   }
 
-  /** Directions in the chosen maps app ("google" | "apple"), as the layout spec describes. */
+  /** Maps apps Directions can open. Which ones a person is offered depends on their device. */
+  var MAP_APPS = {
+    google: "Google Maps",
+    apple: "Apple Maps",
+    waze: "Waze",
+    geo: "Phone's default maps app"   // Android only: a geo: link the phone hands to its default (or asks)
+  };
+
+  /** Which maps apps a plain browser can offer: Apple Maps only on Apple devices. */
+  function webMapApps(userAgent) {
+    return /iPhone|iPad|Macintosh/.test(userAgent || "") ? ["apple", "google", "waze"] : ["google", "waze"];
+  }
+
+  /** Directions in the chosen maps app (a MAP_APPS key), as the layout spec describes. */
   function directionsUrl(s, provider, from) {
     var dest = encodeURIComponent(s.address.line ? fullAddress(s) : s.location.lat + "," + s.location.lng);
+    var ll = s.location.lat + "," + s.location.lng;
+    if (provider === "waze") return "https://waze.com/ul?ll=" + ll + "&navigate=yes";
+    if (provider === "geo") return "geo:" + ll + "?q=" + ll + "(" + encodeURIComponent(s.name) + ")";
     if (provider === "apple") {
       return "https://maps.apple.com/?daddr=" + dest + (from ? "&saddr=" + from.lat + "," + from.lng : "");
     }
@@ -248,6 +264,8 @@
     formatMiles: formatMiles,
     fullAddress: fullAddress,
     directionsUrl: directionsUrl,
+    MAP_APPS: MAP_APPS,
+    webMapApps: webMapApps,
     buildReport: buildReport,
     amenityLabels: amenityLabels,
     REPORT_REASONS: REPORT_REASONS,

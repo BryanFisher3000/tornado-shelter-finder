@@ -970,14 +970,14 @@ body:not([data-view="map"]) .map-card { display: none !important; }
       <ol class="list" id="saved" aria-label="Saved shelters" hidden></ol>
       <div class="settings" id="settings" hidden>
         <div class="set-row"><label for="set-loc">My location</label><span class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></span></div>
-        <div class="set-row"><label for="set-map">Map</label><select id="set-map"><option value="google">Google Maps</option><option value="apple">Apple Maps</option></select></div>
+        <div class="set-row"><label for="set-map">Directions app</label><select id="set-map"></select></div>
         <div class="set-row sep"><span>My device</span><span class="v" id="set-device"></span></div>
         <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
         <div class="set-row"><span>App version</span><span class="v" id="set-version">1.0 prototype (web)</span></div>
         <div class="set-row sep" style="display:block">
           <label for="set-fb" style="display:block;margin-bottom:.6rem">Feedback</label>
           <textarea id="set-fb" placeholder="Tell us what would make the shelter finder better."></textarea>
-          <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button><button class="btn grey" type="button" id="set-cancel">Cancel</button></div>
+          <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
         </div>
         <p class="fine">By using this site you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided. Always follow instructions from local emergency officials.</p>
       </div>
@@ -1014,7 +1014,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
         </fieldset>
         <label class="sr" for="fb-text">Comments</label>
         <textarea id="fb-text" placeholder="Anything else, such as the correct address or hours."></textarea>
-        <div class="btns"><button class="btn red" type="submit">Send</button><button class="btn grey" type="button" id="fb-cancel">Cancel</button></div>
+        <div class="btns"><button class="btn red" type="submit">Send</button></div>
       </div>
     </div>
     <div id="fb-ready" hidden>
@@ -1065,7 +1065,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   var state = {
     store: null, origin: null, results: [], selected: null,
     filters: { ada: false, pets: false, always: false },
-    saved: load("saved", []), provider: load("provider", /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? "apple" : "google"),
+    saved: load("saved", []), provider: load("provider", null),
     useLocation: load("useLocation", false), view: "list"
   };
 
@@ -1409,7 +1409,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     }
   });
   function closeFb() { $("#fb-dialog").close(); }
-  $("#fb-cancel").addEventListener("click", closeFb);
   $("#fb-done").addEventListener("click", closeFb);
   $("#fb-back").addEventListener("click", function () { if (!$("#fb-ready").hidden && fbShelter) showFbStep("compose"); else closeFb(); });
   $("#fb-copy").addEventListener("click", function () {
@@ -1425,7 +1424,18 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     $("#fb-copied").textContent = "Copying isn't allowed here. The message is selected; copy it with your keyboard.";
   }
 
-  $("#set-map").value = state.provider;
+  // Directions app: only the maps apps this device can open. The phone app asks the device
+  // (SAS_APP.mapApps); a browser gets Google Maps and Waze, plus Apple Maps on Apple devices.
+  function setMapApps(ids) {
+    ids = (ids || []).filter(function (id) { return C.MAP_APPS[id]; });
+    if (!ids.length) ids = C.webMapApps(navigator.userAgent);
+    $("#set-map").innerHTML = ids.map(function (id) { return '<option value="' + id + '">' + esc(C.MAP_APPS[id]) + "</option>"; }).join("");
+    if (ids.indexOf(state.provider) < 0) state.provider = ids[0];
+    $("#set-map").value = state.provider;
+    renderResults(); renderSaved();
+  }
+  setMapApps(C.webMapApps(navigator.userAgent));
+  if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderResults(); renderSaved(); });
   if (APP.version) $("#set-version").textContent = APP.version;
   $("#set-loc").checked = state.useLocation;
@@ -1438,7 +1448,6 @@ body:not([data-view="map"]) .map-card { display: none !important; }
     showReady(C.buildReport(null, [], text, deviceLabel()));
     $("#set-fb").value = "";
   });
-  $("#set-cancel").addEventListener("click", function () { $("#set-fb").value = ""; });
 
   // first-run disclaimer, as on the app's startup screen
   if (!load("agreed", false)) {
@@ -1454,7 +1463,7 @@ body:not([data-view="map"]) .map-card { display: none !important; }
   Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
     var data = res[0];
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
-    $("#set-count").textContent = data.count.toLocaleString("en-US") + " from " + data.source;
+    $("#set-count").textContent = data.count.toLocaleString("en-US");
     if (window.L) initMap(res[1]); else $("#map").innerHTML = '<p class="fine" style="padding:1rem">The map didn\'t load. The list still works.</p>';
     drawAllDots();
     if (map) buildCities();
