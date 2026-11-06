@@ -185,10 +185,16 @@
     var follow = function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; cam(false); }); };
     var r = rect(), c0 = lmap.getCenter();
     document.documentElement.classList.add("gmap");
+    // create() returns before Google has finished building the map; calls made before "onMapReady" are dropped
+    var mapReady = new Promise(function (res) {
+      Promise.resolve(GMaps.addListener("onMapReady", function (d) { if (!d || !d.mapId || d.mapId === id) res(); })).catch(function () {});
+      setTimeout(res, 15000);
+    });
     return GMaps.create({ id: id, apiKey: window.SAS_APP.googleMapsKey, forceCreate: true, element: {},
       config: { x: r.x, y: r.y, width: r.width, height: r.height, center: { lat: c0.lat, lng: c0.lng }, zoom: Math.round(lmap.getZoom()),
         minZoom: 3, maxZoom: 20, devicePixelRatio: window.devicePixelRatio || 1, androidLiteMode: false,
         disableDefaultUI: true, mapTypeId: "roadmap" } })
+      .then(function () { return mapReady; })
       .then(function () { return GMaps.disableTouch({ id: id }); })
       .then(function () {
         ready = true;
@@ -201,8 +207,8 @@
           setBottom: function (px) {
             px = Math.max(0, Math.round(px)); if (Math.abs(px - pad) < 2) return;
             pad = px;
-            GMaps.setPadding({ id: id, padding: { top: 0, left: 0, right: 0, bottom: pad } }).catch(function () {});
-            follow();
+            // Google's padding is in screen pixels, the page's in CSS pixels
+            GMaps.setPadding({ id: id, padding: { top: 0, left: 0, right: 0, bottom: Math.round(pad * (window.devicePixelRatio || 1)) } }).then(follow).catch(function () { pad = -10; });
           }
         };
       })
