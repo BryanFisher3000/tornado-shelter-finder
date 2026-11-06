@@ -2,6 +2,10 @@
 // 1. Reads active Tornado Warnings (and Watches) from the National Weather Service.
 // 2. Finds phones whose current spot, Home or Work is inside an alert's area.
 // 3. Sends each phone one push per alert through Firebase Cloud Messaging (HTTP v1).
+//    An updated warning (new id that references the old one) counts as the same warning.
+// 4. When every warning a phone was told about has ended, sends one "warning ended" push.
+//    alert_pushes.matched: here/home/work (warning), watch-<spot>, update (same warning, no push),
+//    clear (all-clear sent), test.
 // Secrets: FCM_SERVICE_ACCOUNT (the Firebase service-account JSON). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase. Deploy with verify_jwt off.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -77,6 +81,20 @@ Deno.serve(async (req) => {
   // {"test": true}: one clearly-marked test alert to the phone that registered most recently
   // (within 30 minutes), at most once every 5 minutes.
   const body = await req.json().catch(() => ({}));
+  // {"test": "clear"}: a TEST "warning ended" push, replacing the last test alert
+  if (body && body.test === "clear") {
+    const { data: dev } = await db.from("push_devices").select("token").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
+    const { data: last } = await db.from("alert_pushes").select("alert_id").eq("token", dev.token).eq("matched", "test").order("sent_at", { ascending: false }).limit(1).maybeSingle();
+    const tag = last?.alert_id || "test";
+    const r = await send(sa, {
+      token: dev.token,
+      notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
+      data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
+      android: { priority: "high", notification: { channel_id: "tornado-warnings", sound: "default", tag } },
+    });
+    return Response.json({ test: r.ok ? "sent" : "failed", status: r.status });
+  }
   if (body && body.test === true) {
     const { data: dev } = await db.from("push_devices").select("token, places").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
@@ -95,7 +113,6 @@ Deno.serve(async (req) => {
   const res = await fetch(NWS, { headers: { "User-Agent": UA, Accept: "application/geo+json" } });
   if (!res.ok) return new Response("NWS " + res.status, { status: 502 });
   const alerts = ((await res.json()).features || []).filter((f: any) => f.properties?.messageType !== "Cancel");
-  if (!alerts.length) return Response.json({ alerts: 0, sent: 0 });
 
   const { data: devices, error } = await db.from("push_devices").select("token, platform, last_lat, last_lng, last_seen, places, warnings, watches");
   if (error) return new Response(error.message, { status: 500 });
@@ -116,25 +133,58 @@ Deno.serve(async (req) => {
     }
     return polys.length ? { type: "MultiPolygon", coordinates: polys } : null;
   }
+  const areas = new Map<string, Geo>();
+  async function areaFor(f: any) { if (!areas.has(f.properties.id)) areas.set(f.properties.id, await areaOf(f)); return areas.get(f.properties.id)!; }
+  function spotsOf(d: any) {
+    const fresh = d.last_seen && Date.now() - Date.parse(d.last_seen) < HERE_MAX_AGE_MS;
+    const spots: [string, any][] = [];
+    if (fresh && d.last_lat != null) spots.push(["here", { lat: d.last_lat, lng: d.last_lng }]);
+    for (const k of ["home", "work"]) if (d.places?.[k]?.lat != null) spots.push([k, d.places[k]]);
+    return spots;
+  }
 
-  const ids = alerts.map((f: any) => f.properties.id);
-  const { data: already } = await db.from("alert_pushes").select("alert_id, token").in("alert_id", ids);
-  const done = new Set((already || []).map((r: any) => r.alert_id + "|" + r.token));
+  // what each phone was sent in the last 12 hours
+  const { data: recent } = await db.from("alert_pushes").select("alert_id, token, matched, sent_at").gte("sent_at", new Date(Date.now() - 12 * 3600e3).toISOString()).order("sent_at");
+  const done = new Set((recent || []).map((r: any) => r.alert_id + "|" + r.token));
   const access = await fcmToken(sa);
-  let sent = 0, failed = 0;
+  let sent = 0, failed = 0, cleared = 0;
+
+  async function push(d: any, message: any, row: { alert_id: string; matched: string }) {
+    const r = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+      method: "POST", headers: { Authorization: "Bearer " + access, "Content-Type": "application/json" }, body: JSON.stringify({ message: { token: d.token, ...message } }),
+    });
+    if (r.ok) {
+      await db.from("alert_pushes").insert({ alert_id: row.alert_id, token: d.token, matched: row.matched });
+      done.add(row.alert_id + "|" + d.token);
+      return true;
+    }
+    const t = await r.text();
+    // the app was uninstalled or the token expired
+    if (r.status === 404 || /UNREGISTERED|INVALID_ARGUMENT.*token/i.test(t)) await db.from("push_devices").delete().eq("token", d.token);
+    else console.warn("FCM", r.status, t.slice(0, 300));
+    return false;
+  }
+  // NWS "references" hold ids like https://api.weather.gov/alerts/<id> or the bare id
+  const refsOf = (f: any) => (f.properties.references || []).map((x: any) => String(x.identifier || x["@id"] || "").replace(/^.*\/alerts\//, ""));
 
   for (const f of alerts) {
     const p = f.properties, isWarning = p.event === "Tornado Warning";
     const want = devices.filter((d: any) => (isWarning ? d.warnings : d.watches) && !done.has(p.id + "|" + d.token));
     if (!want.length) continue;
-    const area = await areaOf(f);
-    if (!area) continue;
+    // an update to a warning the phone already got: remember it, but don't push again
+    const refs = refsOf(f);
+    const fresh: any[] = [];
     for (const d of want) {
-      const fresh = d.last_seen && Date.now() - Date.parse(d.last_seen) < HERE_MAX_AGE_MS;
-      const spots: [string, any][] = [];
-      if (fresh && d.last_lat != null) spots.push(["here", { lat: d.last_lat, lng: d.last_lng }]);
-      for (const k of ["home", "work"]) if (d.places?.[k]?.lat != null) spots.push([k, d.places[k]]);
-      const hit = spots.find(([, s]) => inGeo([+s.lng, +s.lat], area));
+      if (refs.some((id: string) => done.has(id + "|" + d.token))) {
+        await db.from("alert_pushes").insert({ alert_id: p.id, token: d.token, matched: "update" });
+        done.add(p.id + "|" + d.token);
+      } else fresh.push(d);
+    }
+    if (!fresh.length) continue;
+    const area = await areaFor(f);
+    if (!area) continue;
+    for (const d of fresh) {
+      const hit = spotsOf(d).find(([, s]) => inGeo([+s.lng, +s.lat], area));
       if (!hit) continue;
       const [where, spot] = hit, place = where === "home" ? "Home" : where === "work" ? "Work" : "";
       const until = clock(p.expires || p.ends);
@@ -142,28 +192,47 @@ Deno.serve(async (req) => {
       const body = isWarning
         ? (place && spot.safe === "yes" ? "Take cover in your safe place at " + place + " now." : "Take cover now. Tap to see the nearest shelters.") + (until ? " Until " + until + "." : "")
         : "Conditions are right for tornadoes" + (until ? " until " + until : "") + ". Know where you'll take cover.";
-      const msg = {
-        message: {
-          token: d.token,
-          notification: { title, body },
-          data: { kind: "tornado", alert_id: p.id, event: p.event, where, safe: String(spot.safe || ""), expires: String(p.expires || ""), area: String(p.areaDesc || "").slice(0, 300) },
-          android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? "tornado-warnings" : "tornado-watches", sound: "default", tag: p.id } },
-        },
-      };
-      const r = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
-        method: "POST", headers: { Authorization: "Bearer " + access, "Content-Type": "application/json" }, body: JSON.stringify(msg),
-      });
-      if (r.ok) {
-        sent++;
-        await db.from("alert_pushes").insert({ alert_id: p.id, token: d.token, matched: where });
-      } else {
-        failed++;
-        const t = await r.text();
-        // the app was uninstalled or the token expired
-        if (r.status === 404 || /UNREGISTERED|INVALID_ARGUMENT.*token/i.test(t)) await db.from("push_devices").delete().eq("token", d.token);
-        else console.warn("FCM", r.status, t.slice(0, 300));
-      }
+      const ok = await push(d, {
+        notification: { title, body },
+        data: { kind: "tornado", alert_id: p.id, event: p.event, where, safe: String(spot.safe || ""), expires: String(p.expires || ""), area: String(p.areaDesc || "").slice(0, 300) },
+        android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? "tornado-warnings" : "tornado-watches", sound: "default", tag: p.id } },
+      }, { alert_id: p.id, matched: isWarning ? where : "watch-" + where });
+      if (ok) sent++; else failed++;
     }
   }
-  return Response.json({ alerts: alerts.length, devices: devices.length, sent, failed });
+
+  // All clear: a phone whose warnings have all ended (expired, cancelled, or no longer listed) gets one push,
+  // unless one of its spots is inside another active warning.
+  const active = new Set(alerts.map((f: any) => f.properties.id));
+  const warnings = alerts.filter((f: any) => f.properties.event === "Tornado Warning");
+  const byToken = new Map<string, any[]>();
+  for (const r of recent || []) { if (!byToken.has(r.token)) byToken.set(r.token, []); byToken.get(r.token)!.push(r); }
+  for (const d of devices) {
+    const rows = byToken.get(d.token) || [];
+    const warned = rows.filter((r: any) => ["here", "home", "work", "update"].includes(r.matched));
+    if (!warned.length) continue;
+    if (warned.some((r: any) => active.has(r.alert_id))) continue;
+    const ended = warned.filter((r: any) => !done.has("clear:" + r.alert_id + "|" + d.token));
+    if (!ended.length) continue;
+    let covered = false;
+    for (const f of warnings) { const a = await areaFor(f); if (a && spotsOf(d).some(([, s]) => inGeo([+s.lng, +s.lat], a))) { covered = true; break; } }
+    if (covered) continue;
+    // the newest warning notification is the one to replace
+    const first = [...ended].reverse().find((r: any) => r.matched !== "update") || ended[ended.length - 1];
+    // the county names, from the original warning
+    let areaDesc = "";
+    const ar = await fetch("https://api.weather.gov/alerts/" + encodeURIComponent(first.alert_id), { headers: { "User-Agent": UA, Accept: "application/geo+json" } }).catch(() => null);
+    if (ar && ar.ok) areaDesc = String((await ar.json()).properties?.areaDesc || "");
+    const short = areaDesc.split(";").map((s) => s.trim()).filter(Boolean).slice(0, 3).join(", ");
+    const ok = await push(d, {
+      notification: { title: "Tornado Warning Ended", body: "The Tornado Warning" + (short ? " for " + short : " for your area") + " has ended. Storms may continue, so stay alert." },
+      data: { kind: "tornado-clear", alert_id: first.alert_id, area: short },
+      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-warnings", sound: "default", tag: first.alert_id } },
+    }, { alert_id: "clear:" + first.alert_id, matched: "clear" });
+    if (ok) {
+      cleared++;
+      for (const r of ended) if (r.alert_id !== first.alert_id) { await db.from("alert_pushes").insert({ alert_id: "clear:" + r.alert_id, token: d.token, matched: "clear" }); done.add("clear:" + r.alert_id + "|" + d.token); }
+    } else failed++;
+  }
+  return Response.json({ alerts: alerts.length, devices: devices.length, sent, cleared, failed });
 });

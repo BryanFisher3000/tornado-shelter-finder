@@ -1892,7 +1892,19 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // A tapped alert: if the person is at Home/Work and it has a safe place, tell them to go there;
   // otherwise show the nearest shelters from where they are.
   function showAlert(d) {
+    if (d && d.kind === "tornado-clear") {
+      setLive(null);
+      var area = String(d.area || "").trim();
+      $("#al-kicker").textContent = "Tornado Warning";
+      $("#al-title").textContent = "Warning Ended";
+      $("#al-text").textContent = "The Tornado Warning" + (area ? " for " + area : "") + " has ended. Storms may continue, so stay alert.";
+      $("#al-area").textContent = "National Weather Service";
+      $("#al-shelters").hidden = true;
+      if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
+      return;
+    }
     if (!d || d.kind !== "tornado") return;
+    $("#al-shelters").hidden = false;
     var isWarning = d.event !== "Tornado Watch", pl = places();
     if (isWarning) {
       var test = /^test-/.test(d.alert_id || ""), exp = d.expires || new Date(Date.now() + 45 * 60e3).toISOString();
