@@ -287,6 +287,8 @@ textarea { width: 100%; min-height: 6.5rem; resize: vertical; background: var(--
 
 /* map */
 .leaflet-container { font-family: var(--f-body); background: var(--water); }
+/* Android app with the Google street map: it is drawn behind the page, so the map area must be see-through */
+html.gmap, html.gmap body, html.gmap #map, html.gmap .leaflet-container { background: transparent !important; }
 .leaflet-control-attribution { font-size: .62rem; background: color-mix(in srgb, var(--card) 75%, transparent) !important; color: var(--muted); }
 .leaflet-control-attribution a { color: var(--ink-2); }
 .city-label { white-space: nowrap; font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); text-shadow: 0 0 3px var(--land), 0 0 3px var(--land); pointer-events: none; transform: translate(-50%, 6px); width: max-content; }
@@ -693,6 +695,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     // let every row scroll into view while the sheet is only partly open
     body.style.paddingBottom = Math.max(0, y) + "px";
     var visible = vh() - y, area = document.getElementById("area-btn");
+    if (gmap) gmap.setBottom(Math.min(visible, vh() - 160));
     if (area) { area.style.bottom = (visible + 12) + "px"; area.style.visibility = y < vh() * 0.35 ? "hidden" : ""; }
   }
   // X: on a search it goes back to the shelters near you; near you it lowers the tray, then hides
@@ -838,7 +841,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
 
   // ---------- map ----------
-  var map, landLayer, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
+  var map, gmap, landLayer, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
   function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
   // Tiles the person has looked at are saved on the phone and shown when there's no signal.
   var TILE_CACHE = "sas-tiles-v1";
@@ -892,6 +895,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var smoothRadar = function () { var z = map.getZoom(); map.getPane("radar").style.filter = "url(#radar-rain) blur(" + (z >= 11 ? 3 : z >= 9 ? 2 : z >= 7 ? 1 : 0) + "px)"; };
     map.on("zoomend", smoothRadar); smoothRadar();
     map.createPane("warn"); map.getPane("warn").style.zIndex = 380;
+    // In the Android app with a Google Maps key, Google's street map is drawn behind this one (app-shell.js).
+    if (APP.nativeMap) {
+      APP.nativeMap(document.getElementById("map"), map).then(function (g) {
+        if (!g) return startTiles();
+        gmap = g; tilesOn = true;
+        if (landLayer) map.removeLayer(landLayer);
+        if (cityLayer) cityLayer.clearLayers();
+        gmap.setBottom(Math.min(visibleSheet(), vh() - 160));
+      });
+    } else startTiles();
+    function startTiles() {
     var probe = new Image();
     probe.onload = function () {
       tilesOn = true;
@@ -911,6 +925,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       }).catch(function () {});
     };
     probe.src = "https://tile.openstreetmap.org/4/3/6.png";
+    }
     dotLayer = L.layerGroup().addTo(map);
     pinLayer = L.layerGroup().addTo(map);
     cityLayer = L.layerGroup().addTo(map);

@@ -164,6 +164,55 @@
     }
     return Browser.open({ url: url, presentationStyle: "popover" });
   }
+
+  // Google street map (Maps SDK for Android, free for apps). The Google map is drawn by Android
+  // *behind* the page; the page's own map (shelter dots, radar, warning outlines) stays on top
+  // with a see-through background and handles every touch, and the Google map follows it.
+  // Only when a Maps key is set in app-config.js (googleMapsKey); otherwise the page keeps its own tiles.
+  var GMaps = Cap.registerPlugin("CapacitorGoogleMaps");
+  if (window.SAS_APP.googleMapsKey && platform === "android") window.SAS_APP.nativeMap = function (el, lmap) {
+    var id = "sas-base", pad = 0, raf = 0, ready = false;
+    var rect = function () { var r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
+    // with bottom padding (so Google's logo sits above the tray) Google centres on the area above the
+    // padding, so aim it at the point that is that far above the middle of the page's map
+    var aim = function (center, zoom) { var p = lmap.project(center, zoom).subtract([0, pad / 2]); return lmap.unproject(p, zoom); };
+    var cam = function (animate, center, zoom) {
+      if (!ready) return;
+      zoom = zoom == null ? lmap.getZoom() : zoom;
+      var c = aim(center || lmap.getCenter(), zoom);
+      GMaps.setCamera({ id: id, config: { coordinate: { lat: c.lat, lng: c.lng }, zoom: zoom, animate: !!animate, animationDuration: 250 } }).catch(function () {});
+    };
+    var follow = function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; cam(false); }); };
+    var r = rect(), c0 = lmap.getCenter();
+    document.documentElement.classList.add("gmap");
+    return GMaps.create({ id: id, apiKey: window.SAS_APP.googleMapsKey, forceCreate: true, element: {},
+      config: { x: r.x, y: r.y, width: r.width, height: r.height, center: { lat: c0.lat, lng: c0.lng }, zoom: Math.round(lmap.getZoom()),
+        minZoom: 3, maxZoom: 20, devicePixelRatio: window.devicePixelRatio || 1, androidLiteMode: false,
+        disableDefaultUI: true, mapTypeId: "roadmap" } })
+      .then(function () { return GMaps.disableTouch({ id: id }); })
+      .then(function () {
+        ready = true;
+        lmap.on("move zoom viewreset resize", follow);
+        lmap.on("zoomanim", function (e) { cam(true, e.center, e.zoom); });
+        if (window.ResizeObserver) new ResizeObserver(function () { GMaps.onResize({ id: id, mapBounds: rect() }).catch(function () {}); follow(); }).observe(el);
+        cam(false);
+        return {
+          // bottom of the map hidden by the tray, in page pixels
+          setBottom: function (px) {
+            px = Math.max(0, Math.round(px)); if (Math.abs(px - pad) < 2) return;
+            pad = px;
+            GMaps.setPadding({ id: id, padding: { top: 0, left: 0, right: 0, bottom: pad } }).catch(function () {});
+            follow();
+          }
+        };
+      })
+      .catch(function (e) {
+        document.documentElement.classList.remove("gmap");
+        try { console.warn("Google map unavailable", e && e.message); } catch (x) {}
+        return null;
+      });
+  };
+
   window.open = function (url) { if (url) openExternal(String(url)); return null; };
   document.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest("a[href]");
