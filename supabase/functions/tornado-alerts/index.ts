@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       token: dev.token,
       notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
       data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
-      android: { priority: "high", notification: { channel_id: "tornado-warnings", sound: "default", tag } },
+      android: { priority: "high", notification: { channel_id: "tornado-updates", sound: "default", tag } },
     });
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status });
   }
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
       token: dev.token,
       notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
       data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", expires: new Date(Date.now() + 30 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
-      android: { priority: "high", notification: { channel_id: "tornado-warnings", sound: "default", tag: id } },
+      android: { priority: "high", notification: { channel_id: "tornado-alarm", sound: "tornado_alarm", tag: id } },
     });
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status, detail: r.ok ? undefined : (await r.text()).slice(0, 300) });
   }
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
       const ok = await push(d, {
         notification: { title, body },
         data: { kind: "tornado", alert_id: p.id, event: p.event, where, safe: String(spot.safe || ""), expires: String(p.expires || ""), area: String(p.areaDesc || "").slice(0, 300) },
-        android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? "tornado-warnings" : "tornado-watches", sound: "default", tag: p.id } },
+        android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? "tornado-alarm" : "tornado-watches", sound: isWarning ? "tornado_alarm" : "default", tag: p.id } },
       }, { alert_id: p.id, matched: isWarning ? where : "watch-" + where });
       if (ok) sent++; else failed++;
     }
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
     const ok = await push(d, {
       notification: { title: "Tornado Warning Ended", body: "The Tornado Warning" + (short ? " for " + short : " for your area") + " has ended. Storms may continue, so stay alert." },
       data: { kind: "tornado-clear", alert_id: first.alert_id, area: short },
-      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-warnings", sound: "default", tag: first.alert_id } },
+      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-updates", sound: "default", tag: first.alert_id } },
     }, { alert_id: "clear:" + first.alert_id, matched: "clear" });
     if (ok) {
       cleared++;

@@ -92,7 +92,7 @@ body.searching .searchbar { z-index: 41; }
   background: linear-gradient(var(--card, #fff), var(--card, #fff)) padding-box, linear-gradient(135deg, #FF4D4D, #D0021B 45%, #7A0010) border-box;
   box-shadow: var(--shadow); }
 /* while a warning is in effect: a red glow that throbs around the edge of the screen, and a box under the search bar */
-.al-frame { position: fixed; inset: 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
+.al-frame { position: fixed; inset: var(--band-h, 0px) 0 0 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
 @keyframes al-throb { 50% { box-shadow: inset 0 0 44px 16px rgba(255, 30, 30, .9); } }
 .al-live { position: fixed; z-index: 19; align-content: center; box-sizing: border-box; left: 50%; transform: translateX(-50%); top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 140px); justify-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
   border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: center; font: inherit; color: var(--ink-2); }
@@ -987,6 +987,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function renderLive() {
     if (live && !(Date.parse(live.expires) > Date.now())) { live = null; save("liveAlert", null); }
     $("#al-frame").hidden = $("#al-live").hidden = !live;
+    document.body.classList.toggle("al-on", !!live);
     if (live) {
       $("#al-live-t").textContent = (live.test ? "Test: " : "") + (live.event || "Tornado Warning") + " in Effect";
       $("#al-live-a").textContent = String(live.area || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3).join(", ");
@@ -1969,7 +1970,18 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#al-live").addEventListener("click", function () { if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" }); });
   renderLive(); setInterval(renderLive, 30000);
   $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
-  if (APP.push) APP.push.onTap(function (d, foreground) { showAlert(d); });
+  // The warning sound: the notification plays it when the app is closed; when the app is open, play it here, once.
+  var siren = null;
+  function playSiren() {
+    try {
+      if (!siren) siren = new Audio("data/tornado-alarm.mp3");
+      siren.currentTime = 0; siren.play().catch(function () {});
+    } catch (e) {}
+  }
+  if (APP.push) APP.push.onTap(function (d, foreground) {
+    if (foreground && d && d.kind === "tornado" && d.event !== "Tornado Watch") playSiren();
+    showAlert(d);
+  });
 
   // first-run disclaimer
   // the app opens on the person's location, with results in the sheet at half height
