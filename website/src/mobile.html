@@ -87,14 +87,25 @@ body.searching .searchbar { z-index: 41; }
 #radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
-.alert-dlg { border: 0; border-radius: 12px; padding: 0; width: min(24rem, calc(100vw - 32px)); box-shadow: var(--shadow); }
+.alert-dlg { border: 3.5px solid transparent; border-radius: 14px; padding: 0; width: min(24rem, calc(100vw - 32px)); outline: none;
+  background: linear-gradient(var(--card, #fff), var(--card, #fff)) padding-box, linear-gradient(135deg, #FF4D4D, #D0021B 45%, #7A0010) border-box;
+  box-shadow: var(--shadow); }
+/* while a warning is in effect: a red glow that throbs around the edge of the screen, and a box under the search bar */
+.al-frame { position: fixed; inset: 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
+@keyframes al-throb { 50% { box-shadow: inset 0 0 44px 16px rgba(255, 30, 30, .9); } }
+.al-live { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 150px); background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
+  border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: left; font: inherit; color: var(--ink-2); }
+.al-live b { color: #D0021B; text-transform: uppercase; letter-spacing: .03em; font-size: .95rem; font-weight: 800; }
+.al-live span { font-size: .85rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .alert-dlg::backdrop { background: rgba(120, 0, 0, .55); }
-.alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; border-top: 8px solid #D0021B; }
-.alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .9rem; }
-.alert-dlg h2 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
+.alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; text-align: center; }
+.alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; font-size: 1.6rem; line-height: 1.1; }
+.alert-dlg h2 { margin: 0; font-size: 1.5rem; line-height: 1.15; }
 .alert-dlg p { margin: 0; }
 .alert-dlg .btns { display: grid; gap: .5rem; }
 .alert-dlg .btns .btn { justify-content: center; }
+.alert-dlg .btns .btn.plain { background: var(--chip-on); color: var(--red-deep); }
+.alert-dlg .btns .btn:focus:not(:focus-visible) { outline: none; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
 .warn-pop b { color: #C0392B; }
 
@@ -342,6 +353,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour" hidden><svg class="i"><use href="#i-play"/></svg></button>
 </div>
 <div class="warn-bar" id="warn-bar" hidden></div>
+<button type="button" class="al-live" id="al-live" hidden><b id="al-live-t">Tornado Warning in Effect</b><span id="al-live-a"></span><span id="al-live-u"></span></button>
+<div class="al-frame" id="al-frame" hidden></div>
 <button type="button" class="area-btn" id="area-btn" hidden><svg class="i"><use href="#i-search"/></svg>Search this area</button>
 
 <div class="menu" id="menu" role="menu" hidden>
@@ -494,15 +507,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   </div>
 </section>
 
-<dialog id="alert-dialog" class="alert-dlg" aria-labelledby="al-title">
+<dialog id="alert-dialog" class="alert-dlg" aria-labelledby="al-title" tabindex="-1">
   <div class="al-body">
     <p class="al-kicker" id="al-kicker">Tornado Warning</p>
     <h2 id="al-title">Take Cover Now</h2>
     <p id="al-text"></p>
     <p class="fine" id="al-area"></p>
     <div class="btns">
-      <button class="btn red" type="button" id="al-shelters">Show Nearest Shelters</button>
-      <button class="btn plain" type="button" id="al-ok">OK</button>
+      <button class="btn red" type="button" id="al-ok">OK</button>
+      <button class="btn plain" type="button" id="al-shelters">Show Nearest Shelters</button>
     </div>
   </div>
 </dialog>
@@ -961,6 +974,21 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 
   // Active tornado warnings, drawn in red. Always on: these are the storms to take shelter from.
   var warnLayer = null, warnCount = 0, warnFeats = [], nearWarn = [];
+  // The warning this phone is under, from a push or from the map's own check: {id, event, area, expires, test}.
+  // It stays on screen (red edge + box) until it expires or the Weather Service drops it, even after OK.
+  var live = load("liveAlert", null);
+  function setLive(a) { live = a; save("liveAlert", a); renderLive(); }
+  function renderLive() {
+    if (live && !(Date.parse(live.expires) > Date.now())) { live = null; save("liveAlert", null); }
+    $("#al-frame").hidden = $("#al-live").hidden = !live;
+    if (live) {
+      $("#al-live-t").textContent = (live.test ? "Test: " : "") + (live.event || "Tornado Warning") + " in Effect";
+      $("#al-live-a").textContent = String(live.area || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3).join(", ");
+      $("#al-live-u").textContent = "Until " + fmtTime(new Date(live.expires));
+    }
+    if (typeof updateWarnBar === "function" && map) updateWarnBar();
+  }
+  function liveFrom(f) { var p = f.properties || {}; return { id: p.id, event: p.event || "Tornado Warning", area: p.areaDesc || "", expires: p.expires || p.ends || new Date(Date.now() + 45 * 60e3).toISOString() }; }
   var WARN_MI = 30;   // the banner only counts warnings within this distance of the place being shown
   function loadWarnings() {
     if (!map || document.hidden) return;
@@ -979,6 +1007,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           }
         }).addTo(map);
         warnFeats = feats;
+        var all = j.features || [];
+        if (live && !live.test && !all.some(function (f) { return (f.properties || {}).id === live.id; })) setLive(null);
+        if (!live && state.here) {
+          var hit = feats.filter(function (f) { return milesToArea(state.here, f.geometry) === 0; })[0];
+          if (hit) setLive(liveFrom(hit));
+        }
         updateWarnBar();
       }).catch(function () {});
   }
@@ -1006,7 +1040,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var pt = state.origin || state.here, bar = $("#warn-bar");
     nearWarn = pt ? warnFeats.filter(function (f) { return milesToArea(pt, f.geometry) <= WARN_MI; }) : [];
     warnCount = nearWarn.length;
-    bar.hidden = !warnCount;
+    bar.hidden = !warnCount || !!live;
     if (warnCount) {
       var inside = nearWarn.some(function (f) { return milesToArea(pt, f.geometry) === 0; });
       var area = String((nearWarn[0].properties || {}).areaDesc || "").split(";")[0].trim();
@@ -1016,7 +1050,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     placeBars();
   }
   // the warning banner sits under the radar bar when both show
-  function placeBars() { $("#warn-bar").style.top = "calc(var(--band-h, 0px) + " + (radarOn ? "7.1rem" : "4.3rem") + ")"; }
+  function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + " + (radarOn ? "7.1rem" : "4.3rem") + ")"; }
   function zoomToWarnings() {
     if (!warnCount) return;
     var o = mapPad(); o.maxZoom = 10; map.fitBounds(L.geoJSON({ type: "FeatureCollection", features: nearWarn }).getBounds(), o);
@@ -1858,8 +1892,25 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // A tapped alert: if the person is at Home/Work and it has a safe place, tell them to go there;
   // otherwise show the nearest shelters from where they are.
   function showAlert(d) {
+    if (d && d.kind === "tornado-clear") {
+      setLive(null);
+      var area = String(d.area || "").trim();
+      $("#al-kicker").textContent = "Tornado Warning";
+      $("#al-title").textContent = "Warning Ended";
+      $("#al-text").textContent = "The Tornado Warning" + (area ? " for " + area : "") + " has ended. Storms may continue, so stay alert.";
+      $("#al-area").textContent = "National Weather Service";
+      $("#al-shelters").hidden = true;
+      if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
+      return;
+    }
     if (!d || d.kind !== "tornado") return;
+    $("#al-shelters").hidden = false;
     var isWarning = d.event !== "Tornado Watch", pl = places();
+    if (isWarning) {
+      var test = /^test-/.test(d.alert_id || ""), exp = d.expires || new Date(Date.now() + 45 * 60e3).toISOString();
+      if (test) exp = new Date(Math.min(Date.parse(exp) || Infinity, Date.now() + 3 * 60e3)).toISOString(); // tests clear after 3 minutes
+      setLive({ id: d.alert_id || "", event: d.event || "Tornado Warning", area: d.area || "", expires: exp, test: test });
+    }
     function decide(pos) {
       var at = null;
       ["home", "work"].forEach(function (k) {
@@ -1880,7 +1931,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       }
       $("#al-area").textContent = (d.area ? d.area : "") + (d.expires ? (d.area ? " · " : "") + "Until " + fmtTime(new Date(d.expires)) : "") + " · National Weather Service";
       $("#al-shelters").textContent = safe ? "Show Nearest Shelters Instead" : "Show Nearest Shelters";
-      if (!$("#alert-dialog").open) $("#alert-dialog").showModal();
+      if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
       // unless they're sheltering at Home/Work, put the nearest shelters on screen right away
       if (isWarning && !safe) showNearest(pos);
     }
@@ -1899,6 +1950,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     go();
   }
   $("#al-ok").addEventListener("click", function () { $("#alert-dialog").close(); });
+  $("#al-live").addEventListener("click", function () { if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" }); });
+  renderLive(); setInterval(renderLive, 30000);
   $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
   if (APP.push) APP.push.onTap(function (d, foreground) { showAlert(d); });
 
