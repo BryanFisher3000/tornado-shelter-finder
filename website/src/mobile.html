@@ -87,6 +87,14 @@ body.searching .searchbar { z-index: 41; }
 #radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
+.alert-dlg { border: 0; border-radius: 12px; padding: 0; width: min(24rem, calc(100vw - 32px)); box-shadow: var(--shadow); }
+.alert-dlg::backdrop { background: rgba(120, 0, 0, .55); }
+.alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; border-top: 8px solid #D0021B; }
+.alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .9rem; }
+.alert-dlg h2 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
+.alert-dlg p { margin: 0; }
+.alert-dlg .btns { display: grid; gap: .5rem; }
+.alert-dlg .btns .btn { justify-content: center; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
 .warn-pop b { color: #C0392B; }
 
@@ -466,12 +474,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         </div>
         <p class="fine err" id="pl-msg" aria-live="polite"></p>
         <div class="btns"><button class="btn red" type="submit">Save</button><button class="btn plain" type="button" id="pl-skip">Skip for Now</button></div>
-        <p class="fine">You can change these anytime in Settings.</p>
+        <p class="fine">Used only to send you tornado alerts. You can change these anytime in Settings.</p>
       </form>
     </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
       <div class="set-row"><label for="set-notify">Notifications</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
+      <div class="set-row" id="set-watch-row" hidden><label for="set-watch">Tornado Watches<span class="hint">Warnings always come through. Watches are earlier, broader heads-ups.</span></label><label class="switch"><input type="checkbox" id="set-watch" role="switch"><span></span></label></div>
       <p class="fine set-msg" id="set-perm-msg" hidden></p>
       <a class="set-row link" id="set-places" href="#places"><span>Home &amp; Work<span class="hint" id="set-places-v">Not set</span></span><span class="v">›</span></a>
       <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
@@ -484,6 +493,19 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
   </div>
 </section>
+
+<dialog id="alert-dialog" class="alert-dlg" aria-labelledby="al-title">
+  <div class="al-body">
+    <p class="al-kicker" id="al-kicker">Tornado Warning</p>
+    <h2 id="al-title">Take Cover Now</h2>
+    <p id="al-text"></p>
+    <p class="fine" id="al-area"></p>
+    <div class="btns">
+      <button class="btn red" type="button" id="al-shelters">Show Nearest Shelters</button>
+      <button class="btn plain" type="button" id="al-ok">OK</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="fb-dialog" aria-labelledby="fb-title">
   <form class="fb" id="fb-form" method="dialog">
@@ -1114,6 +1136,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     navigator.geolocation.getCurrentPosition(function (pos) {
       fab.removeAttribute("aria-busy");
       state.here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      pushSync();
       if (PERM_BOX && !$("#pane-settings").hidden) refreshPerms();
       drawYou();
       $("#q").value = ""; $("#q-clear").hidden = true;
@@ -1239,6 +1262,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         var box = e.target; permMsg("");
         if (!box.checked) {
           save(PERM_KEYS[k], false);
+          if (k === "notifications") pushOff();
           if (k === "location") permMsg("The app won't use your location. To block it completely, change it in your phone's settings.");
           return;
         }
@@ -1246,7 +1270,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           if (st === "granted") {
             save(PERM_KEYS[k], true); box.checked = true;
             if (k === "location") locate(true, "half");
-            if (k === "notifications") permMsg("Notifications are on. We'll let you know when tornado warnings are ready.");
+            if (k === "notifications") pushSync(true);
+            if (k === "notifications") permMsg(APP.push ? "Tornado warnings are on for where you are, plus Home and Work." : "Notifications are on.");
           } else {
             box.checked = false;
             if (st === "denied") blocked(k);
@@ -1789,6 +1814,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     })).then(function () {
       out.saved_at = new Date().toISOString();
       save("places", out); placeDraft = {};
+      pushSync(true);
       $("#set-places-v").textContent = placeSummary();
       msg.textContent = "";
       finishPlaces();
@@ -1797,6 +1823,84 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     });
   });
   $("#set-places-v").textContent = placeSummary();
+
+  // ---------- tornado alert pushes ----------
+  // The phone tells Supabase its push token, where the app was last opened, Home/Work and which
+  // alerts it wants; the tornado-alerts function sends pushes from that (supabase/alerts.sql).
+  var lastPushSync = 0;
+  function pushOn() { return !!(APP.push && sb && load("notify", false) === true); }
+  function pushSync(force) {
+    if (!pushOn() || (!force && Date.now() - lastPushSync < 10 * 60e3)) return Promise.resolve();
+    lastPushSync = Date.now();
+    var pl = places(), slim = {};
+    ["home", "work"].forEach(function (k) { if (pl[k] && pl[k].lat != null) slim[k] = { lat: +(+pl[k].lat).toFixed(3), lng: +(+pl[k].lng).toFixed(3), safe: pl[k].safe || "" }; });
+    return APP.push.register().then(function (token) {
+      save("pushToken", token);
+      return sb.rpc("register_push_device", {
+        p_token: token, p_platform: APP.channel || "android",
+        p_lat: state.here ? +state.here.lat.toFixed(3) : null, p_lng: state.here ? +state.here.lng.toFixed(3) : null,
+        p_places: slim, p_warnings: true, p_watches: load("watches", false) === true
+      });
+    }).then(function (r) { if (r && r.error) console.warn("push register", r.error.message); })
+      .catch(function (e) { lastPushSync = 0; console.warn("push", e && e.message); });
+  }
+  function pushOff() {
+    var tok = load("pushToken", null);
+    if (sb && tok) sb.rpc("unregister_push_device", { p_token: tok }).then(function () {}, function () {});
+  }
+  if (APP.push) {
+    $("#set-watch-row").hidden = false;
+    $("#set-watch").checked = load("watches", false) === true;
+    $("#set-watch").addEventListener("change", function () { save("watches", this.checked); pushSync(true); });
+  }
+
+  function milesBetween(a, b) { return C.distanceMiles({ lat: +a.lat, lng: +a.lng }, { lat: +b.lat, lng: +b.lng }); }
+  // A tapped alert: if the person is at Home/Work and it has a safe place, tell them to go there;
+  // otherwise show the nearest shelters from where they are.
+  function showAlert(d) {
+    if (!d || d.kind !== "tornado") return;
+    var isWarning = d.event !== "Tornado Watch", pl = places();
+    function decide(pos) {
+      var at = null;
+      ["home", "work"].forEach(function (k) {
+        var v = pl[k]; if (at || !v || v.lat == null) return;
+        if (pos ? milesBetween(pos, v) <= 0.25 : d.where === k) at = k;
+      });
+      var name = at === "home" ? "Home" : at === "work" ? "Work" : "", safe = at && pl[at].safe === "yes";
+      $("#al-kicker").textContent = d.event || "Tornado Warning";
+      if (!isWarning) {
+        $("#al-title").textContent = "Be Ready";
+        $("#al-text").textContent = "Conditions are right for tornadoes. Know where you'll take cover" + (safe ? ": your safe place at " + name + "." : ". The nearest shelters are one tap away.");
+      } else if (safe) {
+        $("#al-title").textContent = "Take Cover at " + name;
+        $("#al-text").textContent = "Go to your safe room, storm shelter or basement now. Stay there until the warning ends.";
+      } else {
+        $("#al-title").textContent = "Take Cover Now";
+        $("#al-text").textContent = (name && pl[at].safe === "no" ? "You told us " + name + " has no safe room or basement. " : "") + "Go to the nearest shelter now. If you can't get there in time, go to the lowest floor, an interior room away from windows.";
+      }
+      $("#al-area").textContent = (d.area ? d.area : "") + (d.expires ? (d.area ? " · " : "") + "Until " + fmtTime(new Date(d.expires)) : "") + " · National Weather Service";
+      $("#al-shelters").textContent = safe ? "Show Nearest Shelters Instead" : "Show Nearest Shelters";
+      if (!$("#alert-dialog").open) $("#alert-dialog").showModal();
+      // unless they're sheltering at Home/Work, put the nearest shelters on screen right away
+      if (isWarning && !safe) showNearest(pos);
+    }
+    var done = false, finish = function (pos) { if (!done) { done = true; decide(pos); } };
+    if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (p) {
+      state.here = { lat: p.coords.latitude, lng: p.coords.longitude }; finish(state.here);
+    }, function () { finish(state.here); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
+    setTimeout(function () { finish(state.here); }, 9000);
+    if (!navigator.geolocation) finish(state.here);
+  }
+  function showNearest(pos) {
+    var go = function () {
+      if (!state.store) { setTimeout(go, 400); return; }
+      if (pos) runQuery({ lat: pos.lat, lng: pos.lng, label: "Near you" }, "Near you", "half"); else locate(true, "half");
+    };
+    go();
+  }
+  $("#al-ok").addEventListener("click", function () { $("#alert-dialog").close(); });
+  $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
+  if (APP.push) APP.push.onTap(function (d, foreground) { showAlert(d); });
 
   // first-run disclaimer
   // the app opens on the person's location, with results in the sheet at half height
@@ -1876,6 +1980,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }
     buildCityIndex();
     if (load("agreed", false)) afterAgree();
+    setTimeout(function () { pushSync(true); }, 4000);
   }).catch(function (err) {
     setSub("The shelter list didn't load. Close and reopen the app to try again.", true);
     console.error(err);
