@@ -80,7 +80,7 @@ body.searching .searchbar { z-index: 41; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
 .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
-.radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; flex-direction: column; align-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 #radar-btn { display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; width: 2.9rem; height: 2.7rem; padding: 0; color: var(--ink-2); cursor: pointer; }
 #radar-time { font-size: .78rem; color: var(--ink-2); padding: 0 .3rem; margin-top: -.35rem; white-space: nowrap; line-height: 1.1; }
 #radar-btn .i { width: 1.3rem; height: 1.3rem; }
@@ -94,7 +94,7 @@ body.searching .searchbar { z-index: 41; }
 /* while a warning is in effect: a red glow that throbs around the edge of the screen, and a box under the search bar */
 .al-frame { position: fixed; inset: 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
 @keyframes al-throb { 50% { box-shadow: inset 0 0 44px 16px rgba(255, 30, 30, .9); } }
-.al-live { position: fixed; z-index: 19; left: 50%; transform: translateX(-50%); top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 140px); justify-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
+.al-live { position: fixed; z-index: 19; align-content: center; box-sizing: border-box; left: 50%; transform: translateX(-50%); top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 140px); justify-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
   border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: center; font: inherit; color: var(--ink-2); }
 .al-live b { white-space: nowrap; color: #D0021B; text-transform: uppercase; letter-spacing: .03em; font-size: .95rem; font-weight: 800; }
 .al-live span { font-size: .85rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -988,6 +988,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       $("#al-live-a").textContent = String(live.area || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3).join(", ");
       $("#al-live-u").textContent = "Until " + fmtTime(new Date(live.expires));
     }
+    sameHeight();
     if (typeof updateWarnBar === "function" && map) updateWarnBar();
   }
   function liveFrom(f) { var p = f.properties || {}; return { id: p.id, event: p.event || "Tornado Warning", area: p.areaDesc || "", expires: p.expires || p.ends || new Date(Date.now() + 45 * 60e3).toISOString() }; }
@@ -1052,7 +1053,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     placeBars();
   }
   // the warning banner sits under the radar bar when both show
-  function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + 4.3rem)"; }
+  function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + 4.3rem)"; sameHeight(); }
+  // the warning box and the radar button sit side by side at the same height
+  function sameHeight() {
+    var a = $("#al-live"), r = $("#radar-ctl");
+    a.style.minHeight = r.style.minHeight = "";
+    if (a.hidden) return;
+    var h = Math.max(a.offsetHeight, r.offsetHeight) + "px";
+    a.style.minHeight = r.style.minHeight = h;
+  }
   function zoomToWarnings() {
     if (!warnCount) return;
     var o = mapPad(); o.maxZoom = 10; map.fitBounds(L.geoJSON({ type: "FeatureCollection", features: nearWarn }).getBounds(), o);
