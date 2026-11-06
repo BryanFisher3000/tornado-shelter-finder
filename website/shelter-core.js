@@ -99,7 +99,7 @@
       var ll = q.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
       if (ll) return { lat: +ll[1], lng: +ll[2], label: (+ll[1]).toFixed(4) + ", " + (+ll[2]).toFixed(4) };
       var zip = q.match(/\b(\d{5})(?:-\d{4})?\b/);
-      if (zip) return centroid(zips[zip[1]]) || centroid(zip3[zip[1].slice(0, 3)]);
+      if (zip) return centroid(zips[zip[1]]) || centroid(pZips[zip[1]]) || centroid(zip3[zip[1].slice(0, 3)]);
       var n = norm(q), parts = n.split(" "), last = parts[parts.length - 1];
       var stateCode = null, cityPart = n;
       if (last.length === 2 && states[last]) { stateCode = last; cityPart = parts.slice(0, -1).join(" "); }
@@ -111,9 +111,9 @@
           }
         }
       }
-      if (stateCode && cityPart) return centroid(cities[cityPart + "|" + stateCode]);
+      if (stateCode && cityPart) return centroid(cities[cityPart + "|" + stateCode]) || centroid(pCities[cityPart + "|" + stateCode]);
       if (stateCode) return centroid(states[stateCode]);
-      return cityOnly[n] ? centroid(cities[cityOnly[n]]) : null;
+      return cityOnly[n] ? centroid(cities[cityOnly[n]]) : centroid(pCities[pCityOnly[n]]);
     }
 
     /** Same filters and ordering as GET /v1/shelters?lat=&lng=&radius_mi=&limit= */
@@ -135,8 +135,22 @@
       });
     }
 
+    // places.json: every ZIP and town nearby (not just ones with shelters), so search works offline
+    var pZips = {}, pCities = {}, pCityOnly = {};
+    function addPlaces(p) {
+      if (!p || !p.z || !p.c) return;
+      Object.keys(p.z).forEach(function (z) {
+        var r = p.z[z], c = p.c[r[2]], loc = { lat: r[0], lng: r[1] }, ck = norm(c[0]) + "|" + c[1].toLowerCase();
+        addPoint(pZips, z, loc, z + " (" + c[0] + ", " + c[1] + ")");
+        addPoint(pCities, ck, loc, c[0] + ", " + c[1]);
+        var cn = norm(c[0]);
+        if (!pCityOnly[cn] || pCities[pCityOnly[cn]].n < pCities[ck].n) pCityOnly[cn] = ck;
+      });
+    }
+
     return {
       count: shelters.length,
+      addPlaces: addPlaces,
       all: function () { return shelters; },
       get: function (id) { return Promise.resolve(byId[id] || null); },
       getSync: function (id) { return byId[id] || null; },
