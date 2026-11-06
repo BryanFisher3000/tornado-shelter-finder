@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the tornado warning notification sound is only named in push messages, so keep it from being stripped -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@raw/tornado_alarm" />
