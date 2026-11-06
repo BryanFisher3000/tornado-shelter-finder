@@ -4,7 +4,7 @@
 // 3. Sends each phone one push per alert through Firebase Cloud Messaging (HTTP v1).
 //    An updated warning (new id that references the old one) counts as the same warning.
 // 4. When every warning a phone was told about has ended, sends one "warning ended" push.
-//    alert_pushes.matched: here/home/work (warning), watch-<spot>, update (same warning, no push),
+//    alert_pushes.matched: here/home/work (warning), watch-<spot>, update / watch-update (same alert, no push),
 //    clear (all-clear sent), test.
 // Secrets: FCM_SERVICE_ACCOUNT (the Firebase service-account JSON). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase. Deploy with verify_jwt off.
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     const fresh: any[] = [];
     for (const d of want) {
       if (refs.some((id: string) => done.has(id + "|" + d.token))) {
-        await db.from("alert_pushes").insert({ alert_id: p.id, token: d.token, matched: "update" });
+        await db.from("alert_pushes").insert({ alert_id: p.id, token: d.token, matched: isWarning ? "update" : "watch-update" });
         done.add(p.id + "|" + d.token);
       } else fresh.push(d);
     }
