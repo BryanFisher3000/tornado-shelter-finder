@@ -227,6 +227,7 @@ a.set-row { color: inherit; text-decoration: none; }
 .places .radios input { width: 1.1rem !important; height: 1.1rem; accent-color: var(--red); margin: 0; }
 .splash .later { margin-top: -.3rem; font-size: .9rem; }
 .set-row .hint { display: block; font-size: .82rem; color: var(--muted); margin-top: .1rem; }
+.set-row.off { opacity: .45; }
 .set-msg { margin: .6rem 0 0; }
 a.set-row[href="#"] { pointer-events: none; }
 a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: var(--muted); }
@@ -507,8 +508,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
-      <div class="set-row"><label for="set-notify">Notifications</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
-      <div class="set-row" id="set-watch-row" hidden><label for="set-watch">Tornado Watches<span class="hint">Warnings always come through. Watches are earlier, broader heads-ups.</span></label><label class="switch"><input type="checkbox" id="set-watch" role="switch"><span></span></label></div>
+      <div class="set-row"><label for="set-notify" id="set-notify-l">Tornado Warnings<span class="hint">Alerts when a warning covers where you are, Home or Work.</span></label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
+      <div class="set-row" id="set-watch-row" hidden><label for="set-watch">Tornado Watches<span class="hint">Earlier, broader heads-ups when conditions are right for tornadoes.</span></label><label class="switch"><input type="checkbox" id="set-watch" role="switch"><span></span></label></div>
       <p class="fine set-msg" id="set-perm-msg" hidden></p>
       <a class="set-row link" id="set-places" href="#places"><span>Home &amp; Work<span class="hint" id="set-places-v">Not set</span></span><span class="v">›</span></a>
       <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
@@ -1323,16 +1324,21 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var PERM_KEYS = { location: "useLocation", notifications: "notify" };
   var PERM_DEFAULTS = { location: true, notifications: false };
   var PERM_BOX = { location: "#set-loc", notifications: "#set-notify" };
+  // Tornado Watches only work while Tornado Warnings (the notifications switch) is on
+  function watchDep() {
+    var on = $("#set-notify").checked;
+    $("#set-watch").disabled = !on; $("#set-watch-row").classList.toggle("off", !on);
+  }
   function permMsg(text) { var el = $("#set-perm-msg"); el.textContent = text || ""; el.hidden = !text; }
   function refreshPerms() {
     Object.keys(PERM_BOX).forEach(function (k) {
       var on = load(PERM_KEYS[k], PERM_DEFAULTS[k]) !== false;
       // a location fix this session proves location is allowed, even if the check below is slow or fails
       var have = k === "location" && !!state.here;
-      $(PERM_BOX[k]).checked = on && have;
+      $(PERM_BOX[k]).checked = on && have; watchDep();
       PERMS[k].check().then(function (st) {
-        $(PERM_BOX[k]).checked = on && (st === "granted" || (have && st !== "denied"));
-      }).catch(function () { $(PERM_BOX[k]).checked = on && have; });
+        $(PERM_BOX[k]).checked = on && (st === "granted" || (have && st !== "denied")); watchDep();
+      }).catch(function () { $(PERM_BOX[k]).checked = on && have; watchDep(); });
     });
   }
   function blocked(k) {
@@ -1348,6 +1354,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     Object.keys(PERM_BOX).forEach(function (k) {
       $(PERM_BOX[k]).addEventListener("change", function (e) {
         var box = e.target; permMsg("");
+        watchDep();
         if (!box.checked) {
           save(PERM_KEYS[k], false);
           if (k === "notifications") pushOff();
@@ -1356,15 +1363,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         }
         PERMS[k].check().then(function (st) { return st === "granted" ? st : PERMS[k].request(); }).then(function (st) {
           if (st === "granted") {
-            save(PERM_KEYS[k], true); box.checked = true;
+            save(PERM_KEYS[k], true); box.checked = true; watchDep();
             if (k === "location") locate(true, "half");
             if (k === "notifications") pushSync(true);
             if (k === "notifications") permMsg(APP.push ? "Tornado warnings are on for where you are, plus Home and Work." : "Notifications are on.");
           } else {
-            box.checked = false;
+            box.checked = false; watchDep();
             if (st === "denied") blocked(k);
           }
-        }).catch(function () { box.checked = false; });
+        }).catch(function () { box.checked = false; watchDep(); });
       });
     });
     refreshPerms();
@@ -1937,6 +1944,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var tok = load("pushToken", null);
     if (sb && tok) sb.rpc("unregister_push_device", { p_token: tok }).then(function () {}, function () {});
   }
+  // the website has no tornado alerts yet, so its switch stays plain "Notifications"
+  if (!APP.push) $("#set-notify-l").textContent = "Notifications";
   if (APP.push) {
     $("#set-watch-row").hidden = false;
     $("#set-watch").checked = load("watches", false) === true;
