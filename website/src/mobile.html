@@ -79,6 +79,8 @@ body.searching .searchbar { z-index: 41; }
 .menu .brand { display: block; height: 1.7rem; width: auto; margin: .55rem auto .4rem; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
+.menu button.menu-store { justify-content: center; text-align: center; padding-top: .2rem; }
+.menu .brand-link + .menu-store { margin-top: -.3rem; }
 .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
 .radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
 #radar-btn { display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; width: 2.9rem; height: 2.7rem; padding: 0; color: var(--ink-2); cursor: pointer; }
@@ -376,8 +378,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <button type="button" role="menuitem" data-go="settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
   <button type="button" role="menuitem" data-go="profile"><svg class="i"><use href="#i-user"/></svg>Profile</button>
   <button type="button" role="menuitem" data-go="feedback"><svg class="i"><use href="#i-mail"/></svg>Send Feedback</button>
-  <button type="button" role="menuitem" data-go="store"><svg class="i"><use href="#i-store"/></svg>Survive-A-Storm Shelters</button>
   <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img class="brand" alt="Brought to you by Survive-A-Storm Shelters"></a>
+  <button type="button" role="menuitem" data-go="store" class="menu-store">View Our Shelters</button>
 </div>
 
 
@@ -1092,9 +1094,16 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function sameHeight() {
     var a = $("#al-live"), r = $("#radar-ctl");
     a.style.minHeight = r.style.minHeight = "";
-    if (a.hidden || !radarOn) return;   // radar off: the button stays a small icon
-    var h = Math.max(a.offsetHeight, r.offsetHeight) + "px";
-    a.style.minHeight = r.style.minHeight = h;
+    if (a.hidden) return;
+    // the warning box is always as tall as the open radar control; with radar off, the button stays a small icon
+    var t = $("#radar-time"), pl = $("#radar-play"), rh = r.offsetHeight;
+    if (!radarOn) {
+      var txt = t.textContent; if (!txt) t.textContent = "12:00 PM";
+      t.hidden = pl.hidden = false; rh = r.offsetHeight; t.hidden = pl.hidden = true; t.textContent = txt;
+    }
+    var h = Math.max(a.offsetHeight, rh) + "px";
+    a.style.minHeight = h;
+    if (radarOn) r.style.minHeight = h;
   }
   function zoomToWarnings() {
     if (!warnCount) return;
