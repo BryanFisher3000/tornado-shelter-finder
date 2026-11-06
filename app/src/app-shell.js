@@ -91,7 +91,7 @@
         // Android channels: warnings are urgent (siren + heads-up), watches and "warning ended" are normal.
         // A channel's sound can't change after it's made, so the siren channel has a new id; the old one is removed.
         var ch = Push.createChannel ? Promise.all([
-          Push.createChannel({ id: "tornado-alarm", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, visibility: 1, vibration: true, lights: true, lightColor: "#D0021B", sound: "tornado_alarm.wav" }),
+          Push.createChannel({ id: "tornado-alarm", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, visibility: 1, vibration: true, lights: true, lightColor: "#D0021B", sound: "tornado_alarm.mp3" }),
           Push.createChannel({ id: "tornado-watches", name: "Tornado Watches", description: "Conditions are right for tornadoes", importance: 4, visibility: 1 }),
           Push.createChannel({ id: "tornado-updates", name: "Warning Ended", description: "A tornado warning you were sent has ended", importance: 4, visibility: 1 }),
           Push.deleteChannel ? Push.deleteChannel({ id: "tornado-warnings" }).catch(function () {}) : null
