@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "285055757005",
+    "project_id": "tornado-shelter-finder",
+    "storage_bucket": "tornado-shelter-finder.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:285055757005:android:67499fa5d9d03b6eb41784",
+        "android_client_info": {
+          "package_name": "com.surviveastorm.shelterfinder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "285055757005-3j5b71hc1t7r4poiq3nun0sp7k31ns94.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.surviveastorm.shelterfinder",
+            "certificate_hash": "b31f5fa4eaa600c49f2ccaa39d3c7e794e086f89"
+          }
+        },
+        {
+          "client_id": "285055757005-3a83pb9nloo4mhe0o26pb1n9qufk2t01.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSwkPvsgbdGBWWpy3UPC3Vh0FbAj1O7W8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "285055757005-3a83pb9nloo4mhe0o26pb1n9qufk2t01.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

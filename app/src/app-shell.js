@@ -72,6 +72,41 @@
       request: function () { return Notes.requestPermissions().then(noteState); }
     }
   };
+  // Tornado alert pushes (Firebase Cloud Messaging). register() resolves with this phone's push token.
+  var Push = Cap.registerPlugin("PushNotifications");
+  var pushTap = [], pushPending = [];
+  if (Push && Push.addListener) {
+    // tapped a notification (the app may have been closed): hand its data to the page
+    Push.addListener("pushNotificationActionPerformed", function (a) {
+      var d = (a && a.notification && a.notification.data) || {};
+      if (pushTap.length) pushTap.forEach(function (f) { f(d, false); }); else pushPending.push(d);
+    });
+    // arrived while the app is open
+    Push.addListener("pushNotificationReceived", function (n) { var d = (n && n.data) || {}; pushTap.forEach(function (f) { f(d, true); }); });
+  }
+  window.SAS_APP.push = !Push ? null : {
+    register: function () {
+      return Push.requestPermissions().then(function (p) {
+        if (p.receive !== "granted") throw new Error("denied");
+        // Android channels: warnings are urgent (sound + heads-up), watches are normal
+        var ch = Push.createChannel ? Promise.all([
+          Push.createChannel({ id: "tornado-warnings", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, visibility: 1, vibration: true, lights: true, lightColor: "#D0021B" }),
+          Push.createChannel({ id: "tornado-watches", name: "Tornado Watches", description: "Conditions are right for tornadoes", importance: 4, visibility: 1 })
+        ]).catch(function () {}) : Promise.resolve();
+        return ch.then(function () {
+          return new Promise(function (ok, no) {
+            var done = false;
+            Push.addListener("registration", function (t) { if (!done) { done = true; ok(t.value); } });
+            Push.addListener("registrationError", function (e) { if (!done) { done = true; no(new Error(e && e.error || "registration failed")); } });
+            Push.register();
+            setTimeout(function () { if (!done) { done = true; no(new Error("timeout")); } }, 20000);
+          });
+        });
+      });
+    },
+    onTap: function (f) { pushTap.push(f); pushPending.splice(0).forEach(function (d) { f(d, false); }); }
+  };
+
   // Opens this app's page in the phone's Settings, where a denied permission can be turned back on.
   window.SAS_APP.openAppSettings = function () {
     return NativeSettings.open({ optionAndroid: "application_details", optionIOS: "app" });
