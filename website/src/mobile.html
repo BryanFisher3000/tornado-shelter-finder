@@ -908,7 +908,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function radarLabel() {
     var base = radarValid || new Date(), mins = frameMinutes(RADAR_FRAMES[radarFrame]);
     var t = new Date(base.getTime() - mins * 60000);
-    if (radarOn) $("#radar-time").textContent = fmtTime(t);
+    if (radarOn) { $("#radar-time").textContent = fmtTime(t); sameHeight(); }
   }
   function loadRadarMeta() {
     return fetch(RADAR_META + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
@@ -1054,11 +1054,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   // the warning banner sits under the radar bar when both show
   function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + 4.3rem)"; sameHeight(); }
-  // the warning box and the radar button sit side by side at the same height
+  // with radar on, the warning box and the radar button sit side by side at the same height
   function sameHeight() {
     var a = $("#al-live"), r = $("#radar-ctl");
     a.style.minHeight = r.style.minHeight = "";
-    if (a.hidden) return;
+    if (a.hidden || !radarOn) return;   // radar off: the button stays a small icon
     var h = Math.max(a.offsetHeight, r.offsetHeight) + "px";
     a.style.minHeight = r.style.minHeight = h;
   }
