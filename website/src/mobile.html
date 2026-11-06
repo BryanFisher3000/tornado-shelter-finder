@@ -184,6 +184,15 @@ body.searching .searchbar { z-index: 41; }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
 .set-row .v { color: var(--ink-2); text-align: right; }
 a.set-row { color: inherit; text-decoration: none; }
+.places .place { display: grid; gap: .55rem; padding: .2rem 0 .9rem; border-bottom: 1px solid var(--line); }
+.places .place h3 { margin: .3rem 0 0; }
+.places .place .btn.sm { justify-self: start; }
+.places .grp { display: grid; gap: .4rem; }
+.places .glabel { font-size: .95rem; color: var(--ink-2); }
+.places .radios { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
+.places .radios label { display: flex !important; gap: .4rem; align-items: center; font-size: 1rem !important; color: var(--ink) !important; cursor: pointer; }
+.places .radios input { width: 1.1rem !important; height: 1.1rem; accent-color: var(--red); margin: 0; }
+.splash .later { margin-top: -.3rem; font-size: .9rem; }
 .set-row .hint { display: block; font-size: .82rem; color: var(--muted); margin-top: .1rem; }
 .set-msg { margin: .6rem 0 0; }
 a.set-row[href="#"] { pointer-events: none; }
@@ -424,10 +433,47 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="btns" style="margin-top:.7rem"><button class="btn red" type="button" id="set-send">Send</button></div>
       </div>
     </div>
+    <div class="pane settings acct" id="pane-places" hidden>
+      <form class="acct-form places" id="places-form" novalidate>
+        <p class="add-lead">During a tornado warning, if you're at Home or Work, we'll tell you to take cover there. No safe room or basement? We'll point you to the nearest public shelter instead.</p>
+        <div class="place" id="pl-home">
+          <h3>Home</h3>
+          <label>Address<input id="pl-home-addr" autocomplete="street-address" placeholder="Street, city, state"></label>
+          <button type="button" class="btn plain sm" data-here="home"><svg class="i"><use href="#i-locate"/></svg>I'm Here Now</button>
+          <p class="fine" id="pl-home-at" hidden></p>
+          <div class="grp" role="radiogroup" aria-labelledby="pl-home-safe-l">
+            <div class="glabel" id="pl-home-safe-l">Safe room, storm shelter or basement here?</div>
+            <div class="radios">
+              <label><input type="radio" name="pl-home-safe" value="yes">Yes</label>
+              <label><input type="radio" name="pl-home-safe" value="no">No</label>
+              <label><input type="radio" name="pl-home-safe" value="" checked>Not sure</label>
+            </div>
+          </div>
+        </div>
+        <div class="place" id="pl-work">
+          <h3>Work</h3>
+          <label>Address<input id="pl-work-addr" autocomplete="street-address" placeholder="Street, city, state"></label>
+          <button type="button" class="btn plain sm" data-here="work"><svg class="i"><use href="#i-locate"/></svg>I'm Here Now</button>
+          <p class="fine" id="pl-work-at" hidden></p>
+          <div class="grp" role="radiogroup" aria-labelledby="pl-work-safe-l">
+            <div class="glabel" id="pl-work-safe-l">Safe room, storm shelter or basement here?</div>
+            <div class="radios">
+              <label><input type="radio" name="pl-work-safe" value="yes">Yes</label>
+              <label><input type="radio" name="pl-work-safe" value="no">No</label>
+              <label><input type="radio" name="pl-work-safe" value="" checked>Not sure</label>
+            </div>
+          </div>
+        </div>
+        <p class="fine err" id="pl-msg" aria-live="polite"></p>
+        <div class="btns"><button class="btn red" type="submit">Save</button><button class="btn plain" type="button" id="pl-skip">Skip for Now</button></div>
+        <p class="fine">You can change these anytime in Settings.</p>
+      </form>
+    </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
       <div class="set-row"><label for="set-notify">Notifications</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
       <p class="fine set-msg" id="set-perm-msg" hidden></p>
+      <a class="set-row link" id="set-places" href="#places"><span>Home &amp; Work<span class="hint" id="set-places-v">Not set</span></span><span class="v">›</span></a>
       <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
       <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
       <div class="set-row"><span>My Device</span><span class="v" id="set-device"></span></div>
@@ -512,8 +558,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="splash" id="splash" hidden>
   <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splash-title">
     <h1 id="splash-title">Tornado Shelter Finder</h1>
-    <p>By using this app you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
-    <button class="btn red" type="button" id="agree" style="width:100%;justify-content:center">Agree</button>
+    <p>By continuing you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
+    <button class="btn red" type="button" id="agree" style="width:100%;justify-content:center">Find a Shelter Now</button>
+    <button class="btn plain" type="button" id="agree-setup" style="width:100%;justify-content:center">Set Up Home &amp; Work</button>
+    <p class="later">Tornado warnings for Home and Work. Takes a minute, or skip and do it later in Settings.</p>
     <a class="brand-link" href="https://survive-a-storm.com/store" target="_blank" rel="noopener" aria-label="Survive-A-Storm Store"><img src="{{LOGO}}" alt="Brought to you by Survive-A-Storm Shelters"></a>
   </div>
 </div>
@@ -640,13 +688,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function setSub(text, isError) { var el = $("#sub"); el.textContent = text || ""; el.hidden = !text; el.classList.toggle("error", !!isError); }
   function showPane(name, opts) {
     opts = opts || {};
-    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
+    if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add" || name === "places")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
     if (name !== "profile" && state.afterProfile === "edit") { state.afterProfile = null; save("pendingEdit", null); }
     state.pane = name;
-    ["intro", "list", "detail", "saved", "settings", "feedback", "profile", "add"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
+    ["intro", "list", "detail", "saved", "settings", "feedback", "profile", "add", "places"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
     var sub = true;
     $("#chips").hidden = name !== "list";
-    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add");
+    $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add" || name === "places");
     $("#close").hidden = name !== "list";
     sheet.dataset.pane = name;
     if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
@@ -656,6 +704,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     else if (name === "feedback") { $("#title").textContent = "Send Feedback"; sub = false; }
     else if (name === "profile") { $("#title").textContent = "Profile"; sub = false; renderProfile(); }
     else if (name === "add") { $("#title").textContent = "Add a Shelter"; sub = false; renderAdd(); }
+    else if (name === "places") { $("#title").textContent = "Home & Work"; sub = false; renderPlaces(); }
     if (!sub) setSub("");
     body.scrollTop = 0;
     if (opts.snap) snapTo(opts.snap);
@@ -724,6 +773,33 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // ---------- map ----------
   var map, landLayer, dotLayer, pinLayer, youMarker, cityLayer, tilesOn = false, cityList = [];
   function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  // Tiles the person has looked at are saved on the phone and shown when there's no signal.
+  var TILE_CACHE = "sas-tiles-v1";
+  function cachedTiles(url, opts) {
+    if (!window.caches || !L.TileLayer.extend) return L.tileLayer(url, opts);
+    var Layer = L.TileLayer.extend({
+      createTile: function (coords, done) {
+        var img = document.createElement("img"), src = this.getTileUrl(coords);
+        img.alt = ""; img.setAttribute("role", "presentation");
+        img.onload = function () { done(null, img); }; img.onerror = function (e) { done(e, img); };
+        var show = function (blob) { var u = URL.createObjectURL(blob); img.addEventListener("load", function () { URL.revokeObjectURL(u); }); img.src = u; };
+        caches.open(TILE_CACHE).then(function (cache) {
+          return cache.match(src).then(function (hit) {
+            if (hit && (navigator.onLine === false || Date.now() - (+hit.headers.get("x-saved") || 0) < 30 * 864e5)) return hit.blob().then(show);
+            return fetch(src).then(function (r) {
+              if (!r.ok) throw new Error("tile " + r.status);
+              return r.blob().then(function (b) {
+                cache.put(src, new Response(b, { headers: { "Content-Type": b.type || "image/png", "x-saved": String(Date.now()) } })).catch(function () {});
+                show(b);
+              });
+            }).catch(function (e) { if (hit) return hit.blob().then(show); throw e; });
+          });
+        }).catch(function () { img.src = src; });
+        return img;
+      }
+    });
+    return new Layer(url, opts);
+  }
   function initMap(basemap) {
     map = L.map("map", { zoomControl: false, preferCanvas: true, minZoom: 3, maxZoom: 18, attributionControl: true }).setView(US_CENTER, 5);
     map.attributionControl.setPrefix(false).setPosition("topleft");
@@ -752,10 +828,20 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var probe = new Image();
     probe.onload = function () {
       tilesOn = true;
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+      cachedTiles("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
       // the county fill sits above the tile pane; drop it so the streets show through
       if (landLayer) map.removeLayer(landLayer);
       if (cityLayer) cityLayer.clearLayers();
+    };
+    // no signal: still show the street tiles saved on this phone (areas not seen before stay plain)
+    probe.onerror = function () {
+      if (!window.caches) return;
+      caches.open(TILE_CACHE).then(function (c) { return c.keys(); }).then(function (keys) {
+        if (!keys.length || tilesOn) return;
+        tilesOn = true;
+        cachedTiles("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+        if (landLayer) map.removeLayer(landLayer);
+      }).catch(function () {});
     };
     probe.src = "https://tile.openstreetmap.org/4/3/6.png";
     dotLayer = L.layerGroup().addTo(map);
@@ -1650,6 +1736,68 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     fbShelter = null; sendReport(C.buildReport(null, [], text, deviceLabel())); $("#set-fb").value = "";
   });
 
+  // ---------- Home & Work (used by tornado alerts) ----------
+  function places() { return load("places", {}); }
+  function placeSummary() {
+    var p = places(), set = ["home", "work"].filter(function (k) { return p[k] && p[k].lat != null; });
+    return set.length ? set.map(function (k) { return k === "home" ? "Home" : "Work"; }).join(" and ") + " set" : "Not set";
+  }
+  function renderPlaces() {
+    var p = places();
+    ["home", "work"].forEach(function (k) {
+      var v = p[k] || {};
+      $("#pl-" + k + "-addr").value = v.address || "";
+      var at = $("#pl-" + k + "-at"); at.hidden = v.lat == null; at.textContent = v.lat != null ? "Saved" + (v.label ? ": " + v.label : "") : "";
+      document.querySelectorAll('input[name="pl-' + k + '-safe"]').forEach(function (r) { r.checked = r.value === (v.safe || ""); });
+    });
+    $("#pl-msg").textContent = "";
+    $("#pl-skip").hidden = !state.placesFirstRun;
+  }
+  $("#set-places").addEventListener("click", function (e) { e.preventDefault(); state.placesFirstRun = false; showPane("places", { snap: "full" }); });
+  var placeDraft = {};
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-here]"); if (!b) return;
+    var k = b.dataset.here, at = $("#pl-" + k + "-at");
+    if (!navigator.geolocation) { at.hidden = false; at.textContent = "Location isn't available. Type the address instead."; return; }
+    at.hidden = false; at.textContent = "Finding My Location…";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      placeDraft[k] = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: "My location (" + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) + ")" };
+      $("#pl-" + k + "-addr").value = ""; at.textContent = "Using " + placeDraft[k].label;
+    }, function () { at.textContent = "Couldn't get your location. Type the address instead."; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+  ["home", "work"].forEach(function (k) { $("#pl-" + k + "-addr").addEventListener("input", function () { delete placeDraft[k]; }); });
+  function finishPlaces() {
+    var first = state.placesFirstRun; state.placesFirstRun = false;
+    if (first) afterAgree(); else back();
+  }
+  $("#pl-skip").addEventListener("click", finishPlaces);
+  $("#places-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var old = places(), msg = $("#pl-msg"), out = {};
+    if (!state.store) { msg.textContent = "Still loading the shelter list. Try again in a moment."; return; }
+    msg.textContent = "Saving…";
+    Promise.all(["home", "work"].map(function (k) {
+      var addr = $("#pl-" + k + "-addr").value.trim(), safeEl = document.querySelector('input[name="pl-' + k + '-safe"]:checked');
+      var safe = safeEl ? safeEl.value : "";
+      if (placeDraft[k]) { out[k] = Object.assign({ address: "", safe: safe }, placeDraft[k]); return null; }
+      if (!addr) return null;
+      if (old[k] && old[k].address === addr && old[k].lat != null) { out[k] = Object.assign({}, old[k], { safe: safe }); return null; }
+      return state.store.geocode(addr).then(function (hit) {
+        if (!hit) throw new Error(k);
+        out[k] = { address: addr, lat: hit.lat, lng: hit.lng, label: hit.label || addr, safe: safe };
+      });
+    })).then(function () {
+      out.saved_at = new Date().toISOString();
+      save("places", out); placeDraft = {};
+      $("#set-places-v").textContent = placeSummary();
+      msg.textContent = "";
+      finishPlaces();
+    }).catch(function (err) {
+      msg.textContent = "We couldn't find the " + (err && err.message === "work" ? "Work" : "Home") + " address. Check it, or tap I'm Here Now when you're there." + (navigator.onLine === false ? " Street addresses need a signal; a ZIP or city works offline." : "");
+    });
+  });
+  $("#set-places-v").textContent = placeSummary();
+
   // first-run disclaimer
   // the app opens on the person's location, with results in the sheet at half height
   function afterAgree() {
@@ -1659,6 +1807,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
     $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
+    $("#agree-setup").addEventListener("click", function () {
+      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true;
+      showPane("places", { snap: "full" });
+    });
   }
 
   // ---------- boot ----------
@@ -1675,17 +1827,45 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   var getJSON = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u + " " + r.status); return r.json(); }); };
   // Live list from the Supabase shelters table (what reviewers approve); the bundled copy is the offline fallback.
-  var liveShelters = function (base, key) {
-    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 6000);
+  var liveShelters = function (base, key, ms) {
+    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 6000);
     return fetch(base + "/rest/v1/rpc/shelters_snapshot", { method: "POST", headers: { apikey: key, "Content-Type": "application/json" }, body: "{}", signal: ctl ? ctl.signal : undefined })
       .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error("shelters_snapshot " + r.status); return r.json(); })
       .then(function (j) { if (!j || !Array.isArray(j.shelters) || j.shelters.length < 100) throw new Error("shelters_snapshot looks empty"); j.count = j.shelters.length; return j; })
       .catch(function (e) { clearTimeout(t); throw e; });
   };
-  var sheltersJSON = liveShelters(SUPA.url, SUPA.key).catch(function () { return getJSON("data/shelters.json"); });
+  // Offline first: the newest list we've ever downloaded is kept on the phone (IndexedDB), so the
+  // app works with no signal. Order: live list (3 s) -> saved copy -> copy built into the app.
+  var kv = (function () {
+    var dbp = null;
+    function db() {
+      if (!dbp) dbp = new Promise(function (ok, no) {
+        if (!window.indexedDB) { no(new Error("no indexedDB")); return; }
+        var r = indexedDB.open("sas", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("kv"); };
+        r.onsuccess = function () { ok(r.result); }; r.onerror = function () { no(r.error); };
+      });
+      return dbp;
+    }
+    return {
+      get: function (k) { return db().then(function (d) { return new Promise(function (ok, no) { var q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = function () { ok(q.result); }; q.onerror = function () { no(q.error); }; }); }); },
+      set: function (k, v) { return db().then(function (d) { return new Promise(function (ok, no) { var tx = d.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = function () { ok(); }; tx.onerror = function () { no(tx.error); }; }); }); }
+    };
+  })();
+  var savedShelters = function () {
+    return kv.get("shelters").then(function (j) { if (!j || !Array.isArray(j.shelters) || j.shelters.length < 100) throw new Error("no saved list"); return j; });
+  };
+  var sheltersJSON = (navigator.onLine === false ? Promise.reject(new Error("offline")) : liveShelters(SUPA.url, SUPA.key, 3000))
+    .then(function (j) { j.saved_at = new Date().toISOString(); kv.set("shelters", j).catch(function () {}); save("listSavedAt", j.saved_at); return j; })
+    .catch(function () { return savedShelters().catch(function () { return getJSON("data/shelters.json"); }); });
+  // started offline: fetch the live list in the background once there's signal, used next time the app opens
+  window.addEventListener("online", function () {
+    liveShelters(SUPA.url, SUPA.key, 10000).then(function (j) { j.saved_at = new Date().toISOString(); save("listSavedAt", j.saved_at); return kv.set("shelters", j); }).catch(function () {});
+  });
   Promise.all([sheltersJSON, getJSON("data/basemap.json").catch(function () { return null; })]).then(function (res) {
     var data = res[0];
     state.store = C.createLocalStore(data.shelters, { geocoder: nominatim });
+    getJSON("data/places.json").then(function (p) { state.store.addPlaces(p); }).catch(function () {});
     $("#set-count").textContent = data.count.toLocaleString("en-US");
     setSub("");
     if (window.L) {
