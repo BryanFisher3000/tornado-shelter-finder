@@ -30,12 +30,24 @@ android {
             keyAlias "androiddebugkey"
             keyPassword "android"
         }
+        // Store (Play) builds: signed with Bryan's private upload key, which is never in the repo.
+        // The release workflow (.github/workflows/android-release.yml) writes it from GitHub secrets
+        // and passes these environment variables; without them a release build is left unsigned.
+        if (System.getenv("SAS_UPLOAD_STORE_FILE")) {
+            release {
+                storeFile file(System.getenv("SAS_UPLOAD_STORE_FILE"))
+                storePassword System.getenv("SAS_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("SAS_UPLOAD_KEY_ALIAS") ?: "upload"
+                keyPassword System.getenv("SAS_UPLOAD_KEY_PASSWORD") ?: System.getenv("SAS_UPLOAD_STORE_PASSWORD")
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
+            if (System.getenv("SAS_UPLOAD_STORE_FILE")) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
