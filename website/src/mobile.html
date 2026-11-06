@@ -741,6 +741,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function setSub(text, isError) { var el = $("#sub"); el.textContent = text || ""; el.hidden = !text; el.classList.toggle("error", !!isError); }
   function showPane(name, opts) {
     opts = opts || {};
+    // back goes through a stack of where you came from, each at the height it had
+    if (!state.stack) state.stack = [];
+    if (opts.isBack) { /* popped in back() */ }
+    else if (name === "list" || name === "intro") state.stack = [];
+    else if (name !== state.pane && state.pane !== "detail") state.stack.push({ pane: state.pane, snap: snapName });
     if (name !== state.pane && (name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add" || name === "places")) state.prevPane = state.pane === "detail" ? state.prevPane : state.pane;
     if (name !== "profile" && state.afterProfile === "edit") { state.afterProfile = null; save("pendingEdit", null); }
     state.pane = name;
@@ -765,8 +770,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   function back() {
     if (state.pane === "detail") { state.selected = null; drawPins(); }
-    var to = state.prevPane && state.prevPane !== state.pane ? state.prevPane : (state.results.length ? "list" : "intro");
-    showPane(to === "detail" ? "list" : to, { snap: "half" });
+    var top = (state.stack || []).pop();
+    var to = top && top.pane !== state.pane ? top.pane : (state.results.length ? "list" : "intro");
+    if (to === "detail") to = "list";
+    // menu pages (Settings, Saved, …) come back full if they were full; the list and intro come back at half
+    var full = top && top.pane === to && top.snap === "full" && /^(settings|saved|feedback|profile|add|places)$/.test(to);
+    showPane(to, { snap: full ? "full" : "half", isBack: true });
     if (to === "list") describe();
   }
   function describe() {
@@ -1540,7 +1549,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       var s = state.store.getSync(pend.id);
       if (s) { openShelter(pend.id); openFeedback(s); return true; }
     }
-    if (state.afterProfile === "add") { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; return true; }
+    if (state.afterProfile === "add") { state.afterProfile = null; showPane("add", { snap: "full" }); state.prevPane = state.addFrom; state.stack = (state.stack || []).filter(function (x) { return x.pane !== "profile" && x.pane !== "add"; }); return true; }
     return false;
   }
   function ssoMsg(t) { var m = $("#sso-msg"); m.hidden = !t; m.textContent = t || ""; }
