@@ -87,9 +87,10 @@ body.searching .searchbar { z-index: 41; }
 #radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
-.alert-dlg { border: 6px solid #D0021B; border-radius: 14px; padding: 0; width: min(24rem, calc(100vw - 32px)); box-shadow: var(--shadow); animation: al-flash 1s steps(1, end) infinite; }
-@keyframes al-flash { 50% { border-color: #FFD400; } }
-@media (prefers-reduced-motion: reduce) { .alert-dlg { animation-duration: 2s; } }
+.alert-dlg { border: 7px solid transparent; border-radius: 14px; padding: 0; width: min(24rem, calc(100vw - 32px)); outline: none;
+  background: linear-gradient(var(--card, #fff), var(--card, #fff)) padding-box, linear-gradient(135deg, #FF4D4D, #D0021B 45%, #7A0010) border-box;
+  box-shadow: 0 0 10px 2px rgba(208, 2, 27, .45); animation: al-throb 1.4s ease-in-out infinite; }
+@keyframes al-throb { 50% { box-shadow: 0 0 34px 12px rgba(255, 40, 40, .85); } }
 .alert-dlg::backdrop { background: rgba(120, 0, 0, .55); }
 .alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; text-align: center; }
 .alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; font-size: 1.6rem; line-height: 1.1; }
@@ -98,6 +99,7 @@ body.searching .searchbar { z-index: 41; }
 .alert-dlg .btns { display: grid; gap: .5rem; }
 .alert-dlg .btns .btn { justify-content: center; }
 .alert-dlg .btns .btn.plain { background: var(--chip-on); color: var(--red-deep); }
+.alert-dlg .btns .btn:focus:not(:focus-visible) { outline: none; }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
 .warn-pop b { color: #C0392B; }
 
@@ -497,15 +499,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   </div>
 </section>
 
-<dialog id="alert-dialog" class="alert-dlg" aria-labelledby="al-title">
+<dialog id="alert-dialog" class="alert-dlg" aria-labelledby="al-title" tabindex="-1">
   <div class="al-body">
     <p class="al-kicker" id="al-kicker">Tornado Warning</p>
     <h2 id="al-title">Take Cover Now</h2>
     <p id="al-text"></p>
     <p class="fine" id="al-area"></p>
     <div class="btns">
-      <button class="btn red" type="button" id="al-shelters">Show Nearest Shelters</button>
-      <button class="btn plain" type="button" id="al-ok">OK</button>
+      <button class="btn red" type="button" id="al-ok">OK</button>
+      <button class="btn plain" type="button" id="al-shelters">Show Nearest Shelters</button>
     </div>
   </div>
 </dialog>
@@ -1883,7 +1885,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       }
       $("#al-area").textContent = (d.area ? d.area : "") + (d.expires ? (d.area ? " · " : "") + "Until " + fmtTime(new Date(d.expires)) : "") + " · National Weather Service";
       $("#al-shelters").textContent = safe ? "Show Nearest Shelters Instead" : "Show Nearest Shelters";
-      if (!$("#alert-dialog").open) $("#alert-dialog").showModal();
+      if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
       // unless they're sheltering at Home/Work, put the nearest shelters on screen right away
       if (isWarning && !safe) showNearest(pos);
     }
