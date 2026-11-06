@@ -9,8 +9,9 @@ window.SAS_APP = {
   // Google "Web application" OAuth client ID (public). With it, Google sign-in uses the phone's
   // own account picker ("Sign in to Tornado Shelter Finder") instead of a web page.
   googleWebClientId: "285055757005-3a83pb9nloo4mhe0o26pb1n9qufk2t01.apps.googleusercontent.com",
-  // Google Maps key ("Maps SDK for Android", restricted to this app's package + SHA-1) for the street map.
+  // Google Maps key "Shelter Finder Android maps" (GCP project sas-public-shelter-locations; Maps SDK for Android,
+  // restricted to this package + the debug SHA-1; add the release SHA-1 before the store build).
   // It ships inside the app like any map key. The Android build also reads it from here (app/build.gradle).
   // Empty = the app keeps the free OpenStreetMap tiles, which are fine for testing but not for a store release.
-  googleMapsKey: ""
+  googleMapsKey: "AIzaSyD5P728rNHjfRyY2Gzf29VwsapU-XBd2BE"
 };
