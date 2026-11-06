@@ -808,7 +808,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest an Edit</button>' +
       "</div>" + facts(s) +
       (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
-      '<p class="fine disclaimer">Always follow instructions from local emergency officials. Shelter details can change; if something here is incorrect, tap Suggest an Edit.</p>';
+      '<p class="fine disclaimer">Always follow instructions from local emergency officials. Shelter details can change; if something here is incorrect, <span style="white-space:nowrap">tap Suggest an Edit.</span></p>';
   }
 
   // ---------- map ----------
