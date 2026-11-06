@@ -1970,12 +1970,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#al-live").addEventListener("click", function () { if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" }); });
   renderLive(); setInterval(renderLive, 30000);
   $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
-  // The warning sound: the notification plays it when the app is closed; when the app is open, play it here, three times.
-  var siren = null, sirenLeft = 0;
+  // The warning sound: the notification plays it when the app is closed; when the app is open, play it here, once.
+  var siren = null;
   function playSiren() {
     try {
-      if (!siren) { siren = new Audio("data/tornado-alarm.mp3"); siren.addEventListener("ended", function () { if (--sirenLeft > 0) { siren.currentTime = 0; siren.play().catch(function () {}); } }); }
-      sirenLeft = 3; siren.currentTime = 0; siren.play().catch(function () {});
+      if (!siren) siren = new Audio("data/tornado-alarm.mp3");
+      siren.currentTime = 0; siren.play().catch(function () {});
     } catch (e) {}
   }
   if (APP.push) APP.push.onTap(function (d, foreground) {
