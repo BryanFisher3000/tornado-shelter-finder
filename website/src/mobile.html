@@ -92,10 +92,7 @@ body.searching .searchbar { z-index: 41; }
   background: linear-gradient(var(--card, #fff), var(--card, #fff)) padding-box, linear-gradient(135deg, #FF4D4D, #D0021B 45%, #7A0010) border-box;
   box-shadow: var(--shadow); }
 /* while a warning is in effect: a red glow that throbs around the edge of the screen, and a box under the search bar */
-.al-frame { position: fixed; inset: 0; z-index: 60; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
-/* the strip behind the phone's clock and icons throbs red too */
-body.al-on .band { animation: band-throb 1.4s ease-in-out infinite; }
-@keyframes band-throb { 0%, 100% { background: #F7C9C9; } 50% { background: #E3343F; } }
+.al-frame { position: fixed; inset: var(--band-h, 0px) 0 0 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
 @keyframes al-throb { 50% { box-shadow: inset 0 0 44px 16px rgba(255, 30, 30, .9); } }
 .al-live { position: fixed; z-index: 19; align-content: center; box-sizing: border-box; left: 50%; transform: translateX(-50%); top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 140px); justify-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
   border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: center; font: inherit; color: var(--ink-2); }
