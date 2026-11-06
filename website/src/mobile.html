@@ -72,7 +72,7 @@ body.searching .searchbar { z-index: 41; }
 .suggest .s { font-size: .88rem; color: var(--muted); }
 
 /* menu */
-.menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 0px) + 4.4rem); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
+.menu { position: fixed; z-index: 55; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: .35rem 0; min-width: 13rem; }
 .menu[hidden] { display: none; }
 .brand-link { display: block; }
 .menu .brand-link { display: block; border-top: 1px solid var(--line); margin-top: .35rem; padding-top: .2rem; }
@@ -83,8 +83,9 @@ body.searching .searchbar { z-index: 41; }
 .menu .brand-link + .menu-store { margin-top: -.3rem; }
 .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
 .radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
-#radar-btn { display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; width: 2.9rem; height: 2.7rem; padding: 0; color: var(--ink-2); cursor: pointer; }
-#radar-time { font-size: .78rem; color: var(--ink-2); padding: 0 .3rem; margin-top: -.35rem; white-space: nowrap; line-height: 1.1; }
+#radar-btn { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; border: 0; background: none; min-width: 2.9rem; padding: .45rem .35rem .35rem; color: var(--ink-2); cursor: pointer; }
+#radar-btn .radar-word { font-size: .72rem; line-height: 1; color: var(--ink-2); }
+#radar-time { font-size: .78rem; color: var(--ink-2); padding: 0 .3rem; margin-top: -.1rem; white-space: nowrap; line-height: 1.1; }
 #radar-btn .i { width: 1.3rem; height: 1.3rem; }
 #radar-btn[aria-pressed="true"] .i { color: var(--you); }
 #radar-play { width: 2.9rem; height: 1.9rem; color: var(--you); border-radius: 0; }
@@ -125,7 +126,7 @@ body.searching .searchbar { z-index: 41; }
 .locate-btn { color: var(--you); width: auto; display: inline-flex; gap: .3rem; padding: 0 .4rem; border-radius: 6px; font-size: .95rem; white-space: nowrap; }
 .locate-btn .i { width: 1.3rem; height: 1.3rem; }
 /* while typing, give the text box the room */
-#menu-btn { margin-right: -.3rem; }
+#menu-btn { margin-right: calc(-.3rem + 2px); }
 .locate-btn[aria-busy="true"] svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -364,7 +365,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
 <div class="radar-ctl" id="radar-ctl">
-  <button type="button" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg></button>
+  <button type="button" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span class="radar-word">Radar</span></button>
   <span id="radar-time" aria-live="polite" hidden></span>
   <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour" hidden><svg class="i"><use href="#i-play"/></svg></button>
 </div>
