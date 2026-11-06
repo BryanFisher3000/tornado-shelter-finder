@@ -62,11 +62,35 @@ function clock(iso?: string) {
   const h = +m[1]; return ((h % 12) || 12) + ":" + m[2] + (h < 12 ? " AM" : " PM");
 }
 
-Deno.serve(async () => {
+async function send(sa: any, msg: any) {
+  return fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+    method: "POST", headers: { Authorization: "Bearer " + (await fcmToken(sa)), "Content-Type": "application/json" }, body: JSON.stringify({ message: msg }),
+  });
+}
+
+Deno.serve(async (req) => {
   const saRaw = Deno.env.get("FCM_SERVICE_ACCOUNT");
   if (!saRaw) return new Response("FCM_SERVICE_ACCOUNT not set", { status: 200 });
   const sa = JSON.parse(saRaw);
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+  // {"test": true}: one clearly-marked test alert to the phone that registered most recently
+  // (within 30 minutes), at most once every 5 minutes.
+  const body = await req.json().catch(() => ({}));
+  if (body && body.test === true) {
+    const { data: dev } = await db.from("push_devices").select("token, places").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
+    const id = "test-" + Math.floor(Date.now() / 300e3);
+    const { error: dup } = await db.from("alert_pushes").insert({ alert_id: id, token: dev.token, matched: "test" });
+    if (dup) return Response.json({ test: "already sent in the last 5 minutes" });
+    const r = await send(sa, {
+      token: dev.token,
+      notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
+      data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", expires: new Date(Date.now() + 30 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
+      android: { priority: "high", notification: { channel_id: "tornado-warnings", sound: "default", tag: id } },
+    });
+    return Response.json({ test: r.ok ? "sent" : "failed", status: r.status, detail: r.ok ? undefined : (await r.text()).slice(0, 300) });
+  }
 
   const res = await fetch(NWS, { headers: { "User-Agent": UA, Accept: "application/geo+json" } });
   if (!res.ok) return new Response("NWS " + res.status, { status: 502 });
