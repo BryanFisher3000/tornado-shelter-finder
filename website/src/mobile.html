@@ -87,14 +87,17 @@ body.searching .searchbar { z-index: 41; }
 #radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
-.alert-dlg { border: 0; border-radius: 12px; padding: 0; width: min(24rem, calc(100vw - 32px)); box-shadow: var(--shadow); }
+.alert-dlg { border: 6px solid #D0021B; border-radius: 14px; padding: 0; width: min(24rem, calc(100vw - 32px)); box-shadow: var(--shadow); animation: al-flash 1s steps(1, end) infinite; }
+@keyframes al-flash { 50% { border-color: #FFD400; } }
+@media (prefers-reduced-motion: reduce) { .alert-dlg { animation-duration: 2s; } }
 .alert-dlg::backdrop { background: rgba(120, 0, 0, .55); }
-.alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; border-top: 8px solid #D0021B; }
-.alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .9rem; }
-.alert-dlg h2 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
+.alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; text-align: center; }
+.alert-dlg .al-kicker { margin: 0; color: #D0021B; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; font-size: 1.6rem; line-height: 1.1; }
+.alert-dlg h2 { margin: 0; font-size: 1.5rem; line-height: 1.15; }
 .alert-dlg p { margin: 0; }
 .alert-dlg .btns { display: grid; gap: .5rem; }
 .alert-dlg .btns .btn { justify-content: center; }
+.alert-dlg .btns .btn.plain { background: var(--chip-on); color: var(--red-deep); }
 .warn-bar { top: auto; left: 12px; right: auto; padding: .45rem .7rem; background: #C0392B; color: #fff; font-weight: 500; cursor: pointer; }
 .warn-pop b { color: #C0392B; }
 
