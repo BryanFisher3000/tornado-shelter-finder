@@ -80,11 +80,12 @@ body.searching .searchbar { z-index: 41; }
 .menu button { display: flex; gap: .8rem; align-items: center; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; cursor: pointer; font-size: 1.02rem; }
 .menu button:active { background: var(--chip); }
 .warn-bar { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; gap: .35rem; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); padding: .1rem .1rem .1rem .6rem; font-size: .95rem; color: var(--ink-2); }
-.radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; align-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
-#radar-btn { display: inline-flex; align-items: center; gap: .4rem; border: 0; background: none; padding: .55rem .75rem; font-size: .98rem; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.radar-ctl { position: fixed; z-index: 19; right: 12px; top: calc(var(--band-h, 0px) + 4.3rem); display: flex; flex-direction: column; align-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+#radar-btn { display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; width: 2.9rem; height: 2.9rem; padding: 0; color: var(--ink-2); cursor: pointer; }
+#radar-time { font-size: .78rem; color: var(--ink-2); padding: 0 .3rem; white-space: nowrap; line-height: 1.1; }
 #radar-btn .i { width: 1.3rem; height: 1.3rem; }
 #radar-btn[aria-pressed="true"] .i { color: var(--you); }
-#radar-play { width: 2.4rem; height: 2.4rem; color: var(--you); border-radius: 0; }
+#radar-play { width: 2.9rem; height: 2.6rem; color: var(--you); border-radius: 0; }
 .area-btn { position: fixed; z-index: 18; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); padding: .55rem .95rem; font-size: 1rem; color: var(--you); cursor: pointer; white-space: nowrap; }
 .area-btn .i { width: 1.1rem; height: 1.1rem; }
 .alert-dlg { border: 3.5px solid transparent; border-radius: 14px; padding: 0; width: min(24rem, calc(100vw - 32px)); outline: none;
@@ -93,9 +94,9 @@ body.searching .searchbar { z-index: 41; }
 /* while a warning is in effect: a red glow that throbs around the edge of the screen, and a box under the search bar */
 .al-frame { position: fixed; inset: 0; z-index: 30; pointer-events: none; box-shadow: inset 0 0 14px 4px rgba(208, 2, 27, .55); animation: al-throb 1.4s ease-in-out infinite; }
 @keyframes al-throb { 50% { box-shadow: inset 0 0 44px 16px rgba(255, 30, 30, .9); } }
-.al-live { position: fixed; z-index: 19; left: 12px; top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 150px); background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
-  border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: left; font: inherit; color: var(--ink-2); }
-.al-live b { color: #D0021B; text-transform: uppercase; letter-spacing: .03em; font-size: .95rem; font-weight: 800; }
+.al-live { position: fixed; z-index: 19; left: 50%; transform: translateX(-50%); top: calc(var(--band-h, 0px) + 4.3rem); max-width: calc(100vw - 140px); justify-items: center; background: var(--card); border-radius: 8px; box-shadow: var(--shadow);
+  border: 0; padding: .55rem .75rem; cursor: pointer; display: grid; gap: .1rem; text-align: center; font: inherit; color: var(--ink-2); }
+.al-live b { white-space: nowrap; color: #D0021B; text-transform: uppercase; letter-spacing: .03em; font-size: .95rem; font-weight: 800; }
 .al-live span { font-size: .85rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .alert-dlg::backdrop { background: rgba(120, 0, 0, .55); }
 .alert-dlg .al-body { padding: 1.3rem 1.2rem 1.2rem; display: grid; gap: .7rem; text-align: center; }
@@ -349,7 +350,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 <div class="suggest" id="suggest" hidden><ul id="suggest-list"></ul></div>
 
 <div class="radar-ctl" id="radar-ctl">
-  <button type="button" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg><span id="radar-time" aria-live="polite">Radar</span></button>
+  <button type="button" id="radar-btn" aria-pressed="false" aria-label="Weather radar"><svg class="i"><use href="#i-radar"/></svg></button>
+  <span id="radar-time" aria-live="polite" hidden></span>
   <button type="button" class="icon-btn" id="radar-play" aria-label="Play the last hour" hidden><svg class="i"><use href="#i-play"/></svg></button>
 </div>
 <div class="warn-bar" id="warn-bar" hidden></div>
@@ -958,7 +960,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     radarOn = !!on; save("radar", radarOn);
     $("#radar-btn").setAttribute("aria-pressed", String(radarOn));
     $("#radar-play").hidden = !radarOn;
-    if (!radarOn) $("#radar-time").textContent = "Radar";
+    $("#radar-time").hidden = !radarOn;
     $("#radar-btn").setAttribute("aria-label", radarOn ? "Turn off weather radar" : "Weather radar");
     placeBars();
     clearInterval(radarRefresh); playRadar(false);
@@ -1050,7 +1052,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     placeBars();
   }
   // the warning banner sits under the radar bar when both show
-  function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + " + (radarOn ? "7.1rem" : "4.3rem") + ")"; }
+  function placeBars() { $("#warn-bar").style.top = $("#al-live").style.top = "calc(var(--band-h, 0px) + 4.3rem)"; }
   function zoomToWarnings() {
     if (!warnCount) return;
     var o = mapPad(); o.maxZoom = 10; map.fitBounds(L.geoJSON({ type: "FeatureCollection", features: nearWarn }).getBounds(), o);
