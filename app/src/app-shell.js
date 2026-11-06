@@ -88,13 +88,14 @@
     register: function () {
       return Push.requestPermissions().then(function (p) {
         if (p.receive !== "granted") throw new Error("denied");
-        // Android channels: warnings are urgent (siren + heads-up), watches and "warning ended" are normal.
-        // A channel's sound can't change after it's made, so the siren channel has a new id; the old one is removed.
+        // Android channels: warnings are urgent (siren + heads-up), "warning ended" has its own chime, watches are normal.
+        // A channel's sound can't change after it's made, so a new sound means a new id; the old ones are removed.
         var ch = Push.createChannel ? Promise.all([
           Push.createChannel({ id: "tornado-alarm", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, visibility: 1, vibration: true, lights: true, lightColor: "#D0021B", sound: "tornado_alarm.mp3" }),
           Push.createChannel({ id: "tornado-watches", name: "Tornado Watches", description: "Conditions are right for tornadoes", importance: 4, visibility: 1 }),
-          Push.createChannel({ id: "tornado-updates", name: "Warning Ended", description: "A tornado warning you were sent has ended", importance: 4, visibility: 1 }),
-          Push.deleteChannel ? Push.deleteChannel({ id: "tornado-warnings" }).catch(function () {}) : null
+          Push.createChannel({ id: "tornado-ended", name: "Warning Ended", description: "A tornado warning you were sent has ended", importance: 4, visibility: 1, sound: "tornado_ended.mp3" }),
+          Push.deleteChannel ? Push.deleteChannel({ id: "tornado-warnings" }).catch(function () {}) : null,
+          Push.deleteChannel ? Push.deleteChannel({ id: "tornado-updates" }).catch(function () {}) : null
         ]).catch(function () {}) : Promise.resolve();
         return ch.then(function () {
           return new Promise(function (ok, no) {

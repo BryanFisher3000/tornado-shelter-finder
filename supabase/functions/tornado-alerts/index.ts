@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       token: dev.token,
       notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
       data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
-      android: { priority: "high", notification: { channel_id: "tornado-updates", sound: "default", tag } },
+      android: { priority: "high", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag } },
     });
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status });
   }
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
     const ok = await push(d, {
       notification: { title: "Tornado Warning Ended", body: "The Tornado Warning" + (short ? " for " + short : " for your area") + " has ended. Storms may continue, so stay alert." },
       data: { kind: "tornado-clear", alert_id: first.alert_id, area: short },
-      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-updates", sound: "default", tag: first.alert_id } },
+      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag: first.alert_id } },
     }, { alert_id: "clear:" + first.alert_id, matched: "clear" });
     if (ok) {
       cleared++;
