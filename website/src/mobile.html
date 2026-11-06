@@ -175,8 +175,8 @@ body.searching .searchbar { z-index: 41; }
 .detail .actions .pill { padding: .3rem .45rem; gap: .25rem; font-size: .8rem; border-radius: 5px; }
 .detail .actions .pill svg { width: .85rem; height: .85rem; }
 .detail .dist { color: var(--muted); }
-/* lined up with the text above it, with the same inset on the right */
-.detail .disclaimer { margin: 1rem var(--title-indent, 2.6rem) 0; }
+/* lined up with the text above it */
+.detail .disclaimer { margin: 1rem 0 0 var(--title-indent, 2.6rem); }
 .actions { display: flex; gap: .4rem; overflow-x: auto; padding: .2rem 0 .9rem; scrollbar-width: none; }
 .actions::-webkit-scrollbar { display: none; }
 .pill { flex: none; display: inline-flex; gap: .45rem; align-items: center; border: 0; border-radius: 6px; padding: .45rem .7rem; background: var(--chip-on); color: var(--red-deep); text-decoration: none; font-size: .9rem; white-space: nowrap; font-weight: 500; cursor: pointer; }
@@ -808,7 +808,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest an Edit</button>' +
       "</div>" + facts(s) +
       (tags.length ? "<p>" + tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") + "</p>" : "") +
-      '<p class="fine disclaimer">Always follow instructions from local emergency officials. Shelter details can change; if something here is wrong, tap Suggest an Edit.</p>';
+      '<p class="fine disclaimer">Always follow instructions from local emergency officials. Shelter details can change; if something here is incorrect, tap Suggest an Edit.</p>';
   }
 
   // ---------- map ----------
