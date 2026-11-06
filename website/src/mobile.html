@@ -678,8 +678,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var visible = vh() - y, area = document.getElementById("area-btn");
     if (area) { area.style.bottom = (visible + 12) + "px"; area.style.visibility = y < vh() * 0.35 ? "hidden" : ""; }
   }
+  // X: on a search it goes back to the shelters near you; near you it lowers the tray, then hides
+  function closeVis() { $("#close").hidden = state.pane !== "list" || (snapName === "peek" && state.label === "Near you"); }
   function snapTo(name, animate) {
-    snapName = name; sheet.dataset.snap = name;
+    snapName = name; sheet.dataset.snap = name; closeVis();
     placeSheet(snaps()[name], animate !== false);
     if (name !== "full") body.scrollTop = Math.min(body.scrollTop, body.scrollHeight);
   }
@@ -732,7 +734,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var sub = true;
     $("#chips").hidden = name !== "list";
     $("#back").hidden = !(name === "detail" || name === "saved" || name === "settings" || name === "feedback" || name === "profile" || name === "add" || name === "places");
-    $("#close").hidden = name !== "list";
+    closeVis();
     sheet.dataset.pane = name;
     if (name === "intro") { $("#title").textContent = "Tornado Shelters"; }
     else if (name === "list") { $("#title").textContent = state.label === "Near you" ? "Nearest Shelters" : state.label ? "Shelters near " + state.label : "Shelters"; }
@@ -1752,7 +1754,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     // close a search: clear it and go back to the shelters nearest you
     q.value = ""; $("#q-clear").hidden = true; state.selected = null;
     if (state.here && state.label !== "Near you") { runQuery({ lat: state.here.lat, lng: state.here.lng, label: "Near you" }, "Near you", "half"); return; }
-    if (state.here) { drawPins(); snapTo("half", true); return; }
+    // already showing the shelters near you: lower the tray so the map has the screen
+    if (state.here) { drawPins(); snapTo("peek", true); return; }
     // no location yet: show the start panel
     state.results = []; drawPins();
     showPane("intro", { snap: "half" }); setSub("");
