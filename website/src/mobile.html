@@ -508,8 +508,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     </div>
     <div class="pane settings" id="pane-settings" hidden>
       <div class="set-row"><label for="set-loc">My Location</label><label class="switch"><input type="checkbox" id="set-loc" role="switch"><span></span></label></div>
-      <div class="set-row"><label for="set-notify" id="set-notify-l">Tornado Warnings</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
       <div class="set-row" id="set-watch-row" hidden><label for="set-watch">Tornado Watches</label><label class="switch"><input type="checkbox" id="set-watch" role="switch"><span></span></label></div>
+      <div class="set-row"><label for="set-notify" id="set-notify-l">Tornado Warnings</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
       <p class="fine set-msg" id="set-perm-msg" hidden></p>
       <a class="set-row link" id="set-places" href="#places"><span>Home &amp; Work<span class="hint" id="set-places-v">Not set</span></span><span class="v">›</span></a>
       <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
@@ -1324,7 +1324,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var PERM_KEYS = { location: "useLocation", notifications: "notify" };
   var PERM_DEFAULTS = { location: true, notifications: false };
   var PERM_BOX = { location: "#set-loc", notifications: "#set-notify" };
-  // Tornado Watches only work while Tornado Warnings (the notifications switch) is on
+  // Tornado Watches (listed first) only work while Tornado Warnings (the notifications switch) is on
   function watchDep() {
     var on = $("#set-notify").checked;
     $("#set-watch").disabled = !on; $("#set-watch-row").classList.toggle("off", !on);
@@ -1366,7 +1366,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
             save(PERM_KEYS[k], true); box.checked = true; watchDep();
             if (k === "location") locate(true, "half");
             if (k === "notifications") pushSync(true);
-            if (k === "notifications") permMsg(APP.push ? "Tornado warnings are on for where you are, plus Home and Work." : "Notifications are on.");
           } else {
             box.checked = false; watchDep();
             if (st === "denied") blocked(k);
