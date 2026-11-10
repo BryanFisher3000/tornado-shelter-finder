@@ -37,7 +37,8 @@
 
   // Built-in Google sign-in (Android account picker / iOS Google sheet). Returns a Google ID token
   // that the page hands to Supabase (signInWithIdToken). Needs googleWebClientId in app-config.js.
-  if (window.SAS_APP.googleWebClientId) {
+  // iPhone also needs its own iOS client ID; without it Google sign-in uses the web page in a browser sheet.
+  if (window.SAS_APP.googleWebClientId && (platform !== "ios" || window.SAS_APP.googleIosClientId)) {
     var Social = Cap.registerPlugin("SocialLogin");
     var socialReady = null;
     window.SAS_APP.nativeGoogle = {

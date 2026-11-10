@@ -1576,6 +1576,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     return false;
   }
   function ssoMsg(t) { var m = $("#sso-msg"); m.hidden = !t; m.textContent = t || ""; }
+  // Hide sign-in buttons for providers that aren't switched on in Supabase yet (Apple, Facebook),
+  // so testers don't hit "provider is not enabled". They reappear by themselves once enabled.
+  if (SUPA.url && SUPA.key && window.fetch) fetch(SUPA.url + "/auth/v1/settings", { headers: { apikey: SUPA.key } })
+    .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var on = j && j.external; if (!on) return;
+      Array.prototype.forEach.call(document.querySelectorAll("#sso [data-sso]"), function (b) {
+        if (b.dataset.sso !== "email" && on[b.dataset.sso] === false) b.hidden = true;
+      });
+    }).catch(function () {});
   // a Supabase user signed in: remember them and fill My Details from their profile row or provider
   function adoptUser(user) {
     if (!user) return;
@@ -1711,7 +1720,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       var first = v("#em-first"), last = v("#em-last");
       var p = profile(); p.first = first; p.last = last; p.email = email; save("profile", p);
       sb.auth.signUp({ email: email, password: pass, options: {
-        emailRedirectTo: APP.oauth ? "https://survive-a-storm.com/tornado-shelter-finder/" : location.origin + location.pathname,
+        emailRedirectTo: APP.oauth ? APP.oauth.redirect : location.origin + location.pathname, // the app: the link opens the app and signs in
         data: { first_name: first, last_name: last, full_name: first + " " + last }
       } }).then(function (r) {
         done();
