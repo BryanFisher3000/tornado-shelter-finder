@@ -14,7 +14,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 const mod = (p) => require.resolve(p);
 
 fs.rmSync(www, { recursive: true, force: true });
-for (const d of ["data", "vendor", "fonts"]) fs.mkdirSync(path.join(www, d), { recursive: true });
+for (const d of ["data", "vendor", "fonts", "media"]) fs.mkdirSync(path.join(www, d), { recursive: true });
 
 // fonts the page uses (Barlow Condensed 700/800, Barlow Semi Condensed 300–600), bundled for offline use
 let fontCss = "";
@@ -38,6 +38,8 @@ fs.copyFileSync(path.join(path.dirname(mod("@supabase/supabase-js/package.json")
 fs.copyFileSync(path.join(path.dirname(mod("@capacitor/core/package.json")), "dist/capacitor.js"), path.join(www, "vendor/capacitor.js"));
 fs.copyFileSync(path.join(site, "shelter-core.js"), path.join(www, "shelter-core.js"));
 for (const f of fs.readdirSync(path.join(site, "data"))) fs.copyFileSync(path.join(site, "data", f), path.join(www, "data", f));
+// startup tornado loop (video + still frame)
+for (const f of fs.readdirSync(path.join(site, "media"))) fs.copyFileSync(path.join(site, "media", f), path.join(www, "media", f));
 fs.writeFileSync(path.join(www, "app-config.js"), fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version));
 for (const f of ["app-shell.js", "app.css"]) fs.copyFileSync(path.join(root, "src", f), path.join(www, f));
 
