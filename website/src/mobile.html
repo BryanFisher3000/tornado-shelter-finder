@@ -955,7 +955,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function radarLabel() {
     var base = radarValid || new Date(), mins = frameMinutes(RADAR_FRAMES[radarFrame]);
     var t = new Date(base.getTime() - mins * 60000);
-    if (radarOn) { $("#radar-time").textContent = fmtTime(t); sameHeight(); }
+    // radar clock without AM/PM ("12:25"); warning times elsewhere keep it
+    if (radarOn) { $("#radar-time").textContent = fmtTime(t).replace(/\s*[AaPp]\.?\s?[Mm]\.?$/, ""); sameHeight(); }
   }
   function loadRadarMeta() {
     return fetch(RADAR_META + "?_=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
