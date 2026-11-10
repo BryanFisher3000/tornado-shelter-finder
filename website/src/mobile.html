@@ -1418,6 +1418,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (/Windows/.test(ua)) return "Windows";
     return "";
   }
+  // iPhones report a code like "iPhone15,4"; these are the names people know them by
+  var IOS_MODELS = {
+    "iPhone11,8": "iPhone XR", "iPhone11,2": "iPhone XS", "iPhone11,4": "iPhone XS Max", "iPhone11,6": "iPhone XS Max",
+    "iPhone12,1": "iPhone 11", "iPhone12,3": "iPhone 11 Pro", "iPhone12,5": "iPhone 11 Pro Max", "iPhone12,8": "iPhone SE (2nd gen)",
+    "iPhone13,1": "iPhone 12 mini", "iPhone13,2": "iPhone 12", "iPhone13,3": "iPhone 12 Pro", "iPhone13,4": "iPhone 12 Pro Max",
+    "iPhone14,4": "iPhone 13 mini", "iPhone14,5": "iPhone 13", "iPhone14,2": "iPhone 13 Pro", "iPhone14,3": "iPhone 13 Pro Max", "iPhone14,6": "iPhone SE (3rd gen)",
+    "iPhone14,7": "iPhone 14", "iPhone14,8": "iPhone 14 Plus", "iPhone15,2": "iPhone 14 Pro", "iPhone15,3": "iPhone 14 Pro Max",
+    "iPhone15,4": "iPhone 15", "iPhone15,5": "iPhone 15 Plus", "iPhone16,1": "iPhone 15 Pro", "iPhone16,2": "iPhone 15 Pro Max",
+    "iPhone17,3": "iPhone 16", "iPhone17,4": "iPhone 16 Plus", "iPhone17,1": "iPhone 16 Pro", "iPhone17,2": "iPhone 16 Pro Max", "iPhone17,5": "iPhone 16e",
+    "iPhone18,1": "iPhone 17 Pro", "iPhone18,2": "iPhone 17 Pro Max", "iPhone18,3": "iPhone 17", "iPhone18,4": "iPhone Air"
+  };
   function deviceLabel() {
     var ua = navigator.userAgent, d = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows PC" : "Computer";
     return (APP.name || "Shelter Finder website 2.0") + " on " + d;
@@ -1894,6 +1905,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var os = d.operatingSystem === "ios" ? "iOS" : d.operatingSystem === "android" ? "Android" : d.operatingSystem;
     if (d.osVersion) $("#set-os").textContent = os + " " + d.osVersion;
     if (d.platform === "android" && d.model) $("#set-device").textContent = (d.manufacturer && d.model.indexOf(d.manufacturer) !== 0 ? d.manufacturer + " " : "") + d.model;
+    if (d.platform === "ios" && /^iP(hone|ad)\d/.test(d.model || "")) $("#set-device").textContent = IOS_MODELS[d.model] || (/^iPad/.test(d.model) ? "iPad" : "iPhone") + " (" + d.model + ")";
   }).catch(function () {});
   // Terms and Privacy pages (APP.termsUrl / APP.privacyUrl can override them).
   [["#set-terms", APP.termsUrl || "https://survive-a-storm.com/terms/#tornado-shelter-finder"], ["#set-privacy", APP.privacyUrl || "https://survive-a-storm.com/privacy/"]].forEach(function (l) {
