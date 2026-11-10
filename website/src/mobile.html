@@ -1354,7 +1354,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }
   };
   var PERM_KEYS = { location: "useLocation", notifications: "notify" };
-  var PERM_DEFAULTS = { location: true, notifications: false };
+  // in the app, Tornado Warnings start on (the phone still asks once); the website keeps notifications off
+  var PERM_DEFAULTS = { location: true, notifications: !!APP.push };
   var PERM_BOX = { location: "#set-loc", notifications: "#set-notify" };
   // Tornado Watches (listed first) only work while Tornado Warnings (the notifications switch) is on
   function watchDep() {
@@ -1417,6 +1418,17 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (/Windows/.test(ua)) return "Windows";
     return "";
   }
+  // iPhones report a code like "iPhone15,4"; these are the names people know them by
+  var IOS_MODELS = {
+    "iPhone11,8": "iPhone XR", "iPhone11,2": "iPhone XS", "iPhone11,4": "iPhone XS Max", "iPhone11,6": "iPhone XS Max",
+    "iPhone12,1": "iPhone 11", "iPhone12,3": "iPhone 11 Pro", "iPhone12,5": "iPhone 11 Pro Max", "iPhone12,8": "iPhone SE (2nd gen)",
+    "iPhone13,1": "iPhone 12 mini", "iPhone13,2": "iPhone 12", "iPhone13,3": "iPhone 12 Pro", "iPhone13,4": "iPhone 12 Pro Max",
+    "iPhone14,4": "iPhone 13 mini", "iPhone14,5": "iPhone 13", "iPhone14,2": "iPhone 13 Pro", "iPhone14,3": "iPhone 13 Pro Max", "iPhone14,6": "iPhone SE (3rd gen)",
+    "iPhone14,7": "iPhone 14", "iPhone14,8": "iPhone 14 Plus", "iPhone15,2": "iPhone 14 Pro", "iPhone15,3": "iPhone 14 Pro Max",
+    "iPhone15,4": "iPhone 15", "iPhone15,5": "iPhone 15 Plus", "iPhone16,1": "iPhone 15 Pro", "iPhone16,2": "iPhone 15 Pro Max",
+    "iPhone17,3": "iPhone 16", "iPhone17,4": "iPhone 16 Plus", "iPhone17,1": "iPhone 16 Pro", "iPhone17,2": "iPhone 16 Pro Max", "iPhone17,5": "iPhone 16e",
+    "iPhone18,1": "iPhone 17 Pro", "iPhone18,2": "iPhone 17 Pro Max", "iPhone18,3": "iPhone 17", "iPhone18,4": "iPhone Air"
+  };
   function deviceLabel() {
     var ua = navigator.userAgent, d = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows PC" : "Computer";
     return (APP.name || "Shelter Finder website 2.0") + " on " + d;
@@ -1893,6 +1905,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var os = d.operatingSystem === "ios" ? "iOS" : d.operatingSystem === "android" ? "Android" : d.operatingSystem;
     if (d.osVersion) $("#set-os").textContent = os + " " + d.osVersion;
     if (d.platform === "android" && d.model) $("#set-device").textContent = (d.manufacturer && d.model.indexOf(d.manufacturer) !== 0 ? d.manufacturer + " " : "") + d.model;
+    if (d.platform === "ios" && /^iP(hone|ad)\d/.test(d.model || "")) $("#set-device").textContent = IOS_MODELS[d.model] || (/^iPad/.test(d.model) ? "iPad" : "iPhone") + " (" + d.model + ")";
   }).catch(function () {});
   // Terms and Privacy pages (APP.termsUrl / APP.privacyUrl can override them).
   [["#set-terms", APP.termsUrl || "https://survive-a-storm.com/terms/#tornado-shelter-finder"], ["#set-privacy", APP.privacyUrl || "https://survive-a-storm.com/privacy/"]].forEach(function (l) {
@@ -1971,7 +1984,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // The phone tells Supabase its push token, where the app was last opened, Home/Work and which
   // alerts it wants; the tornado-alerts function sends pushes from that (supabase/alerts.sql).
   var lastPushSync = 0;
-  function pushOn() { return !!(APP.push && sb && load("notify", false) === true); }
+  function pushOn() { return !!(APP.push && sb && load("notify", true) === true); }
   function pushSync(force) {
     if (!pushOn() || (!force && Date.now() - lastPushSync < 10 * 60e3)) return Promise.resolve();
     lastPushSync = Date.now();
@@ -1984,8 +1997,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         p_lat: state.here ? +state.here.lat.toFixed(3) : null, p_lng: state.here ? +state.here.lng.toFixed(3) : null,
         p_places: slim, p_warnings: true, p_watches: load("watches", false) === true
       });
-    }).then(function (r) { if (r && r.error) console.warn("push register", r.error.message); })
-      .catch(function (e) { lastPushSync = 0; console.warn("push", e && e.message); });
+    }).then(function (r) { save("notify", true); if (r && r.error) console.warn("push register", r.error.message); })
+      .catch(function (e) {
+        lastPushSync = 0;
+        // the person said no to the phone's notification prompt: show the switch off and stop asking
+        if (e && e.message === "denied") { save("notify", false); $("#set-notify").checked = false; watchDep(); return; }
+        console.warn("push", e && e.message);
+      });
   }
   function pushOff() {
     var tok = load("pushToken", null);
@@ -2091,9 +2109,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
-    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
+    // Tornado Warnings are on by default: the phone asks for notifications right after the first screen
+    var askAlerts = function () { setTimeout(function () { pushSync(true); }, 1500); };
+    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); askAlerts(); });
     $("#agree-setup").addEventListener("click", function () {
-      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true;
+      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true; askAlerts();
       showPane("places", { snap: "full" });
     });
   }
@@ -2160,8 +2180,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       document.addEventListener("visibilitychange", function () { if (!document.hidden) loadWarnings(); });
     }
     buildCityIndex();
-    if (load("agreed", false)) afterAgree();
-    setTimeout(function () { pushSync(true); }, 4000);
+    if (load("agreed", false)) { afterAgree(); setTimeout(function () { pushSync(true); }, 4000); }
   }).catch(function (err) {
     setSub("The shelter list didn't load. Close and reopen the app to try again.", true);
     console.error(err);
