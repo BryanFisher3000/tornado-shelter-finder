@@ -18,6 +18,8 @@
 		<string>comgooglemaps</string>
 		<string>waze</string>
 	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Shelter Finder uses your location to list the tornado shelters nearest you and to warn you about tornadoes where you are.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Shelter Finder uses your location to list the tornado shelters nearest you.</string>
   <key>CAPACITOR_DEBUG</key>
