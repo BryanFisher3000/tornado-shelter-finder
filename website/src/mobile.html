@@ -223,6 +223,11 @@ a.set-row { color: inherit; text-decoration: none; }
 .places .place { display: grid; gap: .55rem; padding: .2rem 0 .9rem; border-bottom: 1px solid var(--line); }
 .places .place h3 { margin: .3rem 0 0; }
 .places .place .btn.sm { justify-self: start; }
+#add-form .grp { display: grid; gap: .45rem; }
+#add-form .glabel { font-size: 1rem; font-weight: 500; }
+#add-form .radios { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
+#add-form .radios label { display: flex !important; gap: .4rem; align-items: center; font-size: 1rem !important; color: var(--ink) !important; cursor: pointer; }
+#add-form .radios input { width: 1.1rem !important; height: 1.1rem; accent-color: var(--act); margin: 0; }
 .places .grp { display: grid; gap: .4rem; }
 .places .glabel { font-size: .95rem; color: var(--ink-2); }
 .places .radios { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
@@ -461,10 +466,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
-        <label>Capacity<select id="as-cap"><option value="">Unknown</option><option value="<25">&lt;25</option><option value="<50">&lt;50</option><option value="50+">50+</option></select></label>
-        <label>Open<select id="as-open"><option value="emergencies_only">During Emergencies</option><option value="always">Year-Round</option></select></label>
-        <label class="chk"><input type="checkbox" id="as-ada">Wheelchair Accessible</label>
-        <label class="chk"><input type="checkbox" id="as-pets">Pets Allowed</label>
+        <div class="grp" role="radiogroup" aria-labelledby="as-cap-l"><div class="glabel" id="as-cap-l">Capacity</div><div class="radios"><label><input type="radio" name="as-cap" value="" checked>Unknown</label><label><input type="radio" name="as-cap" value="<25">&lt;25</label><label><input type="radio" name="as-cap" value="<50">&lt;50</label><label><input type="radio" name="as-cap" value="50+">50+</label></div></div>
+        <div class="grp" role="radiogroup" aria-labelledby="as-open-l"><div class="glabel" id="as-open-l">Open</div><div class="radios"><label><input type="radio" name="as-open" value="" checked>Unknown</label><label><input type="radio" name="as-open" value="emergencies_only">During Emergencies</label><label><input type="radio" name="as-open" value="always">Year-Round</label></div></div>
+        <div class="grp" role="radiogroup" aria-labelledby="as-ada-l"><div class="glabel" id="as-ada-l">Wheelchair Accessible</div><div class="radios"><label><input type="radio" name="as-ada" value="" checked>Unknown</label><label><input type="radio" name="as-ada" value="yes">Yes</label><label><input type="radio" name="as-ada" value="no">No</label></div></div>
+        <div class="grp" role="radiogroup" aria-labelledby="as-pets-l"><div class="glabel" id="as-pets-l">Pets Allowed</div><div class="radios"><label><input type="radio" name="as-pets" value="" checked>Unknown</label><label><input type="radio" name="as-pets" value="yes">Yes</label><label><input type="radio" name="as-pets" value="no">No</label></div></div>
         <textarea id="as-note" placeholder="Anything to note"></textarea>
         <p class="fine err" id="as-msg" aria-live="polite"></p>
         <div class="btns"><button class="btn red" type="submit">Add</button></div>
@@ -561,12 +566,12 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         <div class="glabel" id="fb-open-l">Open</div>
         <div class="radios">
           <label><input type="radio" name="fb-open" value="">Unknown</label>
-          <label><input type="radio" name="fb-open" value="emergencies_only">During emergencies</label>
-          <label><input type="radio" name="fb-open" value="always">Year-round</label>
+          <label><input type="radio" name="fb-open" value="emergencies_only">During Emergencies</label>
+          <label><input type="radio" name="fb-open" value="always">Year-Round</label>
         </div>
       </div>
       <div class="grp" role="radiogroup" aria-labelledby="fb-ada-l">
-        <div class="glabel" id="fb-ada-l">Wheelchair accessible</div>
+        <div class="glabel" id="fb-ada-l">Wheelchair Accessible</div>
         <div class="radios">
           <label><input type="radio" name="fb-ada" value="">Unknown</label>
           <label><input type="radio" name="fb-ada" value="yes">Yes</label>
@@ -574,7 +579,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         </div>
       </div>
       <div class="grp" role="radiogroup" aria-labelledby="fb-pets-l">
-        <div class="glabel" id="fb-pets-l">Pets allowed</div>
+        <div class="glabel" id="fb-pets-l">Pets Allowed</div>
         <div class="radios">
           <label><input type="radio" name="fb-pets" value="">Unknown</label>
           <label><input type="radio" name="fb-pets" value="yes">Yes</label>
@@ -1468,6 +1473,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     rs.forEach(function (r) { r.checked = r.value === v; hit = hit || r.checked; });
     if (!hit) rs[0].checked = true;
   }
+  function radioText(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.parentNode.textContent.trim() : "Unknown"; }
   function radioVal(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ""; }
   $("#fb-r1").addEventListener("change", function () {
     $("#fb-addr").hidden = !this.checked;
@@ -1479,7 +1485,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var OPEN = { always: "Year-round", emergencies_only: "During emergencies", "": "Unknown" };
     var open = radioVal("fb-open"), oldOpen = s.availability === "always" || s.availability === "emergencies_only" ? s.availability : "";
     if (open !== oldOpen) out.push({ field: "availability", label: "Open", from: OPEN[oldOpen], to: OPEN[open], value: open || null });
-    [["ada_accessible", "Wheelchair accessible", "fb-ada"], ["pets_allowed", "Pets allowed", "fb-pets"]].forEach(function (f) {
+    [["ada_accessible", "Wheelchair Accessible", "fb-ada"], ["pets_allowed", "Pets Allowed", "fb-pets"]].forEach(function (f) {
       var was = s[f[0]] === "yes" || s[f[0]] === "no" ? s[f[0]] : "", now = radioVal(f[2]);
       if (now !== was) out.push({ field: f[0], label: f[1], from: yn(was), to: yn(now), value: now || "unknown" });
     });
@@ -1796,15 +1802,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (bad) { $("#as-msg").textContent = "Please add the " + bad + "."; return; }
     var sh = {
       name: v("#as-name"), address: { street: v("#as-street"), city: v("#as-city"), state: v("#as-state").toUpperCase(), zip: v("#as-zip") },
-      location: addPin, capacity_label: $("#as-cap").value || null,
-      ada_accessible: $("#as-ada").checked ? "yes" : "unknown", pets_allowed: $("#as-pets").checked ? "yes" : "unknown",
-      availability: $("#as-open").value
+      location: addPin, capacity_label: radioVal("as-cap") || null,
+      ada_accessible: radioVal("as-ada") || "unknown", pets_allowed: radioVal("as-pets") || "unknown",
+      availability: radioVal("as-open") || null
     };
     var note = v("#as-note"), addr = sh.address.street + ", " + sh.address.city + ", " + sh.address.state + (sh.address.zip ? " " + sh.address.zip : "");
     var subject = "New shelter: " + sh.name + " (" + sh.address.city + ", " + sh.address.state + ")";
     var body = ["Shelter: " + sh.name, "Address: " + addr, "Map pin: " + (addPin ? addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "not set"),
-      "Capacity: " + (sh.capacity_label || "Unknown"), "Wheelchair Accessible: " + ($("#as-ada").checked ? "Yes" : "Unknown"),
-      "Pets Allowed: " + ($("#as-pets").checked ? "Yes" : "Unknown"), "Open: " + ($("#as-open").selectedOptions[0] || {}).textContent,
+      "Capacity: " + (sh.capacity_label || "Unknown"), "Wheelchair Accessible: " + radioText("as-ada"),
+      "Pets Allowed: " + radioText("as-pets"), "Open: " + radioText("as-open"),
       "", "Comments:", note || "(none)", "", "Sent from: " + deviceLabel()].join("\n");
     fbShelter = null;
     sendReport({
@@ -1812,7 +1818,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       email: { to: C.FEEDBACK_EMAIL, subject: subject, body: body }
     });
     ["#as-name", "#as-street", "#as-city", "#as-zip", "#as-note"].forEach(function (id) { $(id).value = ""; });
-    ["#as-ada", "#as-pets"].forEach(function (id) { $(id).checked = false; }); $("#as-cap").value = ""; $("#as-open").value = "emergencies_only"; addPin = null; renderAdd();
+    ["as-cap", "as-open", "as-ada", "as-pets"].forEach(function (n) { setRadio(n, ""); }); addPin = null; renderAdd();
   });
 
   // ---------- events ----------
