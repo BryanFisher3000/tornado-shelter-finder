@@ -43,7 +43,7 @@ jobs:
         if: env.SKIP != '1'
         env: { P8: "${{ secrets.ASC_API_KEY_P8 }}" }
         run: printf '%s\n' "$P8" > "$RUNNER_TEMP/AuthKey.p8"
-      - name: Archive
+      - name: Archive (unsigned; the upload step signs it for the App Store)
         if: env.SKIP != '1'
         env:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}
@@ -55,9 +55,7 @@ jobs:
           cd ios/App
           xcodebuild -project App.xcodeproj -scheme App -configuration Release \
             -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" \
-            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
             archive | tail -n 40
           test -d "$RUNNER_TEMP/App.xcarchive"
