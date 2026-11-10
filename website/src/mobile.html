@@ -1354,7 +1354,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }
   };
   var PERM_KEYS = { location: "useLocation", notifications: "notify" };
-  var PERM_DEFAULTS = { location: true, notifications: false };
+  // in the app, Tornado Warnings start on (the phone still asks once); the website keeps notifications off
+  var PERM_DEFAULTS = { location: true, notifications: !!APP.push };
   var PERM_BOX = { location: "#set-loc", notifications: "#set-notify" };
   // Tornado Watches (listed first) only work while Tornado Warnings (the notifications switch) is on
   function watchDep() {
@@ -1971,7 +1972,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   // The phone tells Supabase its push token, where the app was last opened, Home/Work and which
   // alerts it wants; the tornado-alerts function sends pushes from that (supabase/alerts.sql).
   var lastPushSync = 0;
-  function pushOn() { return !!(APP.push && sb && load("notify", false) === true); }
+  function pushOn() { return !!(APP.push && sb && load("notify", true) === true); }
   function pushSync(force) {
     if (!pushOn() || (!force && Date.now() - lastPushSync < 10 * 60e3)) return Promise.resolve();
     lastPushSync = Date.now();
@@ -1984,8 +1985,13 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
         p_lat: state.here ? +state.here.lat.toFixed(3) : null, p_lng: state.here ? +state.here.lng.toFixed(3) : null,
         p_places: slim, p_warnings: true, p_watches: load("watches", false) === true
       });
-    }).then(function (r) { if (r && r.error) console.warn("push register", r.error.message); })
-      .catch(function (e) { lastPushSync = 0; console.warn("push", e && e.message); });
+    }).then(function (r) { save("notify", true); if (r && r.error) console.warn("push register", r.error.message); })
+      .catch(function (e) {
+        lastPushSync = 0;
+        // the person said no to the phone's notification prompt: show the switch off and stop asking
+        if (e && e.message === "denied") { save("notify", false); $("#set-notify").checked = false; watchDep(); return; }
+        console.warn("push", e && e.message);
+      });
   }
   function pushOff() {
     var tok = load("pushToken", null);
@@ -2091,9 +2097,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   }
   if (!load("agreed", false)) {
     $("#splash").hidden = false;
-    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); });
+    // Tornado Warnings are on by default: the phone asks for notifications right after the first screen
+    var askAlerts = function () { setTimeout(function () { pushSync(true); }, 1500); };
+    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); askAlerts(); });
     $("#agree-setup").addEventListener("click", function () {
-      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true;
+      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true; askAlerts();
       showPane("places", { snap: "full" });
     });
   }
@@ -2160,8 +2168,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       document.addEventListener("visibilitychange", function () { if (!document.hidden) loadWarnings(); });
     }
     buildCityIndex();
-    if (load("agreed", false)) afterAgree();
-    setTimeout(function () { pushSync(true); }, 4000);
+    if (load("agreed", false)) { afterAgree(); setTimeout(function () { pushSync(true); }, 4000); }
   }).catch(function (err) {
     setSub("The shelter list didn't load. Close and reopen the app to try again.", true);
     console.error(err);
