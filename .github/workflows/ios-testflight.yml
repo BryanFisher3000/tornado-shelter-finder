@@ -83,5 +83,6 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
             -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
+          echo "Uploaded version $(node -p "require('./package.json').version") build $(( 100 + ${{ github.run_number }} )) to TestFlight" >> "$GITHUB_STEP_SUMMARY"
       - run: rm -f "$RUNNER_TEMP/AuthKey.p8"
         if: always()
