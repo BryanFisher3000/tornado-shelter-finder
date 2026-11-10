@@ -7,8 +7,8 @@ android {
         applicationId "com.surviveastorm.shelterfinder"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 73
-        versionName "2.19.3"
+        versionCode 74
+        versionName "2.20.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Google Maps key, kept in one place: googleMapsKey in app/src/app-config.js
         def appConfig = file("../../src/app-config.js").text
