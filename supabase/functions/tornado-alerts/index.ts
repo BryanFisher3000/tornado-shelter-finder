@@ -78,36 +78,62 @@ Deno.serve(async (req) => {
   const sa = JSON.parse(saRaw);
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-  // {"test": true}: one clearly-marked test alert to the phone that registered most recently
-  // (within 30 minutes), at most once every 5 minutes.
+  // Test pushes, clearly marked TEST, never tied to a real warning:
+  //   {"test": true}         TEST warning to the phone that registered most recently (within 30 min)
+  //   {"test": "clear"}      TEST "warning ended" to that phone, replacing its last test alert
+  //   {"test": "all"}        TEST warning to every phone with Warnings on (testers), at most once per 5 min
+  //   {"test": "all-clear"}  TEST "warning ended" to every phone that got the last "all" test
   const body = await req.json().catch(() => ({}));
-  // {"test": "clear"}: a TEST "warning ended" push, replacing the last test alert
+  const testAlert = (token: string, id: string) => ({
+    token,
+    notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
+    data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", expires: new Date(Date.now() + 30 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
+    android: { priority: "high", notification: { channel_id: "tornado-alarm", sound: "tornado_alarm", tag: id } },
+  });
+  const testClear = (token: string, tag: string) => ({
+    token,
+    notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
+    data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
+    android: { priority: "high", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag } },
+  });
   if (body && body.test === "clear") {
     const { data: dev } = await db.from("push_devices").select("token").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
     const { data: last } = await db.from("alert_pushes").select("alert_id").eq("token", dev.token).eq("matched", "test").order("sent_at", { ascending: false }).limit(1).maybeSingle();
-    const tag = last?.alert_id || "test";
-    const r = await send(sa, {
-      token: dev.token,
-      notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
-      data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
-      android: { priority: "high", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag } },
-    });
+    const r = await send(sa, testClear(dev.token, last?.alert_id || "test"));
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status });
   }
   if (body && body.test === true) {
-    const { data: dev } = await db.from("push_devices").select("token, places").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: dev } = await db.from("push_devices").select("token").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
     const id = "test-" + Math.floor(Date.now() / 300e3);
     const { error: dup } = await db.from("alert_pushes").insert({ alert_id: id, token: dev.token, matched: "test" });
     if (dup) return Response.json({ test: "already sent in the last 5 minutes" });
-    const r = await send(sa, {
-      token: dev.token,
-      notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
-      data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", expires: new Date(Date.now() + 30 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
-      android: { priority: "high", notification: { channel_id: "tornado-alarm", sound: "tornado_alarm", tag: id } },
-    });
+    const r = await send(sa, testAlert(dev.token, id));
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status, detail: r.ok ? undefined : (await r.text()).slice(0, 300) });
+  }
+  if (body && body.test === "all") {
+    const { data: devs } = await db.from("push_devices").select("token").eq("warnings", true);
+    const id = "testall-" + Math.floor(Date.now() / 300e3);
+    let sent = 0, failed = 0, skipped = 0;
+    for (const d of devs || []) {
+      const { error: dup } = await db.from("alert_pushes").insert({ alert_id: id, token: d.token, matched: "test-all" });
+      if (dup) { skipped++; continue; }
+      const r = await send(sa, testAlert(d.token, id));
+      if (r.ok) { sent++; continue; }
+      failed++;
+      const t = await r.text();
+      if (r.status === 404 || /UNREGISTERED|INVALID_ARGUMENT.*token/i.test(t)) await db.from("push_devices").delete().eq("token", d.token);
+    }
+    return Response.json({ test: "all", phones: (devs || []).length, sent, failed, already_sent_last_5_min: skipped });
+  }
+  if (body && body.test === "all-clear") {
+    const { data: last } = await db.from("alert_pushes").select("alert_id").eq("matched", "test-all").order("sent_at", { ascending: false }).limit(1).maybeSingle();
+    if (!last) return Response.json({ test: "no all-phones test has been sent yet" });
+    const { data: rows } = await db.from("alert_pushes").select("token").eq("alert_id", last.alert_id).eq("matched", "test-all");
+    let sent = 0, failed = 0;
+    for (const row of rows || []) (await send(sa, testClear(row.token, last.alert_id))).ok ? sent++ : failed++;
+    return Response.json({ test: "all-clear", sent, failed });
   }
 
   const res = await fetch(NWS, { headers: { "User-Agent": UA, Accept: "application/geo+json" } });
