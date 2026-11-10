@@ -997,6 +997,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 .splash p { margin: 0; color: var(--ink-2); }
 .splash img { height: 2.8rem; width: auto; }
 @media (prefers-reduced-motion: reduce) { .sheet.anim { transition: none; } }
+/* startup: the tornado loop plays behind the agree card and while the map loads */
+.boot-loop { position: fixed; inset: 0; z-index: 1999; background: #fdfdfd; display: grid; place-items: center; transition: opacity .45s ease; }
+.boot-loop video { width: 100%; height: 100%; object-fit: contain; }
+.boot-loop.done { opacity: 0; pointer-events: none; }
+.boot-loop ~ .splash { background: rgba(26,24,21,.12); }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1279,6 +1284,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   </form>
 </dialog>
 
+<div class="boot-loop" id="boot-loop" aria-hidden="true"><video id="boot-video" src="media/tornado-loop.mp4" poster="media/tornado-loop.jpg" autoplay muted loop playsinline preload="auto"></video></div>
 <div class="splash" id="splash" hidden>
   <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splash-title">
     <h1 id="splash-title">Tornado Shelter Finder</h1>
@@ -2768,6 +2774,15 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     showAlert(d);
   });
 
+  // startup tornado loop: stays until the map is ready and the agree card is closed
+  var bootMapReady = false;
+  function bootLoopDone() {
+    var el = $("#boot-loop");
+    if (!el || !bootMapReady || !$("#splash").hidden) return;
+    el.classList.add("done");
+    setTimeout(function () { var v = $("#boot-video"); if (v) v.pause(); el.remove(); }, 500);
+  }
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { var bv = $("#boot-video"); if (bv) { bv.removeAttribute("autoplay"); bv.pause(); } }
   // first-run disclaimer
   // the app opens on the person's location, with results in the sheet at half height
   function afterAgree() {
@@ -2778,9 +2793,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#splash").hidden = false;
     // Tornado Warnings are on by default: the phone asks for notifications right after the first screen
     var askAlerts = function () { setTimeout(function () { pushSync(true); }, 1500); };
-    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); askAlerts(); });
+    $("#agree").addEventListener("click", function () { save("agreed", true); $("#splash").hidden = true; afterAgree(); askAlerts(); bootLoopDone(); });
     $("#agree-setup").addEventListener("click", function () {
-      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true; askAlerts();
+      save("agreed", true); $("#splash").hidden = true; state.placesFirstRun = true; askAlerts(); bootLoopDone();
       showPane("places", { snap: "full" });
     });
   }
@@ -2848,7 +2863,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     }
     buildCityIndex();
     if (load("agreed", false)) { afterAgree(); setTimeout(function () { pushSync(true); }, 4000); }
+    // give the first map tiles a moment to draw before the loop fades
+    setTimeout(function () { bootMapReady = true; bootLoopDone(); }, 600);
   }).catch(function (err) {
+    bootMapReady = true; bootLoopDone();
     setSub("The shelter list didn't load. Close and reopen the app to try again.", true);
     console.error(err);
   });
