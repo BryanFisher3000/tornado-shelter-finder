@@ -101,6 +101,22 @@ function sas_forms_open( $s ) {
 	return 'emergencies_only';
 }
 
+/** The form's report checkboxes (field sfb_reasons) as the codes the app sends. */
+function sas_forms_reasons( $s ) {
+	$s   = strtolower( (string) $s );
+	$out = array();
+	if ( false !== strpos( $s, 'address' ) ) {
+		$out[] = 'address_wrong';
+	}
+	if ( false !== strpos( $s, 'no shelter' ) ) {
+		$out[] = 'no_shelter';
+	}
+	if ( false !== strpos( $s, 'not a public' ) ) {
+		$out[] = 'not_public';
+	}
+	return $out;
+}
+
 /** Find the shelter the form was opened from, by its original name, city and state (nearest pin wins). */
 function sas_forms_find_shelter( $name, $city, $state, $lat, $lng ) {
 	if ( '' === $name || '' === $state ) {
@@ -177,8 +193,10 @@ function sas_forms_shelter_submission( $v ) {
 		'shelter_label'    => $label . ( $where ? ' — ' . $where : '' ),
 		'proposed_changes' => (object) $changes,
 	);
+	$reasons = sas_forms_reasons( $g( 'sfb_reasons' ) );
 	if ( $found ) {
-		$row['kind']         = 'report';
+		$row['kind']           = 'report';
+		$row['report_reasons'] = $reasons;
 		$row['shelter_id']   = $found['id'];
 		$row['base_version'] = (int) $found['version'];
 		return $row;
@@ -200,6 +218,9 @@ function sas_forms_shelter_submission( $v ) {
 	// Couldn't match it to a shelter in the list: keep it as feedback with the details spelled out.
 	$row['kind'] = 'general';
 	$lines       = array();
+	if ( '' !== $g( 'sfb_reasons' ) ) {
+		$lines[] = 'reported: ' . $g( 'sfb_reasons' );
+	}
 	foreach ( $changes as $k => $val ) {
 		$lines[] = $k . ': ' . $val;
 	}
