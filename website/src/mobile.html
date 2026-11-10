@@ -553,6 +553,16 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     <header><button type="button" class="icon-btn" id="fb-back" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button><h2 id="fb-title">Suggest an Edit</h2></header>
     <div id="fb-compose" style="display:grid;gap:.8rem">
       <div class="summary" id="fb-summary"></div>
+      <div class="grp">
+        <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
+        <div class="addr" id="fb-addr" hidden>
+          <label>Street address<input id="fb-street" autocomplete="off"></label>
+          <div class="row2"><label>City<input id="fb-city" autocomplete="off"></label><label>State<select id="fb-state"></select></label></div>
+          <label class="zip">ZIP<input id="fb-zip" inputmode="numeric" maxlength="10" autocomplete="off"></label>
+        </div>
+        <label class="chk"><input type="checkbox" id="fb-r2" value="no_shelter">No shelter at this location</label>
+        <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
+      </div>
       <div class="grp" role="radiogroup" aria-labelledby="fb-cap-l">
         <div class="glabel" id="fb-cap-l">Capacity</div>
         <div class="radios" id="fb-cap">
@@ -585,16 +595,6 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
           <label><input type="radio" name="fb-pets" value="yes">Yes</label>
           <label><input type="radio" name="fb-pets" value="no">No</label>
         </div>
-      </div>
-      <div class="grp">
-        <label class="chk"><input type="checkbox" id="fb-r1" value="address_wrong">Address is wrong</label>
-        <div class="addr" id="fb-addr" hidden>
-          <label>Street address<input id="fb-street" autocomplete="off"></label>
-          <div class="row2"><label>City<input id="fb-city" autocomplete="off"></label><label>State<select id="fb-state"></select></label></div>
-          <label class="zip">ZIP<input id="fb-zip" inputmode="numeric" maxlength="10" autocomplete="off"></label>
-        </div>
-        <label class="chk"><input type="checkbox" id="fb-r2" value="no_shelter">No shelter at this location</label>
-        <label class="chk"><input type="checkbox" id="fb-r3" value="not_public">Not a public shelter</label>
       </div>
       <label class="sr" for="fb-text">Comments</label>
       <textarea id="fb-text" placeholder="Anything to note"></textarea>
