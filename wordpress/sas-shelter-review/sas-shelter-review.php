@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SAS Shelter Review
  * Description: Review dashboard for Tornado Shelter Finder submissions and the shelter list. Add the [sas_shelter_review] shortcode to a page; signed-in Editors and Administrators can approve or reject submissions from the app and website (approvals update the shelter list in Supabase), and edit shelters and county EM contacts directly. The [sas_county_contacts] shortcode shows the county EM contacts on a public page, and the website's Suggest an Edit forms (Formidable) go into the review queue.
- * Version: 1.3.3
+ * Version: 1.3.4
  * Author: Survive-A-Storm
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SAS_REVIEW_VERSION', '1.3.3' );
+define( 'SAS_REVIEW_VERSION', '1.3.4' );
 if ( ! defined( 'SAS_SUPABASE_URL' ) ) {
 	define( 'SAS_SUPABASE_URL', 'https://svptjcclszprsmjoldaz.supabase.co' );
 }
