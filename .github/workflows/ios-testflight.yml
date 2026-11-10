@@ -1,0 +1,85 @@
+name: iPhone TestFlight build
+# Builds the iPhone app and uploads it to App Store Connect, where it shows up under TestFlight
+# for testers. Runs on every merge to main that touches the app or website, or by hand
+# (Actions > iPhone TestFlight build > Run workflow). Needs these repo secrets:
+#   APPLE_TEAM_ID        10-character Team ID (developer.apple.com/account > Membership details)
+#   ASC_KEY_ID           App Store Connect API key's Key ID
+#   ASC_ISSUER_ID        App Store Connect API Issuer ID
+#   ASC_API_KEY_P8       full text of the AuthKey_XXXX.p8 file (entered by Bryan only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["app/**", "website/src/**", ".github/workflows/ios-testflight.yml"]
+concurrency: { group: ios-testflight, cancel-in-progress: true }
+jobs:
+  testflight:
+    runs-on: macos-26
+    timeout-minutes: 45
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: Check secrets
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+          P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          for v in TEAM KID ISS P8; do
+            if [ -z "${!v}" ]; then echo "::warning::iPhone build skipped: Apple secrets not added yet"; echo "SKIP=1" >> "$GITHUB_ENV"; exit 0; fi
+          done
+      - run: npm ci
+        if: env.SKIP != '1'
+      - run: python3 ../website/tools/fetch_shelters.py ../website/data/shelters.json || true
+        if: env.SKIP != '1'
+      - run: npm run build && npx cap sync ios
+        if: env.SKIP != '1'
+      - name: Write the API key
+        if: env.SKIP != '1'
+        env: { P8: "${{ secrets.ASC_API_KEY_P8 }}" }
+        run: printf '%s\n' "$P8" > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Archive
+        if: env.SKIP != '1'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUILD=$(( 100 + ${{ github.run_number }} ))
+          cd ios/App
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
+            archive | tail -n 40
+          test -d "$RUNNER_TEMP/App.xcarchive"
+      - name: Upload to TestFlight
+        if: env.SKIP != '1'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS"
+      - run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+        if: always()
