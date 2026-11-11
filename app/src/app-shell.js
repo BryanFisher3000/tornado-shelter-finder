@@ -141,8 +141,10 @@
   }
   window.SAS_APP.mapApps = function () {
     if (platform === "ios") {
-      return Promise.all([has("comgooglemaps://"), has("waze://")]).then(function (r) {
-        return ["apple"].concat(r[0] ? ["google"] : [], r[1] ? ["waze"] : []);
+      // Apple Maps can be deleted; without it a maps.apple.com link opens the web page, which ignores
+      // the destination and centres on the phone's network location. Then Google (app or website) is first.
+      return Promise.all([has("maps://"), has("comgooglemaps://"), has("waze://")]).then(function (r) {
+        return (r[0] ? ["apple"] : []).concat(["google"], r[2] ? ["waze"] : []);
       });
     }
     return Promise.all([has("com.google.android.apps.maps"), has("com.waze")]).then(function (r) {
@@ -156,12 +158,17 @@
     var m = url.match(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=([^&]+)(?:&origin=([^&]+))?/);
     return m ? "comgooglemaps://?daddr=" + m[1] + (m[2] ? "&saddr=" + m[2] : "") + "&directionsmode=driving" : null;
   }
+  // Open Apple Maps links in the Maps app itself (maps://), never the maps.apple.com web page.
+  function iosAppleMaps(url) {
+    var m = url.match(/^https:\/\/maps\.apple\.com\/?\?(.*)$/);
+    return m ? "maps://?" + m[1] : null;
+  }
   function launch(url) {
     return Launcher.openUrl({ url: url }).then(function (r) { if (r && r.completed === false) throw new Error("not opened"); });
   }
   function openExternal(url) {
     if (/^(mailto|tel|sms|geo|maps|comgooglemaps|waze):/.test(url) || MAPS.test(url)) {
-      var app = platform === "ios" && iosGoogleMaps(url);
+      var app = platform === "ios" && (iosGoogleMaps(url) || iosAppleMaps(url));
       return (app ? launch(app).catch(function () { return launch(url); }) : launch(url))
         .catch(function () { return /^https:/.test(url) ? Browser.open({ url: url }) : null; });
     }

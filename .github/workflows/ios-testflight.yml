@@ -16,20 +16,23 @@ on:
 concurrency: { group: ios-testflight, cancel-in-progress: true }
 jobs:
   testflight:
-    runs-on: macos-latest
+    # GitHub's "xcode-27" Mac image is the one with Xcode 27; macos-latest stops at Xcode 26. The
+    # foldable iPhone shows an app built with an older iOS SDK letterboxed (phone-sized, with an
+    # expand button). It needs the iOS 27.1 SDK or newer to fill the inner screen.
+    runs-on: xcode-27
     timeout-minutes: 45
     defaults: { run: { working-directory: app } }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
-      # Use the newest Xcode on the runner. An app built with an older iOS SDK runs letterboxed
-      # (phone-sized, with an expand button) on newer screens such as the foldable iPhone.
+      # Use the newest released Xcode on the runner (the image's default can be one version behind).
+      # Betas and release candidates are skipped: App Store Connect may refuse their builds.
       - name: Pick newest Xcode
         working-directory: .
         run: |
           ls -d /Applications/Xcode*.app
-          X=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|candidate' | sort -V | tail -1)
           sudo xcode-select -s "$X/Contents/Developer"
           xcodebuild -version
           xcodebuild -showsdks | grep -i iphoneos
