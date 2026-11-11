@@ -671,7 +671,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 :root {
   --red: #C0392B; --red-deep: #8E2A20; --on-red: #fff;
   --bg: #F3F2F0; --card: #FFFFFF; --ink: #1A1815; --ink-2: #4E4748; --muted: #6E6A6A;
-  --line: #E0DDD9; --line-2: #CDC8C3; --chip: #ECEAE7; --chip-on: #F8D6D6;
+  --none-bg: var(--bg); --line: #E0DDD9; --line-2: #CDC8C3; --chip: #ECEAE7; --chip-on: #F8D6D6;
   --land: #EFEDE9; --county: #DDD8D2; --state: #A89F97; --water: #DCE3E6; --dot: #C0392B;
   --you: #1A73E8; --act: #1A73E8; --act-deep: #1558B0; --act-soft: #E8F0FE; --on-act: #fff; --band: #FFFFFF; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
   --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -682,14 +682,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --red: #C0392B; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
-    --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
+    --none-bg: #000; --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
     --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #C0392B;
     --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark; --band: #F3F2F0;
   }
 }
 :root[data-theme="dark"] {
   --red: #C0392B; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
-  --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
+  --none-bg: #000; --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
   --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #C0392B;
   --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark;
 }
@@ -863,9 +863,10 @@ body.searching .searchbar { z-index: 41; }
 
 /* intro / empty */
 .none { padding: 1rem 16px 2rem; }
-.none-box { border-left: 4px solid var(--red); background: var(--bg); border-radius: 6px; padding: .8rem .9rem; }
+.none-box { border-left: 4px solid var(--red); background: var(--none-bg); border-radius: 6px; padding: .8rem .9rem; }
+.none-sub { margin: .35rem 0 0; color: var(--ink-2); }
 .none-msg { margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--ink); }
-.none-lead { margin: .35rem 0 0; color: var(--ink-2); }
+.none-lead { margin: .9rem 0 0; font-size: 1.15rem; font-weight: 400; color: var(--ink); }
 .none h3 { display: flex; align-items: center; gap: .45rem; margin: 1.2rem 0 .45rem; font-size: 1.35rem; font-weight: 700; }
 .none h3 .ic { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 1rem; }
 .none .do h3 { color: #2E7D32; } .none .do .ic { background: #2E7D32; }
@@ -885,6 +886,12 @@ a.set-row { color: inherit; text-decoration: none; }
 .places .place h3 { margin: .3rem 0 0; }
 .places .place .btn.sm { justify-self: start; }
 #add-form .grp { display: grid; gap: .45rem; }
+/* Google Places suggestions under Street Address */
+.ac-wrap { position: relative; }
+.ac-list { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: .2rem 0 0; padding: .25rem 0; list-style: none; background: var(--card); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: var(--shadow); }
+.ac-list button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: .55rem .8rem; font: inherit; color: var(--ink); cursor: pointer; }
+.ac-list button small { display: block; color: var(--muted); font-size: .85rem; }
+.ac-list .ac-by { padding: .2rem .8rem; text-align: right; font-size: .75rem; color: var(--muted); }
 #add-form .glabel { font-size: 1rem; font-weight: 500; }
 #add-form .radios { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
 #add-form .radios label { display: flex !important; gap: .4rem; align-items: center; font-size: 1rem !important; color: var(--ink) !important; cursor: pointer; }
@@ -1128,7 +1135,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       <form class="acct-form" id="add-form" novalidate hidden>
         <p class="add-lead">Our team reviews every new shelter before it shows up in the app.</p>
         <label>Location Name<input id="as-name" required placeholder="e.g. First Baptist Church Safe Room"></label>
-        <label>Street Address<input id="as-street" required></label>
+        <div class="ac-wrap"><label>Street Address<input id="as-street" required autocomplete="off"></label><ul class="ac-list" id="as-ac" hidden></ul></div>
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
         <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
@@ -1433,7 +1440,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     state.pane = name;
     ["intro", "list", "detail", "saved", "settings", "feedback", "profile", "add", "places"].forEach(function (p) { $("#pane-" + p).hidden = p !== name; });
     var sub = true;
-    $("#chips").hidden = name !== "list";
+    chipsVis(name);
     $("#back").hidden = !(name === "detail" || name === "places");
     closeVis();
     sheet.dataset.pane = name;
@@ -1481,15 +1488,22 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       "<li>DO NOT drive into standing water. If you misjudge the water's depth, you could become stranded.</li>" +
       "<li>DO NOT assume that a tornado won't strike a particular type of landscape. Tornadoes can strike anywhere.</li>" +
     "</ul></section>";
+  // filter chips show on the shelter list, but not when nothing is nearby (unless a filter is what emptied it)
+  function chipsVis(name) {
+    var f = state.filters || {}, filtered = f.ada || f.pets || f.always;
+    $("#chips").hidden = (name || state.pane) !== "list" || (!(state.results || []).length && !filtered);
+  }
   function renderList() {
     if (!state.results.length) {
       var filtered = state.filters.ada || state.filters.pets || state.filters.always;
       $("#pane-list").innerHTML = '<li class="none"><div class="none-box"><p class="none-msg">There are no shelters within ' + RADIUS_MI + " miles of this location" +
-        (filtered ? " that match your filters." : ".") + '</p><p class="none-lead">' +
-        (filtered ? "Try turning a filter off. " : "") + "If a tornado threatens, here's how to stay safe where you are.</p></div>" + SAFETY_HTML + "</li>";
+        (filtered ? " that match your filters." : ".") + "</p>" + (filtered ? '<p class="none-sub">Try turning a filter off.</p>' : "") +
+        '</div><p class="none-lead">If a tornado threatens, here\'s how to stay safe where you are.</p>' + SAFETY_HTML + "</li>";
+      chipsVis();
       return;
     }
     $("#pane-list").innerHTML = state.results.map(function (s, i) { return cardHtml(s, i + 1); }).join("");
+    chipsVis();
   }
   function renderSaved() {
     var items = state.saved.map(function (id) { return state.store && state.store.getSync(id); }).filter(Boolean);
@@ -2463,6 +2477,59 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     $("#as-loc").textContent = addPin ? "Map pin: " + addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "Map pin: not set. Move the map so the shelter is in the center, then tap.";
   }
   $("#add-signin").addEventListener("click", function () { state.afterProfile = "add"; state.addFrom = state.prevPane; showPane("profile", { snap: "full" }); });
+  // Street Address: Google Places suggestions (Places API, key APP.googlePlacesKey). Picking one fills
+  // street, city, state, ZIP and the map pin. Without a key the field is a plain text box.
+  (function placesAutocomplete() {
+    var key = APP.googlePlacesKey, input = $("#as-street"), list = $("#as-ac"), timer = 0, seq = 0, session = "", found = [];
+    if (!key) return;
+    var H = { "Content-Type": "application/json", "X-Goog-Api-Key": key };
+    function hide() { list.hidden = true; list.innerHTML = ""; }
+    function newSession() { session = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()); }
+    newSession();
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      var q = input.value.trim();
+      if (q.length < 4) { hide(); return; }
+      timer = setTimeout(function () {
+        var my = ++seq, body = { input: q, includedRegionCodes: ["us"], sessionToken: session };
+        if (addPin) body.locationBias = { circle: { center: { latitude: addPin.lat, longitude: addPin.lng }, radius: 50000 } };
+        else if (state.here) body.locationBias = { circle: { center: { latitude: state.here.lat, longitude: state.here.lng }, radius: 50000 } };
+        fetch("https://places.googleapis.com/v1/places:autocomplete", { method: "POST", headers: H, body: JSON.stringify(body) })
+          .then(function (r) { return r.ok ? r.json() : { suggestions: [] }; })
+          .then(function (d) {
+            if (my !== seq || input.value.trim() !== q) return;
+            found = (d.suggestions || []).map(function (x) { return x.placePrediction; }).filter(Boolean).slice(0, 5);
+            if (!found.length) { hide(); return; }
+            list.innerHTML = found.map(function (p, i) {
+              var f = p.structuredFormat || {}, main = (f.mainText && f.mainText.text) || (p.text && p.text.text) || "", sub = (f.secondaryText && f.secondaryText.text) || "";
+              return '<li><button type="button" data-i="' + i + '">' + esc(main) + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</button></li>";
+            }).join("") + '<li class="ac-by">Powered by Google</li>';
+            list.hidden = false;
+          }).catch(hide);
+      }, 250);
+    });
+    list.addEventListener("pointerdown", function (e) { e.preventDefault(); }); // keep focus so the tap lands
+    list.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-i]"); if (!b) return;
+      var p = found[+b.dataset.i]; hide();
+      var url = "https://places.googleapis.com/v1/places/" + encodeURIComponent(p.placeId) + "?sessionToken=" + encodeURIComponent(session);
+      var h = Object.assign({ "X-Goog-FieldMask": "addressComponents,location" }, H); delete h["Content-Type"];
+      fetch(url, { headers: h }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        newSession();
+        if (!d) return;
+        var c = {}; (d.addressComponents || []).forEach(function (a) { (a.types || []).forEach(function (t) { c[t] = a; }); });
+        var g = function (t, short) { return c[t] ? (short ? c[t].shortText : c[t].longText) || "" : ""; };
+        var street = [g("street_number"), g("route", true)].filter(Boolean).join(" ");
+        input.value = street || ((p.structuredFormat && p.structuredFormat.mainText && p.structuredFormat.mainText.text) || input.value);
+        var city = g("locality") || g("sublocality") || g("postal_town") || g("administrative_area_level_3");
+        if (city) $("#as-city").value = city;
+        var st = g("administrative_area_level_1", true); if (st && [].some.call($("#as-state").options, function (o) { return o.value === st; })) $("#as-state").value = st;
+        if (g("postal_code")) $("#as-zip").value = g("postal_code");
+        if (d.location) { addPin = { lat: d.location.latitude, lng: d.location.longitude }; renderAdd(); if (map && map.setView) map.setView([addPin.lat, addPin.lng], Math.max(map.getZoom ? map.getZoom() : 15, 16)); }
+      }).catch(function () {});
+    });
+    input.addEventListener("blur", function () { setTimeout(hide, 150); });
+  })();
   $("#as-pin").addEventListener("click", function () {
     var c = map.getCenter(); addPin = { lat: +c.lat, lng: +c.lng }; renderAdd();
   });
