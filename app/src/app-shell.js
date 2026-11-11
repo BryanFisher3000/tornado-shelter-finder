@@ -57,6 +57,8 @@
 
   // Settings shows the phone model and operating system version.
   window.SAS_APP.deviceInfo = function () { return Device.getInfo(); };
+  // App version and build number from the installed app (iPhone build = the TestFlight number).
+  window.SAS_APP.appInfo = function () { return AppPlugin.getInfo(); };
 
   // Settings switches: My Location and Notifications. Each reports "granted", "denied" or "prompt".
   var Notes = Cap.registerPlugin("LocalNotifications");
