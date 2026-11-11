@@ -691,7 +691,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var a = s.address;
     return esc(a.line) + (a.line ? "<br>" : "") + esc(a.city) + ", " + esc(a.state) + (a.zip ? " " + esc(a.zip) : "");
   }
-  function dirUrl(s) { return C.directionsUrl(s, state.provider, state.here); }
+  // No starting point: the maps app then starts from where the phone is right now, with its Go button.
+  // (A fixed start, even our last GPS fix, makes Apple Maps show Steps instead of Go.)
+  function dirUrl(s) { return C.directionsUrl(s, state.provider); }
   function cardHtml(s, n) {
     return '<li class="card' + (state.selected === s.id ? " sel" : "") + '" data-id="' + s.id + '">' +
       '<div class="c-left">' +
