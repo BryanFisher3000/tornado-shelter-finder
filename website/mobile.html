@@ -1994,7 +1994,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       } else { $("#q").value = it.t; search(it.t); }
     };
     $("#suggest").hidden = !items.length;
-    document.body.classList.add("searching");
+    // only lift the search bar above the tray while suggestions are showing, or it stays on top of a full tray
+    document.body.classList.toggle("searching", !!items.length);
   }
   function hideSuggest() { $("#suggest").hidden = true; document.body.classList.remove("searching"); }
 
@@ -2511,7 +2512,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#search-form").addEventListener("submit", function (e) { e.preventDefault(); search(q.value); });
   $("#q-clear").addEventListener("click", function () { q.value = ""; $("#q-clear").hidden = true; q.focus(); showSuggest(); });
   document.addEventListener("pointerdown", function (e) {
-    if (!$("#suggest").hidden && !e.target.closest("#suggest") && !e.target.closest("#search-form")) { hideSuggest(); q.blur(); }
+    if ((!$("#suggest").hidden || document.body.classList.contains("searching")) && !e.target.closest("#suggest") && !e.target.closest("#search-form")) { hideSuggest(); q.blur(); }
     if (!$("#menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menu-btn")) $("#menu").hidden = true;
   });
   $("#menu-btn").addEventListener("click", function () { var m = $("#menu"); m.hidden = !m.hidden; this.setAttribute("aria-expanded", String(!m.hidden)); hideSuggest(); });
