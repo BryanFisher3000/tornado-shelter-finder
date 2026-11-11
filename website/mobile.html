@@ -1386,7 +1386,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   var snapName = "half", sheetY = 0;
   function vh() { return window.innerHeight; }
   // wide screens get the side panel (see body.wide in the styles); the tray then doesn't slide or drag
-  var WIDE_PX = 700;
+  var WIDE_PX = 600;   // unfolded foldables are about 620-720 wide; phones upright are under 450
   function isWide() { return window.innerWidth >= WIDE_PX; }
   function setWide() { document.body.classList.toggle("wide", isWide()); }
   setWide();
@@ -3034,7 +3034,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     setSub("");
     if (window.L) {
       initMap(res[1]); drawAllDots(); buildCities();
-      setRadar(load("radar", false));
+      setRadar(false);   // radar always starts off; the button turns it on for this visit
       loadWarnings(); setInterval(loadWarnings, 120000);
       document.addEventListener("visibilitychange", function () { if (!document.hidden) loadWarnings(); });
     }
