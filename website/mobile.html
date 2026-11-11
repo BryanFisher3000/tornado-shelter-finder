@@ -2701,6 +2701,10 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     if (l[1]) { $(l[0]).href = l[1]; $(l[0]).querySelector(".v").textContent = ""; }
   });
   if (APP.version) $("#set-version").textContent = APP.version;
+  // in the app, add the build number: "2.21.3 (120)"
+  if (APP.appInfo) APP.appInfo().then(function (i) {
+    if (i && i.build) $("#set-version").textContent = (i.version || APP.version || "") + " (" + i.build + ")";
+  }, function () {});
   $("#set-send").addEventListener("click", function () {
     var text = $("#set-fb").value.trim(); if (!text) { $("#set-fb").focus(); return; }
     fbShelter = null; sendReport(C.buildReport(null, [], text, deviceLabel())); $("#set-fb").value = "";
