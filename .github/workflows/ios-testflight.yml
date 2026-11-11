@@ -6,8 +6,8 @@ name: iPhone TestFlight build
 #   ASC_KEY_ID           App Store Connect API key's Key ID
 #   ASC_ISSUER_ID        App Store Connect API Issuer ID
 #   ASC_API_KEY_P8       full text of the AuthKey_XXXX.p8 file (entered by Bryan only)
-# Archiving signs with automatic signing, which needs at least one iPhone registered in the
-# Apple developer account (Devices); it keeps the push entitlements in the app.
+# The archive is unsigned (plus an ad hoc signature carrying the push entitlements) so runs don't
+# use up Apple's certificate limit; the upload step signs it for the App Store.
 on:
   workflow_dispatch:
   push:
@@ -55,14 +55,21 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           BUILD=$(( 100 + ${{ github.run_number }} ))
           cd ios/App
+          # Archive unsigned: a signed archive makes Xcode create a new Apple Development certificate on
+          # every fresh runner, and the account hit Apple's certificate limit (2026-11-11). Export signs
+          # it with the cloud-managed distribution certificate instead.
           xcodebuild -project App.xcodeproj -scheme App -configuration Release \
             -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$KID" -authenticationKeyIssuerID "$ISS" \
-            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
             archive | tail -n 40
           test -d "$RUNNER_TEMP/App.xcarchive"
+          # An unsigned app carries no entitlements, so export would drop push. Give the app a throwaway
+          # (ad hoc) signature that holds them; export re-signs it and keeps them.
+          APPDIR=$(ls -d "$RUNNER_TEMP"/App.xcarchive/Products/Applications/*.app)
+          find "$APPDIR/Frameworks" -maxdepth 1 \( -name "*.framework" -o -name "*.dylib" \) -exec codesign --force --sign - {} \; 2>/dev/null || true
+          codesign --force --sign - --entitlements App/App.entitlements "$APPDIR"
+          codesign -d --entitlements - "$APPDIR" 2>&1 | grep -q aps-environment
       - name: Upload to TestFlight
         if: env.SKIP != '1'
         env:
