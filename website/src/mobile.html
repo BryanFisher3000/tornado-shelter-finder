@@ -1081,7 +1081,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     } else if (ended) {
       $("#al-live-t").textContent = (ended.test ? "Test: " : "") + "Warning Ended";
       $("#al-live-a").textContent = shortArea(ended.area);
-      $("#al-live-u").textContent = "Storms may continue";
+      $("#al-live-u").textContent = "Storms may continue.";
     }
     sameHeight();
     if (typeof updateWarnBar === "function" && map) updateWarnBar();
