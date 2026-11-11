@@ -14,7 +14,8 @@ window.SAS_APP = {
   // It ships inside the app like any map key. The Android build also reads it from here (app/build.gradle).
   // Empty = the app keeps the free OpenStreetMap tiles, which are fine for testing but not for a store release.
   googleMapsKey: "AIzaSyD5P728rNHjfRyY2Gzf29VwsapU-XBd2BE",
-  // Google key for address suggestions in Add a Shelter (Places API (New) only, with a daily quota cap).
+  // Google key "Shelter Finder Places" (GCP project sas-public-shelter-locations; Places API (New) only) for
+  // address suggestions in Add a Shelter.
   // Empty = Street Address stays a plain text box.
-  googlePlacesKey: ""
+  googlePlacesKey: "AIzaSyBu7i2LGSoG-2B5NKT_xiZXrtXWD7Kdpck"
 };
