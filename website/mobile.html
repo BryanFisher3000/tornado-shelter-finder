@@ -2826,7 +2826,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     };
     go();
   }
-  $("#al-ok").addEventListener("click", function () { $("#alert-dialog").close(); });
+  $("#al-ok").addEventListener("click", function () {
+    // OK on "Warning Ended" also takes the small green box off the map
+    if ($("#alert-dialog").classList.contains("ended") && !live) { ended = null; save("liveEnded", null); renderLive(); }
+    $("#alert-dialog").close();
+  });
   $("#al-live").addEventListener("click", function () {
     if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" });
     else if (ended) showAlert({ kind: "tornado-clear", alert_id: ended.test ? "test" : "", area: shortArea(ended.area) });
