@@ -1012,6 +1012,20 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 .splash p { margin: 0; color: var(--ink-2); }
 .splash img { height: 2.8rem; width: auto; }
 @media (prefers-reduced-motion: reduce) { .sheet.anim { transition: none; } }
+/* Wide screens (unfolded foldables, iPads, landscape): like Google Maps on a tablet, the search bar and the
+   shelter tray become a panel down the left side and the map fills the rest. Phones keep the bottom tray. */
+body.wide { --panel-w: min(400px, 42vw); --panel-top: calc(var(--band-h, 0px) + 10px + 3.1rem + 8px); }
+body.wide .searchbar { right: auto; width: var(--panel-w); box-sizing: border-box; }
+body.wide .sheet { left: 12px; right: auto; width: var(--panel-w); top: var(--panel-top); bottom: 12px; height: auto; transform: none !important; border-radius: 14px; box-shadow: var(--shadow); }
+body.wide .sheet[data-snap="peek"] { bottom: auto; max-height: calc(100% - var(--panel-top) - 12px); }
+body.wide .sheet[data-snap="peek"] .sheet-body { display: none; }
+body.wide .sheet-head { cursor: default; touch-action: auto; }
+body.wide .grab { display: none; }
+body.wide .sheet .sheet-body { touch-action: pan-y; padding-bottom: 0 !important; }
+body.wide .menu { right: auto; left: calc(12px + var(--panel-w)); transform: translateX(-100%); }
+body.wide .al-live { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--panel-w)) / 2); max-width: calc(100vw - var(--panel-w) - 140px); }
+body.wide .warn-bar { left: calc(24px + var(--panel-w)); }
+body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--panel-w)) / 2); bottom: 16px !important; visibility: visible !important; }
 /* startup: the tornado loop plays behind the agree card and while the map loads */
 .boot-loop { position: fixed; inset: 0; z-index: 1999; background: #fdfdfd; display: grid; place-items: center; transition: opacity .45s ease; }
 .boot-loop video { width: 100%; height: 100%; object-fit: contain; }
@@ -1371,6 +1385,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   var sheet = $("#sheet"), head = $("#sheet-head"), body = $("#body"), fab = $("#locate");
   var snapName = "half", sheetY = 0;
   function vh() { return window.innerHeight; }
+  // wide screens get the side panel (see body.wide in the styles); the tray then doesn't slide or drag
+  var WIDE_PX = 700;
+  function isWide() { return window.innerWidth >= WIDE_PX; }
+  function setWide() { document.body.classList.toggle("wide", isWide()); }
+  setWide();
   function snaps() {
     var h = vh();
     return { full: bandH(), half: Math.round(h * 0.5), peek: Math.round(h - head.offsetHeight - 6) };
@@ -1382,6 +1401,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#menu .brand").src = $(".splash img").src;
   (function measureSafe() { var p = document.createElement("div"); p.style.cssText = "position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(p); safeTopPx = p.offsetHeight; p.remove(); })();
   function placeSheet(y, animate) {
+    if (isWide()) {
+      sheetY = vh(); sheet.classList.remove("anim"); sheet.style.transform = ""; body.style.paddingBottom = "";
+      if (gmap) gmap.setBottom(0);
+      return;
+    }
     sheetY = y;
     sheet.classList.toggle("anim", !!animate);
     sheet.style.transform = "translateY(" + y + "px)";
@@ -1404,7 +1428,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   (function drag() {
     var startY = 0, startSheet = 0, dragging = false, moved = false, pid = null, lastY = 0, lastT = 0, vel = 0;
     function down(e) {
-      if (e.button > 0) return;
+      if (e.button > 0 || isWide()) return;
       var inBody = body.contains(e.target);
       if (inBody && snapName === "full") return;           // full: the list scrolls
       if (e.target.closest(".chips") && !inBody) { /* chips scroll sideways; still allow vertical drag */ }
@@ -1435,7 +1459,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     sheet.addEventListener("pointercancel", function () { if (dragging) { dragging = false; if (moved) snapTo(snapName); } });
     sheet.addEventListener("click", function (e) { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
     $("#grab").addEventListener("click", function () { snapTo(snapName === "full" ? "half" : snapName === "half" ? "full" : "half"); });
-    window.addEventListener("resize", function () { snapTo(snapName, false); });
+    window.addEventListener("resize", function () {
+      var was = document.body.classList.contains("wide"); setWide();
+      snapTo(snapName, false);
+      if (map && was !== isWide()) setTimeout(function () { map.invalidateSize(); }, 0);
+    });
   })();
 
   // ---------- panes ----------
@@ -1889,7 +1917,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (youMarker) youMarker.remove();
     if (state.here) youMarker = L.marker([state.here.lat, state.here.lng], { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: "", html: '<div class="you-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }) }).addTo(map);
   }
-  function mapPad() { return { paddingTopLeft: [24, 76], paddingBottomRight: [24, visibleSheet() + 16] }; }
+  function mapPad() {
+    if (isWide()) { var r = sheet.getBoundingClientRect(); return { paddingTopLeft: [Math.round(r.right) + 24, 76], paddingBottomRight: [24, 24] }; }
+    return { paddingTopLeft: [24, 76], paddingBottomRight: [24, visibleSheet() + 16] };
+  }
   function fitResults() {
     if (!map) return;
     if (!state.results.length) { if (state.origin) map.setView([state.origin.lat, state.origin.lng], 9, { animate: true }); return; }
@@ -1908,8 +1939,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     var z = Math.max(map.getZoom(), tilesOn ? 14 : 10);
     // keep the pin centered in the part of the map the sheet doesn't cover
     var target = map.project([s.location.lat, s.location.lng], z);
-    var offset = (visibleSheet() - 64) / 2;
-    map.setView(map.unproject(target.add([0, offset]), z), z, { animate: true });
+    var shift = isWide() ? [-sheet.getBoundingClientRect().right / 2, 0] : [0, (visibleSheet() - 64) / 2];
+    map.setView(map.unproject(target.add(shift), z), z, { animate: true });
   }
 
   // ---------- search, results ----------
