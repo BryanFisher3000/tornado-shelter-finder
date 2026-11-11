@@ -217,7 +217,9 @@
     if (provider === "waze") return "https://waze.com/ul?ll=" + ll + "&navigate=yes";
     if (provider === "geo") return "geo:" + ll + "?q=" + ll + "(" + encodeURIComponent(s.name) + ")";
     if (provider === "apple") {
-      return "https://maps.apple.com/?daddr=" + dest + (from ? "&saddr=" + from.lat + "," + from.lng : "");
+      // Apple Maps sometimes matches a street address to the wrong town (2757 S Glenn Ave, Wichita
+      // went to Mission, KS), so send the shelter's map coordinates instead
+      return "https://maps.apple.com/?daddr=" + ll + "&dirflg=d" + (from ? "&saddr=" + from.lat + "," + from.lng : "");
     }
     return "https://www.google.com/maps/dir/?api=1&destination=" + dest +
       (from ? "&origin=" + from.lat + "," + from.lng : "");
