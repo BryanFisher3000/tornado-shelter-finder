@@ -118,6 +118,14 @@ body.searching .searchbar { z-index: 41; }
 .alert-dlg h2 { margin: 0; font-size: 1.5rem; line-height: 1.15; }
 .alert-dlg p { margin: 0; }
 .alert-dlg .btns { display: grid; gap: .5rem; }
+/* the Weather Service's own words: its headline, and the full text behind "Read the full warning" */
+.alert-dlg .al-head { font-weight: 600; color: var(--ink-2); font-size: .95rem; }
+.alert-dlg .al-full { text-align: left; border-top: 1px solid var(--line, #ddd); padding-top: .6rem; }
+.alert-dlg .al-full summary { cursor: pointer; font-weight: 700; color: #1A73E8; text-align: center; list-style: none; }
+.alert-dlg .al-full summary::-webkit-details-marker { display: none; }
+.alert-dlg .al-full[open] summary { margin-bottom: .5rem; }
+.alert-dlg .al-full .al-txt { max-height: 38vh; overflow-y: auto; font-size: .92rem; line-height: 1.4; display: grid; gap: .6rem; }
+.alert-dlg .al-full .al-txt b { display: block; text-transform: uppercase; font-size: .8rem; letter-spacing: .04em; color: var(--ink-2); }
 .alert-dlg .btns .btn { justify-content: center; }
 .alert-dlg .btns .btn.plain { background: var(--chip-on); color: var(--red-deep); }
 .alert-dlg .btns .btn:focus:not(:focus-visible) { outline: none; }
@@ -551,8 +559,10 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   <div class="al-body">
     <p class="al-kicker" id="al-kicker">Tornado Warning</p>
     <h2 id="al-title">Take Cover Now</h2>
+    <p class="al-head" id="al-head" hidden></p>
     <p id="al-text"></p>
     <p class="fine" id="al-area"></p>
+    <details class="al-full" id="al-full" hidden><summary>Read the full warning</summary><div class="al-txt" id="al-txt"></div></details>
     <div class="btns">
       <button class="btn red" type="button" id="al-ok">OK</button>
       <button class="btn plain" type="button" id="al-shelters">Show Nearest Shelters</button>
@@ -1057,9 +1067,9 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function shortArea(a) { return String(a || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3).join(", "); }
   function setLive(a) { live = a; save("liveAlert", a); if (a) { ended = null; save("liveEnded", null); } renderLive(); }
   // the warning is over: remember it for the green box, and let the red edge turn green and fade out
-  function endLive(area, test) {
+  function endLive(area, test, id) {
     var was = live;
-    ended = { area: area != null && area !== "" ? area : (was && was.area) || "", at: Date.now(), test: test != null ? test : !!(was && was.test) };
+    ended = { area: area != null && area !== "" ? area : (was && was.area) || "", at: Date.now(), test: test != null ? test : !!(was && was.test), id: id || (was && was.id) || "" };
     save("liveEnded", ended);
     live = null; save("liveAlert", null);
     var f = $("#al-frame"); f.classList.remove("end"); void f.offsetWidth; f.classList.add("end"); f.hidden = false;
@@ -2105,25 +2115,78 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   function milesBetween(a, b) { return C.distanceMiles({ lat: +a.lat, lng: +a.lng }, { lat: +b.lat, lng: +b.lng }); }
   // A tapped alert: if the person is at Home/Work and it has a safe place, tell them to go there;
   // otherwise show the nearest shelters from where they are.
+  // The Weather Service's own text for a warning: {headline, description, instruction}, kept for offline use.
+  // When a warning ends, the follow-up message (cancelled / expired) is found through replacedBy.
+  var nwsSeq = 0;
+  function nwsClean(t) { return String(t || "").replace(/\r/g, "").split(/\n\s*\n/).map(function (p) { return p.replace(/\s*\n\s*/g, " ").trim(); }).filter(Boolean); }
+  function nwsFetch(id) {
+    return fetch("https://api.weather.gov/alerts/" + encodeURIComponent(id), { headers: { Accept: "application/geo+json" } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { return j.properties || {}; });
+  }
+  function nwsText(id, ended) {
+    var key = "nws." + (ended ? "end." : "") + id, have = load(key, null);
+    if (have) return Promise.resolve(have);
+    var pick = function (p) { return { headline: p.headline || "", description: p.description || "", instruction: p.instruction || "", type: p.messageType || "", expires: p.expires || p.ends || "" }; };
+    var go = nwsFetch(id).then(function (p) {
+      if (!ended) return pick(p);
+      // follow the chain of updates to the newest message about this warning
+      var hop = function (q, n) {
+        var next = (q.replacedBy || "").split("/").pop();
+        if (!next || n > 4) return pick(q);
+        return nwsFetch(next).then(function (r) { return hop(r, n + 1); }, function () { return pick(q); });
+      };
+      return hop(p, 0).then(function (t) { if (t.type !== "Cancel") { t.ended = "expired"; } return t; });
+    });
+    return go.then(function (t) { save(key, t); return t; });
+  }
+  function testText(clear) {
+    var now = new Date(), until = new Date(now.getTime() + 3 * 60e3);
+    return clear ? { headline: "TEST ONLY: The test Tornado Warning has been cancelled.", description: "This is a test. In a real alert, this is where the National Weather Service says why the warning ended, for example: The storm which prompted the warning has weakened below severe limits, and no longer appears capable of producing a tornado. Therefore, the warning has been allowed to expire. However, gusty winds are still possible with this thunderstorm.", instruction: "" }
+      : { headline: "TEST ONLY: Tornado Warning issued " + fmtTime(now) + " until " + fmtTime(until) + " by NWS (test)", description: "This is a test, not a real warning. In a real alert, this is where the National Weather Service describes the storm, for example:\n\nAt " + fmtTime(now) + ", a severe thunderstorm capable of producing a tornado was located near Haysville, moving northeast at 30 mph.\n\nHAZARD...Tornado.\n\nSOURCE...Radar indicated rotation.\n\nIMPACT...Flying debris will be dangerous to those caught without shelter. Mobile homes will be damaged or destroyed.\n\nLocations impacted include Wichita, Derby and Haysville.", instruction: "TAKE COVER NOW! Move to a basement or an interior room on the lowest floor of a sturdy building. Avoid windows. If you are outdoors, in a mobile home, or in a vehicle, move to the closest substantial shelter and protect yourself from flying debris." };
+  }
+  function showNwsText(id, test, ended) {
+    var seq = ++nwsSeq;
+    $("#al-head").hidden = true; $("#al-full").hidden = true; $("#al-full").open = false; $("#al-txt").textContent = "";
+    if (!id && !test) return;
+    (test ? Promise.resolve(testText(ended)) : nwsText(id, ended)).then(function (t) {
+      if (seq !== nwsSeq || !t) return;
+      var head = t.headline;
+      if (ended && t.ended === "expired" && !test) head = "The Weather Service's Tornado Warning" + (t.expires ? " expired at " + fmtTime(new Date(t.expires)) : " has expired") + ".";
+      if (head) { $("#al-head").textContent = head; $("#al-head").hidden = false; }
+      var box = $("#al-txt"), any = false;
+      [["What the Weather Service says", t.description], ["What to do", t.instruction]].forEach(function (sec) {
+        var paras = nwsClean(sec[1]); if (!paras.length) return;
+        var div = document.createElement("div"), b = document.createElement("b"); b.textContent = sec[0]; div.appendChild(b);
+        paras.forEach(function (x) { var p = document.createElement("p"); p.textContent = x; div.appendChild(p); });
+        box.appendChild(div); any = true;
+      });
+      $("#al-full").hidden = !any;
+    }, function () {});
+  }
   function showAlert(d) {
     if (d && d.kind === "tornado-clear") {
       var area = String(d.area || "").trim();
-      if (live) endLive(area, /^test/.test(d.alert_id || "") || area === "TEST ONLY");
+      if (live) endLive(area, /^test/.test(d.alert_id || "") || area === "TEST ONLY", d.alert_id);
       $("#alert-dialog").classList.add("ended");
       $("#al-kicker").textContent = "Warning Ended";
       $("#al-title").textContent = "Tornado Warning Is Over";
       $("#al-text").textContent = "The Tornado Warning" + (area ? " for " + area : "") + " has ended. Storms may continue, so stay alert.";
       $("#al-area").textContent = "National Weather Service";
       $("#al-shelters").hidden = true;
+      var cid = String(d.alert_id || "");
+      showNwsText(/^test/.test(cid) ? "" : cid, /^test/.test(cid) || area === "TEST ONLY", true);
       if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
       return;
     }
     if (!d || d.kind !== "tornado") return;
     $("#alert-dialog").classList.remove("ended");
+    var isTest = /^test/.test(d.alert_id || "") || /^TEST ONLY/.test(d.area || "");
+    showNwsText(isTest ? "" : String(d.alert_id || ""), isTest, false);
     $("#al-shelters").hidden = false;
     var isWarning = d.event !== "Tornado Watch", pl = places();
     if (isWarning) {
-      var test = /^test-/.test(d.alert_id || ""), exp = d.expires || new Date(Date.now() + 45 * 60e3).toISOString();
+      var test = isTest, exp = d.expires || new Date(Date.now() + 45 * 60e3).toISOString();
       if (test) exp = new Date(Math.min(Date.parse(exp) || Infinity, Date.now() + 3 * 60e3)).toISOString(); // tests clear after 3 minutes
       setLive({ id: d.alert_id || "", event: d.event || "Tornado Warning", area: d.area || "", expires: exp, test: test });
     }
@@ -2172,7 +2235,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   });
   $("#al-live").addEventListener("click", function () {
     if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" });
-    else if (ended) showAlert({ kind: "tornado-clear", alert_id: ended.test ? "test" : "", area: shortArea(ended.area) });
+    else if (ended) showAlert({ kind: "tornado-clear", alert_id: ended.test ? "test" : (ended.id || ""), area: shortArea(ended.area) });
   });
   renderLive(); setInterval(renderLive, 30000);
   $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
