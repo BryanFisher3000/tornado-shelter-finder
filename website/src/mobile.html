@@ -1307,6 +1307,11 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
     if (q) items.push({ kind: "search", t: $("#q").value.trim(), s: "Search this place" });
     if (q && state.store) {
       cityIndex.forEach(function (c) { if (items.length < 7 && norm(c.label).indexOf(q) === 0) items.push({ kind: "city", t: c.label, s: c.n + (c.n === 1 ? " shelter" : " shelters") }); });
+      // other towns (no shelters listed in them), so small places like New Iberia still show up
+      if (q.length > 1 && state.store.suggestPlaces) {
+        var have = {}; items.forEach(function (it) { have[norm(it.t)] = 1; });
+        state.store.suggestPlaces(q, 8).forEach(function (t) { if (items.length < 7 && !have[norm(t)]) { have[norm(t)] = 1; items.push({ kind: "city", t: t, s: "Find shelters near here" }); } });
+      }
       if (/^\d{3,5}$/.test(q)) {
         var zips = {};
         state.store.all().forEach(function (s) { var z = s.address.zip; if (z && z.indexOf(q) === 0 && !zips[z]) zips[z] = s.address.city + ", " + s.address.state; });
@@ -1333,7 +1338,8 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
       } else { $("#q").value = it.t; search(it.t); }
     };
     $("#suggest").hidden = !items.length;
-    document.body.classList.add("searching");
+    // only lift the search bar above the tray while suggestions are showing, or it stays on top of a full tray
+    document.body.classList.toggle("searching", !!items.length);
   }
   function hideSuggest() { $("#suggest").hidden = true; document.body.classList.remove("searching"); }
 
@@ -1850,7 +1856,7 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
   $("#search-form").addEventListener("submit", function (e) { e.preventDefault(); search(q.value); });
   $("#q-clear").addEventListener("click", function () { q.value = ""; $("#q-clear").hidden = true; q.focus(); showSuggest(); });
   document.addEventListener("pointerdown", function (e) {
-    if (!$("#suggest").hidden && !e.target.closest("#suggest") && !e.target.closest("#search-form")) { hideSuggest(); q.blur(); }
+    if ((!$("#suggest").hidden || document.body.classList.contains("searching")) && !e.target.closest("#suggest") && !e.target.closest("#search-form")) { hideSuggest(); q.blur(); }
     if (!$("#menu").hidden && !e.target.closest("#menu") && !e.target.closest("#menu-btn")) $("#menu").hidden = true;
   });
   $("#menu-btn").addEventListener("click", function () { var m = $("#menu"); m.hidden = !m.hidden; this.setAttribute("aria-expanded", String(!m.hidden)); hideSuggest(); });

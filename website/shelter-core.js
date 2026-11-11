@@ -102,7 +102,7 @@
       if (zip) return centroid(zips[zip[1]]) || centroid(pZips[zip[1]]) || centroid(zip3[zip[1].slice(0, 3)]);
       var n = norm(q), parts = n.split(" "), last = parts[parts.length - 1];
       var stateCode = null, cityPart = n;
-      if (last.length === 2 && states[last]) { stateCode = last; cityPart = parts.slice(0, -1).join(" "); }
+      if (last.length === 2 && (states[last] || STATE_NAMES[last.toUpperCase()])) { stateCode = last; cityPart = parts.slice(0, -1).join(" "); }
       else {
         for (var code in STATE_NAMES) {
           var nm = norm(STATE_NAMES[code]);
@@ -151,6 +151,13 @@
     return {
       count: shelters.length,
       addPlaces: addPlaces,
+      // towns from places.json whose name starts with q (already normalized), biggest first
+      suggestPlaces: function (q, n) {
+        var out = [];
+        Object.keys(pCities).forEach(function (k) { if (k.indexOf(q) === 0) out.push(pCities[k]); });
+        out.sort(function (a, b) { return b.n - a.n; });
+        return out.slice(0, n || 5).map(function (e) { return e.label; });
+      },
       all: function () { return shelters; },
       get: function (id) { return Promise.resolve(byId[id] || null); },
       getSync: function (id) { return byId[id] || null; },
