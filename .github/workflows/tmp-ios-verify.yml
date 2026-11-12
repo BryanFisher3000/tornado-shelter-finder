@@ -1,32 +1,211 @@
-# One-off check, not part of the app: looks for the Simulator window app on GitHub's Xcode 27 Mac
-# (it was not where it used to be, so the iPhone Duo could not be unfolded from a script). About a
-# minute. Runs only on pushes to the tmp-ios-maps-probe branch (a throwaway branch, never merged).
-name: One-off check - where the Simulator app is
+# One-off check, not part of the app: unfolds Apple's iPhone Duo simulator through Xcode 27's new
+# Device Hub app (the old Simulator app is gone, and there is no command line switch for folding)
+# and looks at the app page (as merged in PR #70) on the inside screen: upright, sideways and while
+# unfolding with the app open. Runs only on pushes to the tmp-ios-maps-probe branch (a throwaway
+# branch, never merged). Uses Apple's tools and the files in probe/ only.
+name: One-off check - iPhone Duo inside screen
 on:
   push:
     branches: [tmp-ios-maps-probe]
+permissions:
+  contents: read
 jobs:
-  look:
+  verify:
     runs-on: xcode-27
-    timeout-minutes: 6
+    timeout-minutes: 26
     steps:
-      - name: Look for the Simulator app
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Pick newest Xcode
         run: |
           X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|candidate' | sort -V | tail -1)
-          echo "Xcode: $X"; ls -la /Applications | grep -i xcode || true
-          D="$X/Contents/Developer"
-          echo "--- $D/Applications"; ls -la "$D/Applications" 2>&1 | head -30
-          echo "--- $X/Contents/Applications"; ls -la "$X/Contents/Applications" 2>&1 | head -30
-          echo "--- apps inside Xcode (not the platforms)"
-          find "$X" -maxdepth 8 -name "*.app" -not -path "*/Platforms/*" 2>/dev/null | head -80 > apps.txt || true
-          while IFS= read -r a; do printf "%s  [%s]\n" "$a" "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$a/Contents/Info.plist" 2>/dev/null || echo '?')"; done < apps.txt
-          echo "--- apps named like a simulator, anywhere usual"
-          find /Applications /Library/Developer /System/Applications /System/Library/CoreServices "$HOME/Library/Developer" -maxdepth 9 -iname "*simulat*.app" 2>/dev/null | sort -u | head -40 || true
-          echo "--- Spotlight"; mdfind "kMDItemCFBundleIdentifier == 'com.apple.iphonesimulator'" 2>/dev/null | head -5 || true
-          mdfind -name Simulator.app 2>/dev/null | head -10 || true
-          echo "--- words about folding in the simulator's own code"
-          for f in "$D/Library/PrivateFrameworks/SimulatorKit.framework/Versions/A/SimulatorKit" "$D/Library/PrivateFrameworks/SimulatorKit.framework/SimulatorKit" /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/CoreSimulator; do
-            if [ -f "$f" ]; then echo "## $f"; strings -a "$f" | grep -i -E "unfold|folded|foldable|folding|foldstate|fold_|postur|hinge|clamshell" | sort -u | head -80 || true; fi
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
+      - name: Start the iPhone Duo simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          best = None
+          for rt, devs in json.load(sys.stdin)["devices"].items():
+              if "iOS" not in rt: continue
+              key = [int(n) for n in rt.split("iOS-")[-1].split("-") if n.isdigit()]
+              for d in devs:
+                  if d["name"] == "iPhone Duo" and (best is None or key > best[0]): best = (key, d["udid"])
+          print(best[1])')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+      - name: What the command line tools offer
+        run: |
+          set +e
+          X=$(xcode-select -p | sed 's#/Contents/Developer$##')
+          HUB="$X/Contents/Applications/DeviceHub.app"
+          echo "--- Device Hub"
+          plutil -p "$HUB/Contents/Info.plist" | grep -E 'CFBundleIdentifier|CFBundleExecutable|CFBundleShortVersionString|"CFBundleVersion"|LSUIElement|NSAppleScriptEnabled'
+          plutil -p "$HUB/Contents/Info.plist" | grep -A7 CFBundleURLTypes
+          ls "$HUB/Contents/MacOS" | head -10
+          echo "--- devicectl commands"
+          perl -e 'alarm 120; exec @ARGV' bash probe/tree.sh > tree.txt
+          cut -c1-140 tree.txt
+          grep -iE 'hinge|fold|postur|pose|motion|orientation|displays' tree.txt | sed 's/ ::.*//' | head -12 | while read -r _ rest; do
+            echo "## devicectl $rest --help"
+            xcrun devicectl $rest --help 2>&1 </dev/null | head -40
           done
-          echo "--- frameworks with Simul in the name"; ls "$D/Library/PrivateFrameworks" 2>/dev/null | grep -i -E "simul|device" | head -30 || true
-          echo "--- simctl"; xcrun simctl help 2>&1 | grep -i -E "fold|postur|hinge|pose" | head -20 || echo "(no such simctl commands)"
+          echo "--- simctl commands"
+          xcrun simctl help 2>&1 | sed -n '1,70p' | cut -c1-110
+          xcrun simctl help io 2>&1 | head -45
+      - name: Open Device Hub and unfold
+        run: |
+          set +e
+          source probe/lib.sh
+          xcrun simctl bootstatus "$UDID" -b | tail -2
+          X=$(xcode-select -p | sed 's#/Contents/Developer$##')
+          HUB="$X/Contents/Applications/DeviceHub.app"
+          echo "HUB=$HUB" >> "$GITHUB_ENV"
+          xcrun clang -fobjc-arc -framework Foundation -framework ApplicationServices probe/ax.m -o ax 2>&1 | tail -40
+          ls -la ax
+          ./ax trusted
+          screens
+          open "$HUB"; echo "open Device Hub -> $?"
+          for i in $(seq 1 20); do HUBPID=$(pgrep -f "DeviceHub.app/Contents/MacOS/" | head -1); [ -n "$HUBPID" ] && break; sleep 2; done
+          pgrep -lf "DeviceHub" | cut -c1-220
+          echo "Device Hub pid: ${HUBPID:-none}"
+          echo "HUBPID=$HUBPID" >> "$GITHUB_ENV"
+          sleep 8
+          open "devices://device/open?id=$UDID"; echo "open the device link -> $?"
+          sleep 12
+          macshot hub-opened
+          ./ax "$HUBPID" dump 1500 > ax-dump.txt 2>&1
+          head -420 ax-dump.txt
+          if ! grep -q -E '="(Open|Partially Open|Closed)"' ax-dump.txt; then
+            echo "== no fold buttons yet: choosing the iPhone Duo in the window"
+            ./ax "$HUBPID" press "iPhone Duo" || ./ax "$HUBPID" click "iPhone Duo"
+            sleep 10
+            macshot hub-chosen
+            ./ax "$HUBPID" dump 1500 > ax-dump.txt 2>&1
+            head -420 ax-dump.txt
+          fi
+          # other buttons whose label speaks of folding, in case the names differ in this Xcode
+          LABELS=("Partially Open" "Open")
+          grep -E ' press$' ax-dump.txt | grep -o -E '(Title|Description|Help|Identifier)="[^"]*"' | cut -d'"' -f2 | grep -iE 'unfold|flat|half|partial|postur|hinge' | grep -v -x -E 'Partially Open|Open' | awk '!seen[$0]++' | head -4 > more.txt
+          while IFS= read -r l; do [ -n "$l" ] && LABELS+=("$l"); done < more.txt
+          UNF=""
+          unfold() {
+            local label how i
+            for label in "${LABELS[@]}"; do
+              for how in press click; do
+                if [ "$how" = click ]; then open "$HUB"; sleep 2; fi
+                echo "== $how \"$label\""
+                ./ax "$HUBPID" "$how" "$label" "Partially Open" </dev/null
+                for i in 1 2 3 4 5; do sleep 3; if inner_live; then UNF="$how $label"; return 0; fi; done
+              done
+            done
+            return 1
+          }
+          unfold
+          echo "== UNFOLDED BY: ${UNF:-nothing}"
+          if [ -n "$UNF" ]; then
+            # all the way open, the way the phone is normally held
+            hub "Open"; sleep 7
+            screens
+            if inner_live; then echo "UNFOLDED=1" >> "$GITHUB_ENV"; fi
+          fi
+          macshot hub-after
+          screens
+      - name: If that did not work - how the fold is sent
+        if: env.UNFOLDED != '1'
+        run: |
+          set +e
+          X=$(xcode-select -p | sed 's#/Contents/Developer$##')
+          look() {
+            head -8 | while IFS= read -r f; do
+              echo "## $f"
+              strings -a "$f" | grep -iE 'hinge|postur|PartiallyOpen|Partially Open|vendordefined|sim2host|Virtualization|isBarrier|MagicPose' | sort -u | head -45
+              nm -u "$f" 2>/dev/null | grep -iE 'Serializ|Archiv|PropertyList|IOHIDEvent|sim2host' | head -20
+            done
+          }
+          echo "--- Xcode side"
+          LC_ALL=C perl -e 'alarm 70; exec @ARGV' grep --line-buffered -rlF "hinge-slider-control" "$X/Contents/Applications/DeviceHub.app" /Library/Developer/PrivateFrameworks "$X/Contents/SharedFrameworks" "$X/Contents/Frameworks" > hits.txt 2>/dev/null
+          look < hits.txt
+          echo "--- simulator side"
+          ROOT=$(xcrun simctl list runtimes -j | python3 -c 'import json, sys; rs = [r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and "iOS" in r.get("name", "")]; rs.sort(key=lambda r: [int(x) for x in r.get("version", "0").split(".") if x.isdigit()]); print(rs[-1].get("runtimeRoot", "") if rs else "")')
+          echo "runtime: $ROOT"
+          if [ -d "$ROOT" ]; then
+            LC_ALL=C perl -e 'alarm 70; exec @ARGV' grep --line-buffered -rlF "hinge-slider-control" "$ROOT/usr/libexec" "$ROOT/usr/sbin" "$ROOT/System/Library/Frameworks/CoreMotion.framework" "$ROOT/System/Library/PrivateFrameworks" > hits2.txt 2>/dev/null
+            look < hits2.txt
+          fi
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          ls "$SDK/System/Library/Frameworks/IOKit.framework" 2>&1 | head -5
+          grep -c -E 'IOHIDEventCreateVendorDefinedEvent|IOHIDEventSystemClientDispatchEvent' "$SDK/System/Library/Frameworks/IOKit.framework/IOKit.tbd" 2>&1 | head -2
+      - name: Build the probe app
+        if: env.UNFOLDED == '1'
+        working-directory: probe
+        run: |
+          mkdir -p Probe.app
+          xcrun -sdk iphonesimulator clang -fobjc-arc -fmodules -Wno-deprecated-declarations -target arm64-apple-ios27.1-simulator Probe.m -o Probe.app/Probe -framework UIKit -framework WebKit -framework SafariServices
+          cp Info.plist test.html Probe.app/
+          cp -R www Probe.app/www
+          echo "[]" > Probe.app/candidates.json
+          codesign --force -s - Probe.app
+      - name: Inside screen
+        if: env.UNFOLDED == '1'
+        run: |
+          set +e
+          source probe/lib.sh
+          source probe/evals.sh
+          xcrun simctl install "$UDID" probe/Probe.app
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 81 --cellularBars 3 --dataNetwork 5g
+          xcrun simctl ui "$UDID" appearance light
+          screens
+          echo "=== open flat, upright"
+          run i-web web
+          echo "screen in points: $(size_now)"
+          run i-nobar web-nobar
+          WAIT=13 run i-app app "eval:$MAIN"
+          WAIT=13 run i-appnobar app-nobar "eval:$MAIN"
+          WAIT=13 run i-first app-nobar first "eval:$FIRST"
+          WAIT=13 run i-settings app-nobar "eval:$SETTINGS"
+          WAIT=12 run i-safpop safari-popover
+          WAIT=12 run i-saffull safari-full
+          echo "=== partially open"
+          hub "Partially Open"; sleep 7
+          screens
+          WAIT=13 run p-appnobar app-nobar "eval:$MAIN"
+          echo "=== unfolding with the app open"
+          hub "Closed"
+          for i in 1 2 3 4 5 6; do sleep 3; inner_live || break; done
+          screens
+          if inner_live; then echo "could not fold it again"; else
+            xcrun simctl terminate "$UDID" $BID 2>/dev/null
+            DATA=$(xcrun simctl get_app_container "$UDID" $BID data 2>/dev/null) && rm -f "$DATA/Documents/result.txt"
+            xcrun simctl launch "$UDID" $BID app-nobar "eval:$LATE" || echo "launch failed"
+            sleep 10
+            shot t-folded
+            hub "Open"
+            sleep 20
+            echo "--- result t-unfolded"
+            grep -v -E "LayoutRegionWithCornerAdaptation|selectors |reserved " "$DATA/Documents/result.txt" || echo "(no result file)"
+            shot t-unfolded
+          fi
+          echo "=== sideways"
+          if ! inner_live; then hub "Open"; sleep 8; fi
+          screens
+          hub "Rotate Right" || hub "Rotate Left" || ./ax "$HUBPID" menu "Rotate Right" || ./ax "$HUBPID" menu "Rotate Left"
+          sleep 6
+          run l-web web
+          if ! sideways; then
+            echo "still upright: trying devicectl"
+            xcrun devicectl device orientation set --device "$UDID" landscapeLeft 2>&1 | tail -4
+            sleep 6
+            run l-web web
+          fi
+          echo "screen in points: $(size_now)"
+          if sideways; then
+            run l-nobar web-nobar
+            WAIT=13 run l-app app "eval:$MAIN"
+            WAIT=13 run l-appnobar app-nobar "eval:$MAIN"
+            WAIT=13 run l-first app-nobar first "eval:$FIRST"
+            WAIT=13 run l-settings app-nobar "eval:$SETTINGS"
+            WAIT=12 run l-saffull safari-full
+          else echo "could not turn the simulator sideways"; fi
+          macshot hub-end
