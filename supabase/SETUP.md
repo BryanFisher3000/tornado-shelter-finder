@@ -81,3 +81,27 @@
     - anything that can't be matched arrives as Feedback with the details in the comment.
     Formidable still keeps its own copy of each entry. The forms' own "Send Email" actions can be
     turned off, since the 7 AM digest now covers these submissions.
+
+## Website forms drawn like the app's
+
+24. Upload the plugin zip again (v1.4.0 or later). There is nothing else to set up. On the finder
+    page (`/tornado-shelter-finder/`) and its `edit/` subpage the plugin loads
+    `assets/shelter-forms.js` and `assets/shelter-forms.css`, which redraw the two Formidable
+    forms there as the app's forms:
+    - "Add/Edit Shelter" (Formidable 39, in the finder page) becomes Add a Shelter, and its
+      entries now go into the review queue as new shelters;
+    - "Suggest an Edit" (Formidable 44, in the pop-up) becomes the app's Suggest an Edit.
+
+    The Formidable forms themselves are not changed. Their fields stay in the page, out of sight,
+    and carry the answers, so the spam check and Formidable's own copy of each entry work as
+    before. A few answers are spelled in a fixed way in Formidable's entries, which the plugin
+    reads back: capacity as "Under 25", "Under 50" or "50 or more"; "Unknown" for a detail set to
+    Unknown; "(blank)" for an address box the person emptied; a first line "Reported: ..." in the
+    message for the three report checkboxes; and, on form 39, the shelter's name and its Open
+    choice inside the note ("Name: ... || Open: ... || Note: ...").
+
+    If a field the redraw needs is renamed or removed in Formidable, or the script fails, the
+    form shows as it was before. The two pages are found by id (73443 and 907809) or by address;
+    the filters `sas_shelter_forms_page_ids` and `sas_shelter_forms_paths` change that. Address
+    suggestions and the "Use Map Center" button use the Google map that is already on the finder
+    page.

@@ -1,0 +1,106 @@
+/*
+ * The website's two shelter forms, drawn like the app's Add a Shelter and Suggest an Edit forms.
+ * shelter-forms.js builds the .sas-sf block inside the Formidable form and hides the fields it replaces.
+ * The font and the red button are the site's own; the layout, labels and choices are the app's.
+ */
+
+/* Keep a form out of sight until the script has redrawn it (class sas-sf-on) or left it alone (sas-sf-off), so the
+   old layout doesn't flash by. If the script never runs, the form shows itself after 4 seconds, untouched. */
+@keyframes sas-sf-show { to { visibility: visible; } }
+#form_shelter-feedback:not(.sas-sf-on):not(.sas-sf-off),
+#form_add-edit-tornado-shelter:not(.sas-sf-on):not(.sas-sf-off) { visibility: hidden; animation: sas-sf-show 0s linear 4s forwards; }
+
+/* The fields the redrawn form replaces stay in the page (their values are what is sent); they just aren't shown. */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf-orig { display: none !important; }
+/* a line of the page around the form that no longer fits it (see finderWords in the script) */
+.sas-sf-hide { display: none !important; }
+
+/* ---------- the redrawn part ---------- */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf { grid-column: 1 / -1; display: grid; gap: 13px; margin: 0 0 18px; padding: 0; color: #1A1815; font-size: 16px; line-height: 1.35; text-align: left; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf *, .frm_forms.with_frm_style form.sas-sf-on .sas-sf-info { box-sizing: border-box; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf [hidden] { display: none !important; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf p { margin: 0; padding: 0; font-size: inherit; font-weight: inherit; line-height: inherit; color: inherit; text-align: left; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-lead { margin: 0 0 3px; font-size: 18px; line-height: 1.45; color: #4E4748; }
+
+/* a label over its box */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf label { float: none; width: auto; margin: 0; padding: 0; text-transform: none; letter-spacing: normal; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-field { display: grid; gap: 5px; font-size: 15px; font-weight: 400; line-height: 1.3; color: #4E4748; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=text],
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf select,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea {
+  display: block; width: 100%; max-width: 100%; height: auto; min-height: 42px; margin: 0; padding: 9px 10px;
+  background: #fff; color: #1A1815; border: 1px solid #CDC8C3; border-radius: 6px; box-shadow: none; outline: none;
+  font-family: inherit; font-size: 16px; font-weight: 400; line-height: 1.3;
+}
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf select { padding: 9px 6px; -webkit-appearance: menulist; appearance: auto; background-image: none; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea { min-height: 104px; resize: vertical; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=text]::placeholder,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea::placeholder { color: #8A8580; opacity: 1; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=text]:focus,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf select:focus,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea:focus { background: #fff; color: #1A1815; border-color: #1A73E8; box-shadow: 0 0 0 1px #1A73E8; }
+/* a needed box left empty (the selectors repeat the ones above so these win over them) */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=text][aria-invalid=true],
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf select[aria-invalid=true],
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea[aria-invalid=true] { border-color: #C0392B; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=text][aria-invalid=true]:focus,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf select[aria-invalid=true]:focus,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf textarea[aria-invalid=true]:focus { border-color: #C0392B; box-shadow: 0 0 0 1px #C0392B; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-row2 { display: grid; grid-template-columns: 1fr 88px; gap: 11px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-zip { max-width: 160px; }
+
+/* Suggest an Edit: what the listing says now, the three checkboxes, and the address boxes under "Address is wrong" */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-summary { background: #F3F2F0; border-radius: 6px; padding: 11px 14px; font-size: 15px; line-height: 1.4; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-summary strong { font-weight: 700; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-grp { display: grid; gap: 7px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-chk { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 400; line-height: 1.35; color: #1A1815; cursor: pointer; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr { display: grid; gap: 8px; margin: 0 0 5px 28px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr .sas-sf-field { font-size: 14px; gap: 3px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr .sas-sf-zip { max-width: 128px; }
+
+/* the four details: a heading and a row of choices */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-glabel { font-size: 16px; font-weight: 600; line-height: 1.35; color: #1A1815; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-radios { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-radios label { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 400; line-height: 1.35; color: #1A1815; cursor: pointer; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=radio],
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=checkbox] {
+  -webkit-appearance: auto; appearance: auto; flex: none; position: static; float: none; display: inline-block;
+  width: 18px; min-width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; border: 0; box-shadow: none;
+  accent-color: #1A73E8; cursor: pointer;
+}
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=radio]:focus,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=checkbox]:focus { box-shadow: none !important; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=radio]:focus-visible,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=checkbox]:focus-visible { outline: 2px solid #1A73E8; outline-offset: 2px; }
+
+/* Add a Shelter: the map pin row */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc { display: flex; align-items: center; justify-content: space-between; gap: 13px; font-size: 15px; line-height: 1.35; color: #4E4748; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc button {
+  flex: none; width: auto; height: auto; margin: 0; padding: 7px 13px; border: 0; border-radius: 6px; background: #ECEAE7; color: #1A1815;
+  font-family: inherit; font-size: 14.5px; font-weight: 600; line-height: 1.3; text-transform: none; letter-spacing: normal; box-shadow: none; cursor: pointer;
+}
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc button:hover,
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc button:focus { background: #DFDCD8; color: #1A1815; }
+
+/* the message over the button when something is missing */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf-msg { grid-column: 1 / -1; margin: 0 0 10px; padding: 0; font-size: 15px; line-height: 1.4; color: #C0392B; text-align: left; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf-msg:empty { display: none; }
+/* the finder page's form sits on a grey box, where the app's red is hard to read: a darker red there */
+.frm_forms.with_frm_style form#form_add-edit-tornado-shelter.sas-sf-on .sas-sf-msg { color: #96231A; }
+
+/* ---------- the Formidable fields that stay: name, email, the spam check and the button ---------- */
+.frm_forms.with_frm_style form.sas-sf-on { --bg-color: #fff; --bg-color-active: #fff; --border-color: #CDC8C3; --border-color-active: #1A73E8; --border-radius: 6px;
+  --field-height: 42px; --field-pad: 9px 10px; --field-font-size: 16px; --font-size: 15px; --label-color: #4E4748; --label-padding: 0 0 5px 0; --field-margin: 13px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf-info { grid-column: 1 / -1; margin: 4px 0 7px; padding: 0; font-size: 16px; font-weight: 600; line-height: 1.35; color: #1A1815; text-align: left; }
+.frm_forms.with_frm_style form.sas-sf-on .frm_submit,
+.frm_forms.with_frm_style.frm_center_submit form.sas-sf-on .frm_submit.frm_flex { justify-content: flex-start; text-align: left; }
+.frm_forms.with_frm_style form.sas-sf-on .frm_submit button { border-radius: 6px; padding: 10px 22px; font-size: 16px; line-height: 1.3; text-transform: none; letter-spacing: normal; }
+
+/* after sending: the app's thank-you line in place of the green box */
+.frm_forms.with_frm_style .frm_message.sas-sf-thanks { margin: 0 0 16px; padding: 0; border: 0; border-radius: 0; background: none; color: #1A1815; font-size: 17px; line-height: 1.45; text-align: left; }
+.frm_forms.with_frm_style .frm_message.sas-sf-thanks p { margin: 0; color: #1A1815; }
+
+@media (max-width: 420px) {
+  .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr { margin-left: 0; }
+}
