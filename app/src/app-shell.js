@@ -139,12 +139,26 @@
   function has(target) {
     return Launcher.canOpenUrl({ url: target }).then(function (r) { return !!(r && r.value); }, function () { return false; });
   }
+  // iPhone answers "yes" for maps:// even after Apple Maps has been removed from the phone, so the
+  // only way to learn that it is missing is a Directions tap that fails to open it (openAppleMaps
+  // below). That is remembered until the next app version, in case Maps has been put back.
+  var NO_APPLE = "sas.noAppleMaps", noAppleTag = JSON.stringify(String(window.SAS_APP.version || ""));
+  var appleGoneNow = false;
+  function appleGone() {
+    if (appleGoneNow) return true;
+    try { return localStorage.getItem(NO_APPLE) === noAppleTag; } catch (e) { return false; }
+  }
+  function markAppleGone() {
+    appleGoneNow = true;
+    try { localStorage.setItem(NO_APPLE, noAppleTag); } catch (e) {}
+    try { document.dispatchEvent(new Event("sas:mapapps")); } catch (e) {}   // the page redraws its list of map apps
+  }
   window.SAS_APP.mapApps = function () {
     if (platform === "ios") {
-      // Apple Maps can be deleted; without it a maps.apple.com link opens the web page, which ignores
-      // the destination and centres on the phone's network location. Then Google (app or website) is first.
       return Promise.all([has("maps://"), has("comgooglemaps://"), has("waze://")]).then(function (r) {
-        return (r[0] ? ["apple"] : []).concat(["google"], r[2] ? ["waze"] : []);
+        var ids = (r[0] && !appleGone() ? ["apple"] : []).concat(r[1] ? ["google"] : [], r[2] ? ["waze"] : []);
+        // no map app at all: Directions opens the Google Maps website in the browser
+        return ids.length ? ids : ["google"];
       });
     }
     return Promise.all([has("com.google.android.apps.maps"), has("com.waze")]).then(function (r) {
@@ -153,25 +167,68 @@
   };
 
   var MAPS = /^https:\/\/(maps\.apple\.com|www\.google\.com\/maps|maps\.google\.com|waze\.com\/ul)/;
+  var MAP_LINK = /^(geo|maps|comgooglemaps|waze):/;
   // On iPhone a Google Maps web link would open Safari; send it to the Google Maps app instead.
   function iosGoogleMaps(url) {
     var m = url.match(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=([^&]+)(?:&origin=([^&]+))?/);
     return m ? "comgooglemaps://?daddr=" + m[1] + (m[2] ? "&saddr=" + m[2] : "") + "&directionsmode=driving" : null;
   }
-  // Open Apple Maps links in the Maps app itself (maps://), never the maps.apple.com web page.
+  // Apple Maps links go to the Maps app itself (maps://), never to the maps.apple.com web page: on a
+  // phone without the Maps app that page opens in the browser and leads to the App Store, not to directions.
   function iosAppleMaps(url) {
     var m = url.match(/^https:\/\/maps\.apple\.com\/?\?(.*)$/);
     return m ? "maps://?" + m[1] : null;
   }
-  function launch(url) {
-    return Launcher.openUrl({ url: url }).then(function (r) { if (r && r.completed === false) throw new Error("not opened"); });
+  // true: another app opened it. false: the phone says nothing on it can open this. null: the request itself failed.
+  function tryOpen(url) {
+    return Launcher.openUrl({ url: url }).then(function (r) { return !(r && r.completed === false); }, function () { return null; });
   }
-  function openExternal(url) {
-    if (/^(mailto|tel|sms|geo|maps|comgooglemaps|waze):/.test(url) || MAPS.test(url)) {
-      var app = platform === "ios" && (iosGoogleMaps(url) || iosAppleMaps(url));
-      return (app ? launch(app).catch(function () { return launch(url); }) : launch(url))
-        .catch(function () { return /^https:/.test(url) ? Browser.open({ url: url }) : null; });
+  // A link meant for another app: its app link first where there is one (iPhone), then the link
+  // itself, then a browser sheet for web links. Resolves true when another app took it.
+  function openApp(url, app) {
+    return (app ? tryOpen(app) : Promise.resolve(false)).then(function (ok) {
+      return ok || tryOpen(url);
+    }).then(function (ok) {
+      if (!ok && /^https:/.test(url)) Browser.open({ url: url }).catch(function () {});
+      return !!ok;
+    });
+  }
+  // Apple Maps, or on a phone that turns out not to have it, the same destination in a map app it does have.
+  function openAppleMaps(app, url) {
+    var dest = (url.match(/[?&]daddr=([^&]+)/) || [])[1];
+    function other() {
+      if (!dest) return Promise.resolve(false);
+      return window.SAS_APP.mapApps().then(function (ids) {
+        ids = ids.filter(function (id) { return id !== "apple"; });
+        return openMapLink(ids[0] === "waze" ? "https://waze.com/ul?ll=" + dest + "&navigate=yes"
+          : "https://www.google.com/maps/dir/?api=1&destination=" + dest);
+      });
     }
+    if (appleGone()) return other();   // a Directions link drawn before the list of map apps changed
+    return tryOpen(app).then(function (ok) {
+      if (ok) return true;
+      // "Nothing can open maps://" while this app is on screen means Apple Maps is not on the phone.
+      // It only counts once another map link does open: when nothing opens, the phone is blocking
+      // the switch to other apps and Apple Maps may well be there.
+      var missing = ok === false && document.visibilityState === "visible";
+      return other().then(function (opened) { if (missing && opened) markAppleGone(); return opened; });
+    });
+  }
+  function openMapLink(url) {
+    if (platform !== "ios") return openApp(url);
+    var apple = iosAppleMaps(url);
+    return apple ? openAppleMaps(apple, url) : openApp(url, iosGoogleMaps(url));
+  }
+  var lastMapTap = 0;
+  function openExternal(url) {
+    if (MAP_LINK.test(url) || MAPS.test(url)) {
+      // a second tap while the first is still switching apps would fail and look like a missing app
+      var now = Date.now();
+      if (now - lastMapTap < 1500) return Promise.resolve(false);
+      lastMapTap = now;
+      return openMapLink(url);
+    }
+    if (/^(mailto|tel|sms):/.test(url)) return openApp(url);
     return Browser.open({ url: url, presentationStyle: "popover" });
   }
 
