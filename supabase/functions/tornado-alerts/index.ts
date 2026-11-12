@@ -66,9 +66,27 @@ function clock(iso?: string) {
   const h = +m[1]; return ((h % 12) || 12) + ":" + m[2] + (h < 12 ? " AM" : " PM");
 }
 
-// iPhone delivery settings: warnings are Time Sensitive (they break through Focus), others are normal.
-const APNS_URGENT = { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default", "interruption-level": "time-sensitive" } } };
-const APNS_NORMAL = { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } };
+// iPhone delivery settings. Warnings are Time Sensitive (they break through Focus), others are normal.
+// sound: a sound file inside the app (from build 127 on; an app without the file plays the standard tone).
+// collapse: a later push with the same id takes this one's place on the phone, so "Warning Ended"
+// replaces the warning it is about. Apple allows 64 characters; the end of a Weather Service id is
+// the part that differs.
+const SIREN = "tornado_alarm.wav", CHIME = "tornado_ended.wav";
+function apns(sound: string, urgent: boolean, collapse?: string) {
+  const headers: Record<string, string> = { "apns-priority": "10" };
+  if (collapse) headers["apns-collapse-id"] = collapse.slice(-64);
+  const aps: Record<string, unknown> = { sound };
+  if (urgent) aps["interruption-level"] = "time-sensitive";
+  return { headers, payload: { aps } };
+}
+
+// Android channels. An app that registered as "android/2" or later has the two alert channels with
+// their own buzz ("tornado-alarm-2", "tornado-ended-2"); an older app only has the first ones, and
+// a channel the phone doesn't have would come through as a plain default notification.
+function channel(platform: unknown, name: "tornado-alarm" | "tornado-ended") {
+  const m = /^android\/(\d+)$/.exec(String(platform || ""));
+  return m && +m[1] >= 2 ? name + "-2" : name;
+}
 
 async function send(sa: any, msg: any) {
   return fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
@@ -88,44 +106,50 @@ Deno.serve(async (req) => {
   //   {"test": "all"}        TEST warning to every phone with Warnings on (testers), at most once per 5 min
   //   {"test": "all-clear"}  TEST "warning ended" to every phone that got the last "all" test
   const body = await req.json().catch(() => ({}));
-  const testAlert = (token: string, id: string) => ({
-    token,
-    notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
-    data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", expires: new Date(Date.now() + 30 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
-    android: { priority: "high", notification: { channel_id: "tornado-alarm", sound: "tornado_alarm", tag: id } },
-    apns: APNS_URGENT,
-  });
-  const testClear = (token: string, tag: string) => ({
-    token,
+  type Dev = { token: string; platform?: string | null };
+  // A test warning is over 3 minutes after it is sent. "sent" lets the app work that out however
+  // late the notification is tapped.
+  const testAlert = (dev: Dev, id: string) => {
+    const now = Date.now();
+    return {
+      token: dev.token,
+      notification: { title: "TEST: Tornado Warning", body: "This is only a test of Tornado Shelter Finder alerts. Tap to see what you'd do." },
+      data: { kind: "tornado", alert_id: id, event: "Tornado Warning", where: "here", safe: "", sent: new Date(now).toISOString(), expires: new Date(now + 3 * 60e3).toISOString(), area: "TEST ONLY, not a real warning" },
+      android: { priority: "high", notification: { channel_id: channel(dev.platform, "tornado-alarm"), sound: "tornado_alarm", tag: id } },
+      apns: apns(SIREN, true, id),
+    };
+  };
+  const testClear = (dev: Dev, tag: string) => ({
+    token: dev.token,
     notification: { title: "TEST: Tornado Warning Ended", body: "This is only a test. The Tornado Warning has ended. Storms may continue, so stay alert." },
     data: { kind: "tornado-clear", alert_id: tag, area: "TEST ONLY" },
-    android: { priority: "high", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag } },
-    apns: APNS_NORMAL,
+    android: { priority: "high", notification: { channel_id: channel(dev.platform, "tornado-ended"), sound: "tornado_ended", tag } },
+    apns: apns(CHIME, false, tag),
   });
   if (body && body.test === "clear") {
-    const { data: dev } = await db.from("push_devices").select("token").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: dev } = await db.from("push_devices").select("token, platform").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
     const { data: last } = await db.from("alert_pushes").select("alert_id").eq("token", dev.token).eq("matched", "test").order("sent_at", { ascending: false }).limit(1).maybeSingle();
-    const r = await send(sa, testClear(dev.token, last?.alert_id || "test"));
+    const r = await send(sa, testClear(dev, last?.alert_id || "test"));
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status });
   }
   if (body && body.test === true) {
-    const { data: dev } = await db.from("push_devices").select("token").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: dev } = await db.from("push_devices").select("token, platform").gte("updated_at", new Date(Date.now() - 30 * 60e3).toISOString()).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (!dev) return Response.json({ test: "no phone registered in the last 30 minutes" });
     const id = "test-" + Math.floor(Date.now() / 300e3);
     const { error: dup } = await db.from("alert_pushes").insert({ alert_id: id, token: dev.token, matched: "test" });
     if (dup) return Response.json({ test: "already sent in the last 5 minutes" });
-    const r = await send(sa, testAlert(dev.token, id));
+    const r = await send(sa, testAlert(dev, id));
     return Response.json({ test: r.ok ? "sent" : "failed", status: r.status, detail: r.ok ? undefined : (await r.text()).slice(0, 300) });
   }
   if (body && body.test === "all") {
-    const { data: devs } = await db.from("push_devices").select("token").eq("warnings", true);
+    const { data: devs } = await db.from("push_devices").select("token, platform").eq("warnings", true);
     const id = "testall-" + Math.floor(Date.now() / 300e3);
     let sent = 0, failed = 0, skipped = 0;
     for (const d of devs || []) {
       const { error: dup } = await db.from("alert_pushes").insert({ alert_id: id, token: d.token, matched: "test-all" });
       if (dup) { skipped++; continue; }
-      const r = await send(sa, testAlert(d.token, id));
+      const r = await send(sa, testAlert(d, id));
       if (r.ok) { sent++; continue; }
       failed++;
       const t = await r.text();
@@ -137,8 +161,10 @@ Deno.serve(async (req) => {
     const { data: last } = await db.from("alert_pushes").select("alert_id").eq("matched", "test-all").order("sent_at", { ascending: false }).limit(1).maybeSingle();
     if (!last) return Response.json({ test: "no all-phones test has been sent yet" });
     const { data: rows } = await db.from("alert_pushes").select("token").eq("alert_id", last.alert_id).eq("matched", "test-all");
+    const { data: devs } = await db.from("push_devices").select("token, platform");
+    const platformOf = new Map((devs || []).map((d: any) => [d.token, d.platform]));
     let sent = 0, failed = 0;
-    for (const row of rows || []) (await send(sa, testClear(row.token, last.alert_id))).ok ? sent++ : failed++;
+    for (const row of rows || []) (await send(sa, testClear({ token: row.token, platform: platformOf.get(row.token) }, last.alert_id))).ok ? sent++ : failed++;
     return Response.json({ test: "all-clear", sent, failed });
   }
 
@@ -227,8 +253,8 @@ Deno.serve(async (req) => {
       const ok = await push(d, {
         notification: { title, body },
         data: { kind: "tornado", alert_id: p.id, event: p.event, where, safe: String(spot.safe || ""), expires: String(p.expires || ""), area: String(p.areaDesc || "").slice(0, 300) },
-        android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? "tornado-alarm" : "tornado-watches", sound: isWarning ? "tornado_alarm" : "default", tag: p.id } },
-        apns: isWarning ? APNS_URGENT : APNS_NORMAL,
+        android: { priority: "high", ttl: "3600s", notification: { channel_id: isWarning ? channel(d.platform, "tornado-alarm") : "tornado-watches", sound: isWarning ? "tornado_alarm" : "default", tag: p.id } },
+        apns: isWarning ? apns(SIREN, true, p.id) : apns("default", false),
       }, { alert_id: p.id, matched: isWarning ? where : "watch-" + where });
       if (ok) sent++; else failed++;
     }
@@ -260,8 +286,8 @@ Deno.serve(async (req) => {
     const ok = await push(d, {
       notification: { title: "Tornado Warning Ended", body: "The Tornado Warning" + (short ? " for " + short : " for your area") + " has ended. Storms may continue, so stay alert." },
       data: { kind: "tornado-clear", alert_id: first.alert_id, area: short },
-      android: { priority: "high", ttl: "3600s", notification: { channel_id: "tornado-ended", sound: "tornado_ended", tag: first.alert_id } },
-    apns: APNS_NORMAL,
+      android: { priority: "high", ttl: "3600s", notification: { channel_id: channel(d.platform, "tornado-ended"), sound: "tornado_ended", tag: first.alert_id } },
+      apns: apns(CHIME, false, first.alert_id),
     }, { alert_id: "clear:" + first.alert_id, matched: "clear" });
     if (ok) {
       cleared++;
