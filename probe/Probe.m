@@ -2,7 +2,7 @@
 // what the iPhone Duo simulator reports (safe areas, reserved regions, the vertical bar) to
 // Documents/result.txt. Launch arguments: <mode> [eval:<javascript>]
 //   web | web-nobar          ruler page; -nobar turns the vertical bar off
-//   app | app-nobar          the real app page from the www folder
+//   app | app-nobar          the app page from the www folder; add the argument "first" to start on the first screen
 //   safari-popover | safari-full   in-app browser over the ruler page, the two ways the app can show it
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
@@ -85,8 +85,11 @@ static void listSelectors(Class cls, BOOL meta) {
     NSString *cand = [NSString stringWithContentsOfURL:[[NSBundle mainBundle].bundleURL URLByAppendingPathComponent:@"candidates.json"] encoding:NSUTF8StringEncoding error:nil];
     NSMutableString *start = [NSMutableString stringWithFormat:@"window.CANDIDATES = %@;\n", cand.length ? cand : @"[]"];
     if ([self.mode hasPrefix:@"app"]) {
-        [start appendString:@"try { localStorage.setItem('sas.onboarded', 'true'); localStorage.setItem('sas.agreed', 'true'); } catch (e) {}\n"
-            "try { var fix = function (ok) { setTimeout(function () { ok({ coords: { latitude: 37.6872, longitude: -97.3301, accuracy: 10 }, timestamp: Date.now() }); }, 60); };\n"
+        // "first" as an extra argument: start like a new install, on the first screen with the terms
+        BOOL first = [[NSProcessInfo processInfo].arguments containsObject:@"first"];
+        [start appendString:first ? @"try { localStorage.removeItem('sas.agreed'); localStorage.removeItem('sas.onboarded'); } catch (e) {}\n"
+            : @"try { localStorage.setItem('sas.onboarded', 'true'); localStorage.setItem('sas.agreed', 'true'); } catch (e) {}\n"];
+        [start appendString:@"try { var fix = function (ok) { setTimeout(function () { ok({ coords: { latitude: 37.6872, longitude: -97.3301, accuracy: 10 }, timestamp: Date.now() }); }, 60); };\n"
             "  navigator.geolocation.getCurrentPosition = fix; navigator.geolocation.watchPosition = function (ok) { fix(ok); return 1; }; } catch (e) {}\n"
             "window.addEventListener('error', function (e) { try { window.webkit.messageHandlers.log.postMessage('JS error: ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); } catch (x) {} });\n"];
     }
