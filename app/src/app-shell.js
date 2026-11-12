@@ -153,6 +153,14 @@
     }
   };
 
+  // The clock and battery at the top of the screen, for the look picked in Settings > Appearance:
+  // "dark" makes them white (the strip behind them is dark), "light" dark, anything else follows the phone.
+  var StatusBar = Cap.registerPlugin("StatusBar");
+  window.SAS_APP.statusText = function (theme) {
+    if (!StatusBar || !StatusBar.setStyle) return;
+    try { Promise.resolve(StatusBar.setStyle({ style: theme === "dark" ? "DARK" : theme === "light" ? "LIGHT" : "DEFAULT" })).catch(function () {}); } catch (e) {}
+  };
+
   // Opens this app's page in the phone's Settings, where a denied permission can be turned back on.
   window.SAS_APP.openAppSettings = function () {
     return NativeSettings.open({ optionAndroid: "application_details", optionIOS: "app" });
