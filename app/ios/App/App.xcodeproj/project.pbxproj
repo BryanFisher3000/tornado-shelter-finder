@@ -18,6 +18,10 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		FB5A00000000000000000001 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FB5A00000000000000000003 /* FirebaseMessaging */; };
 		FB5A00000000000000000005 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB5A00000000000000000004 /* GoogleService-Info.plist */; };
+		FB5A00000000000000000011 /* SasNativePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5A00000000000000000010 /* SasNativePlugin.swift */; };
+		FB5A00000000000000000013 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5A00000000000000000012 /* MainViewController.swift */; };
+		FB5A00000000000000000015 /* tornado_alarm.wav in Resources */ = {isa = PBXBuildFile; fileRef = FB5A00000000000000000014 /* tornado_alarm.wav */; };
+		FB5A00000000000000000017 /* tornado_ended.wav in Resources */ = {isa = PBXBuildFile; fileRef = FB5A00000000000000000016 /* tornado_ended.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +38,10 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		FB5A00000000000000000004 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FB5A00000000000000000006 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		FB5A00000000000000000010 /* SasNativePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SasNativePlugin.swift; sourceTree = "<group>"; };
+		FB5A00000000000000000012 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		FB5A00000000000000000014 /* tornado_alarm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tornado_alarm.wav; sourceTree = "<group>"; };
+		FB5A00000000000000000016 /* tornado_ended.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tornado_ended.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +88,10 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				FB5A00000000000000000004 /* GoogleService-Info.plist */,
 				FB5A00000000000000000006 /* App.entitlements */,
+				FB5A00000000000000000010 /* SasNativePlugin.swift */,
+				FB5A00000000000000000012 /* MainViewController.swift */,
+				FB5A00000000000000000014 /* tornado_alarm.wav */,
+				FB5A00000000000000000016 /* tornado_ended.wav */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -158,6 +170,8 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				FB5A00000000000000000005 /* GoogleService-Info.plist in Resources */,
+				FB5A00000000000000000015 /* tornado_alarm.wav in Resources */,
+				FB5A00000000000000000017 /* tornado_ended.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,6 +184,8 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				FB5A00000000000000000011 /* SasNativePlugin.swift in Sources */,
+				FB5A00000000000000000013 /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
