@@ -43,8 +43,9 @@ a { color: var(--act); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
 
-/* the white "Brought to you by Survive-A-Storm" band, kept from version 1 */
-.band { position: fixed; z-index: 50; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--band); }
+/* the strip behind the phone's clock and battery: white, or dark in the dark look. It sits above everything,
+   the startup loop and the first screen included, so the clock always has the strip it was coloured for. */
+.band { position: fixed; z-index: 2001; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--band); }
 #map { position: fixed; inset: var(--band-h, 0px) 0 0 0; z-index: 0; background: var(--water); }
 
 /* search bar */
