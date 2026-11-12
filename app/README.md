@@ -33,6 +33,15 @@ npm run ios         # same for Xcode (Mac only)
 npm run apk         # command-line test APK → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+### Google keys
+
+The Google Maps (Android) and Places keys are never committed; `src/app-config.js` keeps them empty.
+For a local build, copy `google-keys.example.json` to `google-keys.json` (gitignored) and fill it in,
+or set `SAS_GOOGLE_MAPS_KEY` / `SAS_GOOGLE_PLACES_KEY`, which take precedence. `npm run build` writes
+them into `www/app-config.js`, and `android/app/build.gradle` reads the Maps key for the manifest.
+CI reads them from the repo secrets of the same names. With no key, the app falls back to
+OpenStreetMap tiles and a plain address box.
+
 After changing the website, run `npm run sync` and rebuild; nothing in the
 app needs editing.
 

@@ -11,3 +11,5 @@ ios/DerivedData/
 *.keystore
 !android/app/debug.keystore
 *.jks
+# Google API keys (copy google-keys.example.json); never commit the real file
+google-keys.json

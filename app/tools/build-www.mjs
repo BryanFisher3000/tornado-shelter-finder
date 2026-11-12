@@ -40,7 +40,23 @@ fs.copyFileSync(path.join(site, "shelter-core.js"), path.join(www, "shelter-core
 for (const f of fs.readdirSync(path.join(site, "data"))) fs.copyFileSync(path.join(site, "data", f), path.join(www, "data", f));
 // startup tornado loop (video + still frame)
 for (const f of fs.readdirSync(path.join(site, "media"))) fs.copyFileSync(path.join(site, "media", f), path.join(www, "media", f));
-fs.writeFileSync(path.join(www, "app-config.js"), fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version));
+// Google keys are never committed: src/app-config.js leaves them empty and they are filled in here from
+// SAS_GOOGLE_MAPS_KEY / SAS_GOOGLE_PLACES_KEY, else app/google-keys.json (gitignored; see google-keys.example.json).
+// android/app/build.gradle reads the Maps key from the same two places.
+const keyFile = path.join(root, "google-keys.json");
+const fileKeys = fs.existsSync(keyFile) ? JSON.parse(fs.readFileSync(keyFile, "utf8")) : {};
+const keys = {
+  googleMapsKey: process.env.SAS_GOOGLE_MAPS_KEY || fileKeys.googleMapsKey || "",
+  googlePlacesKey: process.env.SAS_GOOGLE_PLACES_KEY || fileKeys.googlePlacesKey || "",
+};
+let appConfig = fs.readFileSync(path.join(root, "src/app-config.js"), "utf8").replaceAll("__VERSION__", pkg.version);
+for (const [name, value] of Object.entries(keys)) {
+  const re = new RegExp(`(${name}:\\s*)"[^"]*"`);
+  if (!re.test(appConfig)) throw new Error(`src/app-config.js changed; can't find ${name}`);
+  appConfig = appConfig.replace(re, (_, lead) => lead + JSON.stringify(value));
+}
+fs.writeFileSync(path.join(www, "app-config.js"), appConfig);
+for (const [name, value] of Object.entries(keys)) if (!value) console.warn(`note: no ${name} set (SAS_GOOGLE_* env var or google-keys.json); that feature stays off`);
 for (const f of ["app-shell.js", "app.css"]) fs.copyFileSync(path.join(root, "src", f), path.join(www, f));
 
 // The app ships the phone screen (src/mobile.html, version 2). SAS_PAGE=index.html builds the v1 page instead.

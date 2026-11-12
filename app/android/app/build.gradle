@@ -10,9 +10,11 @@ android {
         versionCode 80
         versionName "2.21.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        // Google Maps key, kept in one place: googleMapsKey in app/src/app-config.js
-        def appConfig = file("../../src/app-config.js").text
-        def mapsKey = (appConfig =~ /googleMapsKey:\s*"([^"]*)"/).with { it.find() ? it.group(1) : "" }
+        // Google Maps key, never committed: SAS_GOOGLE_MAPS_KEY, else googleMapsKey in app/google-keys.json
+        // (gitignored; copy google-keys.example.json). tools/build-www.mjs reads the same two places.
+        def keyFile = file("../../google-keys.json")
+        def mapsKey = System.getenv("SAS_GOOGLE_MAPS_KEY") ?:
+            (keyFile.exists() ? (new groovy.json.JsonSlurper().parse(keyFile).googleMapsKey ?: "") : "")
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

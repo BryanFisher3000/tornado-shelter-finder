@@ -7,7 +7,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!-- Google Maps key comes from googleMapsKey in app/src/app-config.js (see app/build.gradle) -->
+        <!-- Google Maps key comes from SAS_GOOGLE_MAPS_KEY or app/google-keys.json (see app/build.gradle) -->
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="${MAPS_API_KEY}" />
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
