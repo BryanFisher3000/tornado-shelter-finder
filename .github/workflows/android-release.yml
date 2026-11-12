@@ -8,6 +8,11 @@ jobs:
   aab:
     runs-on: ubuntu-24.04
     defaults: { run: { working-directory: app } }
+    # Google keys are never committed; tools/build-www.mjs and android/app/build.gradle read these.
+    # If a secret isn't set, that feature stays off (OpenStreetMap tiles / plain address box).
+    env:
+      SAS_GOOGLE_MAPS_KEY: ${{ secrets.SAS_GOOGLE_MAPS_KEY }}
+      SAS_GOOGLE_PLACES_KEY: ${{ secrets.SAS_GOOGLE_PLACES_KEY }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
