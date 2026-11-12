@@ -75,6 +75,10 @@ function sas_review_shelter_patch( $changes ) {
 		} elseif ( 'zip' === $field ) {
 			$v = substr( preg_replace( '/\D/', '', $v ), 0, 5 );
 		}
+		if ( 'capacity_label' === $field ) {
+			// sanitize_textarea_field() turns the app's "<25" and "<50" into "&lt;25" and "&lt;50"; the list stores the sign itself.
+			$v = preg_replace( '/^&lt;(?=\s*\d)/i', '<', $v );
+		}
 		if ( '' === $v && ! in_array( $field, array( 'lat', 'lng' ), true ) ) {
 			$v = null;
 		}
