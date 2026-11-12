@@ -1374,7 +1374,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       '<div class="c-left">' +
         (n ? '<span class="npin"><span>' + n + "</span></span>" : '<span class="npin"><span></span></span>') +
         '<span class="dist">' + miles(distOf(s)) + "</span>" +
-        '<a class="pill primary sm" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-act="dir"><svg><use href="#i-dir"/></svg>Directions</a>' +
+        '<a class="pill primary sm" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-act="dir" data-dir="' + s.id + '"><svg><use href="#i-dir"/></svg>Directions</a>' +
       "</div>" +
       '<div class="c-main" data-act="open"><h3>' + esc(s.name) + "</h3><address>" + addrHtml(s) + "</address>" + facts(s) + "</div></li>";
   }
@@ -1560,7 +1560,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     $("#pane-detail").innerHTML =
       "<address>" + addrHtml(s) + (d != null ? ' <span class="dist">· ' + miles(d) + "</span>" : "") + "</address>" +
       '<div class="actions">' +
-        '<a class="pill primary" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener"><svg><use href="#i-dir"/></svg>Directions</a>' +
+        '<a class="pill primary" href="' + esc(dirUrl(s)) + '" target="_blank" rel="noopener" data-dir="' + s.id + '"><svg><use href="#i-dir"/></svg>Directions</a>' +
         '<button type="button" class="pill" data-act="save" data-id="' + s.id + '"><svg><use href="#' + (isSaved(s.id) ? "i-star" : "i-star-o") + '"/></svg>' + (isSaved(s.id) ? "Saved" : "Save") + "</button>" +
         '<button type="button" class="pill" data-act="edit" data-id="' + s.id + '"><svg><use href="#i-edit"/></svg>Suggest an Edit</button>' +
       "</div>" + facts(s) +
@@ -2676,17 +2676,34 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   });
 
   // settings
+  // Directions links already on screen (results, Saved, the shelter page) follow the chosen maps app
+  function refreshDirLinks() {
+    document.querySelectorAll("a[data-dir]").forEach(function (a) {
+      var s = state.store && state.store.getSync(a.dataset.dir);
+      if (s) a.href = dirUrl(s);
+    });
+  }
+  var mapAppIds = "";
   function setMapApps(ids) {
     ids = (ids || []).filter(function (id) { return C.MAP_APPS[id]; });
     if (!ids.length) ids = C.webMapApps(navigator.userAgent);
+    // the maps app picked in Settings whenever the phone has it, otherwise the first one it does have
+    var picked = load("provider", null), use = ids.indexOf(picked) >= 0 ? picked : ids[0];
+    if (ids.join() === mapAppIds && use === state.provider) return;
+    mapAppIds = ids.join();
     $("#set-map").innerHTML = ids.map(function (id) { return '<option value="' + id + '">' + esc(C.MAP_APPS[id]) + "</option>"; }).join("");
-    if (ids.indexOf(state.provider) < 0) state.provider = ids[0];
+    state.provider = use;
     $("#set-map").value = state.provider;
-    if (state.results.length) renderList();
+    refreshDirLinks();
   }
   setMapApps(C.webMapApps(navigator.userAgent));
-  if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {});
-  $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); renderList(); });
+  // In the app the list is only the map apps on this phone. It is read again when the app comes back
+  // to the screen (one may have been added or removed) and when Apple Maps turns out to be missing.
+  function refreshMapApps() { if (typeof APP.mapApps === "function") Promise.resolve().then(APP.mapApps).then(setMapApps, function () {}); }
+  refreshMapApps();
+  document.addEventListener("sas:mapapps", refreshMapApps);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshMapApps(); });
+  $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); refreshDirLinks(); });
   $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
   $("#set-os").textContent = osFromUA() || "Unknown";
   wirePerms();

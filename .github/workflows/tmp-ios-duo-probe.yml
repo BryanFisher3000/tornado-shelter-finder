@@ -1,66 +1,120 @@
-# One-off check, not part of the app: asks Apple's iPhone Duo simulator how its screens are laid
-# out. Runs only on pushes to the tmp-ios-maps-probe branch (a throwaway branch, never merged).
+# One-off check, not part of the app: asks Apple's iPhone Duo simulator how its two screens lay
+# out a full-screen web view like the app's. Runs only on pushes to the tmp-ios-maps-probe branch
+# (a throwaway branch, never merged).
 name: One-off check - iPhone Duo screens
 on:
   push:
     branches: [tmp-ios-maps-probe]
 jobs:
-  explore:
+  probe:
     runs-on: xcode-27
-    timeout-minutes: 12
+    timeout-minutes: 28
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
       - name: Pick newest Xcode
         run: |
           X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|candidate' | sort -V | tail -1)
           sudo xcode-select -s "$X/Contents/Developer"
           xcodebuild -version
-      - name: Simulator commands
+      - name: Headers worth reading
         run: |
-          xcrun simctl help 2>&1 || true
-          echo "=== devicetypes"; xcrun simctl list devicetypes | grep -i -E "duo|fold" || true
-          echo "=== devices"; xcrun simctl list devices available | grep -i -E "^--|duo" || true
-          for c in ui io status_bar boot spawn; do echo "=== help $c"; xcrun simctl help $c 2>&1 | head -70 || true; done
-          echo "=== words"; xcrun simctl help 2>&1 | grep -i -E "fold|pose|posture|hinge|display|rotat|orient|hub" || true
-          echo "=== devicectl / hub tools"; ls "$(xcode-select -p)/usr/bin" | grep -i -E "hub|devicectl|simctl|sim" || true
-          xcrun --find devicehub 2>&1 | head -2 || true
-      - name: Duo device type
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path); H="$SDK/System/Library/Frameworks/UIKit.framework/Headers"
+          echo "=== UIVerticalBarEdge.h"; cat "$H/UIVerticalBarEdge.h"
+          echo "=== UIViewController.h"; sed -n 752,824p "$H/UIViewController.h"
+          echo "=== UINavigationItem.h"; sed -n 62,86p "$H/UINavigationItem.h"
+          echo "=== UIViewLayoutRegion.h"; sed -n 1,110p "$H/UIViewLayoutRegion.h"
+          echo "=== simulator tool words"
+          for f in "$(xcrun --find simctl)" /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/CoreSimulator; do
+            echo "--- $f"; strings -a "$f" 2>/dev/null | grep -i -E "unfold|fold(ed|able)|postur|hinge|clamshell|device ?pose" | sort -u | head -50 || true
+          done
+      - name: Build the web app
+        working-directory: app
+        run: npm ci --no-audit --no-fund >/dev/null && npm run build && ls www
+      - name: Build the probe app
+        working-directory: probe
         run: |
-          xcrun simctl list devicetypes -j | python3 -c '
-          import json, sys
-          for t in json.load(sys.stdin)["devicetypes"]:
-              if "duo" in t["name"].lower(): print(json.dumps(t, indent=1))'
-          P=$(xcrun simctl list devicetypes -j | python3 -c '
-          import json, sys
-          for t in json.load(sys.stdin)["devicetypes"]:
-              if "duo" in t["name"].lower(): print(t["bundlePath"]); break')
-          echo "bundle: $P"
-          find "$P" -maxdepth 4 | head -60
-          for f in "$P/Contents/Resources/profile.plist" "$P/Contents/Resources/capabilities.plist" "$P/Contents/Info.plist"; do echo "=== $f"; plutil -p "$f" 2>&1 | head -150; done
-      - name: SDK headers
-        run: |
-          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path); echo "$SDK"
-          H="$SDK/System/Library/Frameworks/UIKit.framework/Headers"
-          echo "=== files naming ReservedRegion"; grep -rl "ReservedRegion" "$H" | head -20
-          for f in $(grep -rl "ReservedRegion" "$H" | head -6); do echo "=== $f"; grep -n -B4 -A14 "ReservedRegion" "$f" | head -220; done
-          echo "=== swift overlay"; grep -rn -i "reservedRegion" "$SDK/System/Library/Frameworks/UIKit.framework/Modules" 2>/dev/null | cut -c1-400 | head -40
-          echo "=== SwiftUI"; grep -rn "reservedRegion\|ReservedRegion" "$SDK/System/Library/Frameworks/SwiftUI.framework/Modules" 2>/dev/null | cut -c1-500 | head -60
-          echo "=== WebKit"; grep -rn -i "reserved\|safeArea\|obscured\|verticalBar" "$SDK/System/Library/Frameworks/WebKit.framework/Headers" | cut -c1-300 | head -60
-          echo "=== SafariServices"; grep -rn -i "API_AVAILABLE(ios(27\|ios(26" "$SDK/System/Library/Frameworks/SafariServices.framework/Headers" | cut -c1-300 | head -30
-          echo "=== vertical bars"; grep -rn "VerticalBar\|verticalBar" "$H" | cut -c1-300 | head -40
-          echo "=== status bar new"; grep -n -B2 -A8 "API_AVAILABLE(ios(27" "$H/UIStatusBarManager.h" "$H/UIWindowScene.h" 2>/dev/null | cut -c1-300 | head -80
-      - name: CSS names in the simulator's WebKit
-        run: |
+          mkdir -p Probe.app
+          xcrun -sdk iphonesimulator clang -fobjc-arc -fmodules -Wno-deprecated-declarations -target arm64-apple-ios27.1-simulator Probe.m -o Probe.app/Probe -framework UIKit -framework WebKit -framework SafariServices
+          cp Info.plist test.html Probe.app/
+          cp -R ../app/www Probe.app/www
           RT=$(xcrun simctl list runtimes -j | python3 -c '
           import json, sys
           rts = [r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r.get("platform") == "iOS"]
           rts.sort(key=lambda r: [int(x) for x in r["version"].split(".")])
-          for r in rts: sys.stderr.write(r["name"] + " " + r["buildversion"] + " " + r["runtimeRoot"] + "\n")
           print(rts[-1]["runtimeRoot"])')
-          echo "root: $RT"
-          ls -la "$RT/System/Library/PrivateFrameworks/WebCore.framework" 2>&1 | head
-          find "$RT/System/Library" -maxdepth 4 -name "dyld_sim_shared_cache*" 2>/dev/null | head -20
-          for f in $(find "$RT/System/Library" -maxdepth 4 -name "dyld_sim_shared_cache*" 2>/dev/null) "$RT/System/Library/PrivateFrameworks/WebCore.framework/WebCore"; do
-            [ -f "$f" ] || continue
-            echo "=== $f ($(stat -f %z "$f") bytes)"
-            LC_ALL=C grep -a -o -E "(safe-area|viewport-segment|titlebar-area|keyboard-inset|fullscreen-inset|reserved-region|reserved|status-bar|vertical-bar|camera-region|fold)-[a-z0-9-]{3,40}" "$f" | sort | uniq -c | sort -rn | head -70
+          : > cand.txt
+          find "$RT/System/Library/Caches/com.apple.dyld" -name "dyld_sim_shared_cache_arm64*" ! -name "*.map" ! -name "*.atlas" -print0 | while IFS= read -r -d '' f; do
+            echo "scanning $(basename "$f") ($(stat -f %z "$f") bytes)"
+            LC_ALL=C grep -a -o -E "(safe-area|viewport-segment|titlebar-area|keyboard-inset|fullscreen-inset|reserved-region|vertical-bar|status-bar|dynamic-island|camera-region|sensor-region|occlusion)[a-z0-9-]{0,40}" "$f" >> cand.txt || true
           done
+          sort cand.txt | uniq -c | sort -rn | head -80
+          python3 -c '
+          import json
+          names = sorted(set(l.strip() for l in open("cand.txt") if 4 < len(l.strip()) < 60))[:200]
+          json.dump(names, open("Probe.app/candidates.json", "w"))
+          print(len(names), "candidate names")'
+          codesign --force -s - Probe.app
+          ls -la Probe.app | head -20
+      - name: Boot the iPhone Duo simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          best = None
+          for rt, devs in json.load(sys.stdin)["devices"].items():
+              if "iOS" not in rt: continue
+              key = [int(n) for n in rt.split("iOS-")[-1].split("-") if n.isdigit()]
+              for d in devs:
+                  if d["name"] == "iPhone Duo" and (best is None or key > best[0]): best = (key, d["udid"])
+          print(best[1])')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl io "$UDID" enumerate > enum0.txt 2>&1 || true
+          wc -l enum0.txt; head -170 enum0.txt
+      - name: Probe
+        run: |
+          BID=com.surviveastorm.duoprobe
+          xcrun simctl install "$UDID" probe/Probe.app
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 81 --cellularBars 3 --dataNetwork 5g || true
+          shot() {
+            for d in 1 3; do
+              f="$1-d$d"
+              if xcrun simctl io "$UDID" screenshot --display=$d --type=png "$f.png" >/dev/null 2>shot.err; then
+                sips -s format jpeg -s formatOptions 42 -Z 1000 "$f.png" --out "$f.jpg" >/dev/null 2>&1 || { echo "no jpeg $f"; continue; }
+                size=$(stat -f %z "$f.jpg")
+                if [ "$size" -lt 9000 ]; then echo "display $d for $1: blank ($size bytes)"; continue; fi
+                echo "===SHOT $f $(sips -g pixelWidth -g pixelHeight "$f.png" | tail -2 | tr '\n' ' ')==="; base64 -b 76 -i "$f.jpg"; echo "===END $f==="
+              else echo "display $d for $1: no screenshot: $(head -c 160 shot.err | tr '\n' ' ')"; fi
+            done
+          }
+          run() {
+            label="$1"; shift
+            xcrun simctl terminate "$UDID" $BID 2>/dev/null || true
+            DATA=$(xcrun simctl get_app_container "$UDID" $BID data 2>/dev/null) && rm -f "$DATA/Documents/result.txt"
+            xcrun simctl launch "$UDID" $BID "$@" || echo "launch failed"
+            sleep "${WAIT:-9}"
+            DATA=$(xcrun simctl get_app_container "$UDID" $BID data)
+            echo "--- result $label"; cat "$DATA/Documents/result.txt" || echo "(no result file)"
+            shot "$label"
+          }
+          pose() {
+            echo "##### POSE $1"; shift
+            "$@" 2>&1 | tail -5 || true
+            sleep 6
+            xcrun simctl io "$UDID" enumerate > enum.txt 2>&1 || true
+            diff enum0.txt enum.txt | head -40 || true
+          }
+          modes() {
+            run "$1-web" web
+            run "$1-nobar" web-nobar
+            WAIT=14 run "$1-app" app
+            WAIT=12 run "$1-safpop" safari-popover
+            WAIT=12 run "$1-saffull" safari-full
+          }
+          echo "##### POSE as booted"; modes p0
+          pose "inner screen on" xcrun simctl io "$UDID" screenConfig --display=3 power on; modes p1
+          pose "outer screen off" xcrun simctl io "$UDID" screenConfig --display=1 power off; modes p2
+          pose "inner screen sideways" xcrun simctl io "$UDID" screenConfig --display=3 geometry 2853x2007@3; modes p3
+          pose "inner screen upright, then off; outer on" bash -c "xcrun simctl io '$UDID' screenConfig --display=3 geometry 2007x2853@3; xcrun simctl io '$UDID' screenConfig --display=3 power off; xcrun simctl io '$UDID' screenConfig --display=1 power on"; modes p4

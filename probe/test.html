@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<style>
+html, body { margin: 0; height: 100%; background: #fff; font: 12px -apple-system, sans-serif; overflow: hidden; }
+#grid { position: fixed; inset: 0; }
+.h, .v { position: absolute; background: rgba(0,0,0,.18); }
+.h { left: 0; right: 0; height: 1px; } .v { top: 0; bottom: 0; width: 1px; }
+.h.m, .v.m { background: rgba(0,0,120,.75); }
+.lab { position: absolute; font-size: 9px; line-height: 10px; color: #000; background: rgba(255,255,255,.8); padding: 0 1px; }
+#safe { position: fixed; top: env(safe-area-inset-top, 0px); left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); border: 2px solid #d0021b; box-sizing: border-box; pointer-events: none; }
+#out { position: fixed; left: 56px; top: 256px; width: 250px; font-size: 10px; line-height: 1.25; background: rgba(255,255,220,.9); padding: 5px; white-space: pre-wrap; word-break: break-all; }
+#p { position: fixed; left: 0; top: 0; height: 0; visibility: hidden; }
+</style></head><body>
+<div id="grid"></div><div id="safe"></div><div id="out"></div><div id="p"></div>
+<script>
+(function () {
+  var t0 = Date.now(), out = document.getElementById("out"), p = document.getElementById("p");
+  function post(o) { o.t = Date.now() - t0; try { window.webkit.messageHandlers.log.postMessage(JSON.stringify(o)); } catch (e) {} }
+  function env(expr) { p.style.width = ""; p.style.width = "env(" + expr + ", 12345px)"; var w = getComputedStyle(p).width; return w === "12345px" ? null : w; }
+  var NAMES = ["safe-area-inset-top", "safe-area-inset-right", "safe-area-inset-bottom", "safe-area-inset-left"];
+  var EXTRA = ["safe-area-max-inset-top", "safe-area-max-inset-right", "safe-area-max-inset-bottom", "safe-area-max-inset-left",
+    "keyboard-inset-top", "keyboard-inset-height", "titlebar-area-x", "titlebar-area-y", "titlebar-area-width", "titlebar-area-height",
+    "fullscreen-inset-top", "fullscreen-inset-right", "fullscreen-inset-bottom", "fullscreen-inset-left",
+    "viewport-segment-width 0 0", "viewport-segment-height 0 0", "viewport-segment-left 0 0", "viewport-segment-top 0 0", "viewport-segment-right 0 0", "viewport-segment-bottom 0 0",
+    "viewport-segment-width 1 0", "viewport-segment-left 1 0", "viewport-segment-width 0 1", "viewport-segment-top 0 1",
+    "reserved-region-top", "reserved-region-right", "reserved-region-width", "reserved-region-height", "vertical-bar-width", "vertical-bar-inset-right", "status-bar-height", "status-bar-width",
+    "safe-area-inset-inline-start", "safe-area-inset-inline-end", "occlusion-inset-top", "occlusion-inset-right", "corner-inset-top", "corner-inset-right"];
+  (window.CANDIDATES || []).forEach(function (n) { if (NAMES.indexOf(n) < 0 && EXTRA.indexOf(n) < 0) EXTRA.push(n); });
+  function grid() {
+    var g = document.getElementById("grid"), W = innerWidth, H = innerHeight, html = "";
+    for (var x = 0; x <= W; x += 25) html += '<div class="v' + (x % 100 ? "" : " m") + '" style="left:' + x + 'px"></div>' + (x % 50 ? "" : '<div class="lab" style="left:' + (x + 2) + 'px;top:' + (x % 100 ? 202 : 190) + 'px">' + x + "</div>");
+    for (var y = 0; y <= H; y += 25) html += '<div class="h' + (y % 100 ? "" : " m") + '" style="top:' + y + 'px"></div>' + (y % 50 ? "" : '<div class="lab" style="top:' + (y + 2) + 'px;left:' + Math.round(W / 2 - 20) + 'px">' + y + "</div>");
+    g.innerHTML = html;
+  }
+  var last = "";
+  function read(why) {
+    var o = { why: why, w: innerWidth, h: innerHeight, dpr: devicePixelRatio, sw: screen.width, sh: screen.height, vv: window.visualViewport ? [visualViewport.width, visualViewport.height, visualViewport.offsetLeft, visualViewport.offsetTop] : null, env: {} };
+    NAMES.forEach(function (n) { o.env[n.replace("safe-area-inset-", "")] = env(n); });
+    var key = JSON.stringify([o.w, o.h, o.env]);
+    if (key === last && why === "poll") return;
+    last = key; grid();
+    out.textContent = why + " +" + (Date.now() - t0) + "ms\n" + o.w + " x " + o.h + " @" + o.dpr + "\nsafe: " + JSON.stringify(o.env) + "\n" + (window.EXTRA_FOUND || "");
+    post(o);
+  }
+  read("load");
+  var found = {}; EXTRA.forEach(function (n) { var v = env(n); if (v !== null) found[n] = v; });
+  window.EXTRA_FOUND = "other env(): " + JSON.stringify(found) + " (" + EXTRA.length + " names tried)";
+  post({ why: "extra", found: found, tried: EXTRA.length, ua: navigator.userAgent, segments: window.visualViewport && visualViewport.segments ? visualViewport.segments.length : "n/a",
+    mq: { span: matchMedia("(horizontal-viewport-segments: 2)").matches, vspan: matchMedia("(vertical-viewport-segments: 2)").matches, posture: ["continuous", "folded"].filter(function (v) { return matchMedia("(device-posture: " + v + ")").matches; }).join() || "none" } });
+  read("after-extra");
+  addEventListener("resize", function () { read("resize"); });
+  if (window.visualViewport) visualViewport.addEventListener("resize", function () { read("vv-resize"); });
+  setInterval(function () { read("poll"); }, 200);
+})();
+</script></body></html>
