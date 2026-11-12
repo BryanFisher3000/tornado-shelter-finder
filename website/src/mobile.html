@@ -12,10 +12,11 @@
   --bg: #F3F2F0; --card: #FFFFFF; --ink: #1A1815; --ink-2: #4E4748; --muted: #6E6A6A;
   --none-bg: var(--bg); --line: #E0DDD9; --line-2: #CDC8C3; --chip: #ECEAE7; --chip-on: #F8D6D6;
   --land: #EFEDE9; --county: #DDD8D2; --state: #A89F97; --water: #DCE3E6; --dot: #C0392B;
-  --you: #1A73E8; --act: #1A73E8; --act-deep: #1558B0; --act-soft: #E8F0FE; --on-act: #fff; --band: #FFFFFF; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
+  --you: #1A73E8; --act: #1A73E8; --act-deep: #1558B0; --act-soft: #E8F0FE; --on-act: #fff; --ok: #2E7D32; --band: #FFFFFF; --shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.14);
   --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --f-body: "Barlow Semi Condensed", "Helvetica Neue", Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --band-h: var(--safe-top);   /* the script keeps this at the band's measured height */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -23,14 +24,14 @@
     --red: #C0392B; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
     --none-bg: #000; --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
     --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #C0392B;
-    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark; --band: #F3F2F0;
+    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark; --band: #1A1815; --ok: #6FCF7F;
   }
 }
 :root[data-theme="dark"] {
   --red: #C0392B; --red-deep: #FF6B6B; --bg: #1A1815; --card: #25221E; --ink: #F3F2F0; --ink-2: #CDC8C3;
   --none-bg: #000; --muted: #9B9188; --line: #36312C; --line-2: #4E4740; --chip: #312C27; --chip-on: #4A2324; --act-deep: #8AB4F8; --act-soft: #1F3355;
   --land: #25221E; --county: #342F2A; --state: #685E55; --water: #141619; --dot: #C0392B;
-  --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark;
+  --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4); color-scheme: dark; --band: #1A1815; --ok: #6FCF7F;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -42,8 +43,9 @@ a { color: var(--act); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 svg.i { width: 1.4rem; height: 1.4rem; flex: none; }
 
-/* the white "Brought to you by Survive-A-Storm" band, kept from version 1 */
-.band { position: fixed; z-index: 50; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--band); }
+/* the strip behind the phone's clock and battery: white, or dark in the dark look. It sits above everything,
+   the startup loop and the first screen included, so the clock always has the strip it was coloured for. */
+.band { position: fixed; z-index: 2001; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--band); }
 #map { position: fixed; inset: var(--band-h, 0px) 0 0 0; z-index: 0; background: var(--water); }
 
 /* search bar */
@@ -286,6 +288,7 @@ a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: v
 .acct-form label.fld { display: flex; align-items: center; justify-content: space-between; }
 .acct-form label.fld select { background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .4rem .5rem; }
 .acct-form .err { color: var(--red); }
+.acct-form .err.ok { color: var(--ok, #2E7D32); font-weight: 500; }
 .acct-form .add-lead { margin: .4rem 0 .6rem; font-size: 1.12rem; line-height: 1.45; color: var(--ink-2); }
 .acct-form label:not(.chk):not(.fld) select { width: 100%; background: var(--card); border: 1px solid var(--line-2); border-radius: 6px; padding: .6rem .55rem; font-size: 1rem; color: var(--ink); }
 .acct-form .err:empty { display: none; }
@@ -343,13 +346,27 @@ dialog::backdrop { background: rgba(26,24,21,.55); }
 .fb .mail { background: var(--bg); border-radius: 6px; padding: .7rem .85rem; font-size: .9rem; }
 .fb .mail pre { margin: .4rem 0 0; white-space: pre-wrap; font-family: inherit; max-height: 11rem; overflow: auto; }
 
-/* first-run disclaimer */
-.splash { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: rgba(26,24,21,.6); padding: 16px; }
+/* first-run screen: the terms in a box that scrolls, then the two ways in. The card never grows past
+   the screen: the terms box gives up height first, and on a very short screen the card itself scrolls. */
+.splash { position: fixed; inset: 0; z-index: 2000; display: grid; grid-template-rows: minmax(0, 1fr); place-items: center; background: rgba(26,24,21,.6); padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); }
 .splash[hidden] { display: none; }
-.splash-card { background: var(--card); width: min(23rem, 100%); padding: 1.6rem 1.4rem 1.4rem; display: grid; gap: 1rem; justify-items: center; text-align: center; box-shadow: var(--shadow); border-radius: 10px; }
+.splash-card { background: var(--card); width: min(23rem, 100%); max-height: 100%; overflow-y: auto; padding: 1.6rem 1.4rem 1.4rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; box-shadow: var(--shadow); border-radius: 10px; }
+.splash-card > * { flex: none; }
 .splash h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: clamp(2.4rem, 10vw, 3.2rem); line-height: .88; color: var(--red); text-transform: uppercase; }
 .splash p { margin: 0; color: var(--ink-2); }
 .splash img { height: 2.8rem; width: auto; }
+.splash .terms { align-self: stretch; flex: 0 1 15rem; min-height: 5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; text-align: left; font-size: .88rem; line-height: 1.4; background: var(--bg); border: 1px solid var(--line-2); border-radius: 8px; padding: .7rem .8rem 0; }
+.splash .terms h2 { margin: 0; font-size: 1rem; line-height: 1.2; color: var(--ink); }
+.splash .terms h3 { margin: .7rem 0 .15rem; font-size: .88rem; color: var(--ink); }
+.splash .terms a { color: var(--act-deep); }
+/* a soft edge along the bottom of the box shows there is more to read */
+.splash .terms::after { content: ""; display: block; position: -webkit-sticky; position: sticky; bottom: 0; height: 1.1rem; background: var(--bg); -webkit-mask-image: linear-gradient(to bottom, transparent, #000); mask-image: linear-gradient(to bottom, transparent, #000); pointer-events: none; }
+/* a short screen (a small phone, the iPhone Duo's outside screen, a phone held sideways): tighter, so the terms keep some room */
+@media (max-height: 740px) {
+  .splash-card { gap: .7rem; padding: 1.1rem 1.2rem 1rem; }
+  .splash h1 { font-size: clamp(2rem, 9vw, 2.6rem); }
+  .splash img { height: 2.3rem; }
+}
 @media (prefers-reduced-motion: reduce) { .sheet.anim { transition: none; } }
 /* Wide screens (unfolded foldables, iPads, landscape): like Google Maps on a tablet, the search bar and the
    shelter tray become a panel down the left side and the map fills the rest. Phones keep the bottom tray. */
@@ -359,6 +376,7 @@ body.wide .sheet { left: 12px; right: auto; width: var(--panel-w); top: var(--pa
 body.wide .sheet[data-snap="peek"] { bottom: auto; max-height: calc(100% - var(--panel-top) - 12px); }
 body.wide .sheet[data-snap="peek"] .sheet-body { display: none; }
 body.wide .sheet-head { cursor: default; touch-action: auto; }
+body.wide .sheet[data-snap="peek"] .sheet-head { cursor: pointer; }
 body.wide .grab { display: none; }
 body.wide .sheet .sheet-body { touch-action: pan-y; padding-bottom: 0 !important; }
 body.wide .menu { right: auto; left: calc(12px + var(--panel-w)); transform: translateX(-100%); }
@@ -371,11 +389,16 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
 .boot-loop.done { opacity: 0; pointer-events: none; }
 .boot-loop ~ .splash { background: rgba(26,24,21,.12); }
 </style>
+<script>
+// Settings > Appearance: Light or Dark when one was picked (otherwise the phone decides). Set before the page is drawn.
+try { var sasTheme = JSON.parse(localStorage.getItem("sas.theme") || "null"); if (sasTheme === "light" || sasTheme === "dark") document.documentElement.setAttribute("data-theme", sasTheme); } catch (e) {}
+</script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="i-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M12 2v3.2M12 18.8V22M2 12h3.2M18.8 12H22"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="currentColor"/><path d="M8.5 14.5v-2.5a1.5 1.5 0 0 1 1.5-1.5h4.5M13 8.5l2 2-2 2" fill="none" style="stroke:var(--dir-arrow,#fff)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -437,6 +460,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       <button type="button" class="icon-btn" id="back" aria-label="Back" hidden><svg class="i"><use href="#i-back"/></svg></button>
       <h2 id="title">Tornado shelters</h2>
       <button type="button" class="icon-btn filled" id="close" aria-label="Close" hidden><svg class="i"><use href="#i-x"/></svg></button>
+      <button type="button" class="icon-btn filled" id="open" aria-label="Show the list" hidden><svg class="i"><use href="#i-down"/></svg></button>
     </div>
     <p class="sub" id="sub" aria-live="polite">Loading shelters…</p>
     <div class="chips" id="chips" role="group" aria-label="Filters" hidden>
@@ -484,7 +508,7 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
         <div class="row2 city"><label>City<input id="pf-city" autocomplete="address-level2"></label><label>State<input id="pf-state" autocomplete="address-level1" maxlength="2" placeholder="OK"></label></div>
         <label class="zip">ZIP<input id="pf-zip" autocomplete="postal-code" inputmode="numeric" maxlength="10"></label>
         <p class="fine err" id="pf-msg" aria-live="polite"></p>
-        <div class="btns"><button class="btn red" type="submit">Save Profile</button></div>
+        <div class="btns"><button class="btn red" type="submit" id="pf-save">Save Profile</button></div>
       </form>
     </div>
     <div class="pane settings acct" id="pane-add" hidden>
@@ -558,11 +582,12 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       <div class="set-row"><label for="set-notify" id="set-notify-l">Tornado Warnings</label><label class="switch"><input type="checkbox" id="set-notify" role="switch"><span></span></label></div>
       <p class="fine set-msg" id="set-perm-msg" hidden></p>
       <a class="set-row link" id="set-places" href="#places"><span>Home &amp; Work<span class="hint" id="set-places-v">Not set</span></span><span class="v"></span></a>
-      <div class="set-row"><label for="set-map">Map</label><select id="set-map"></select></div>
       <div class="set-row"><span>Shelters</span><span class="v" id="set-count"></span></div>
+      <div class="set-row"><label for="set-map">Map App</label><select id="set-map"></select></div>
+      <div class="set-row"><label for="set-theme">Appearance</label><select id="set-theme"><option value="auto">Match My Phone</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
       <div class="set-row"><span>My Device</span><span class="v" id="set-device"></span></div>
       <div class="set-row"><span>My OS</span><span class="v" id="set-os"></span></div>
-      <div class="set-row"><span>App Version</span><span class="v" id="set-version">2.0 (web)</span></div>
+      <div class="set-row"><span>My App Version</span><span class="v" id="set-version">2.0 (web)</span></div>
       <a class="set-row link" id="set-terms" href="#" target="_blank" rel="noopener"><span>Terms of Use</span><span class="v">Coming soon</span></a>
       <a class="set-row link" id="set-privacy" href="#" target="_blank" rel="noopener"><span>Privacy Policy</span><span class="v">Coming soon</span></a>
     </div>
@@ -658,7 +683,21 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
 <div class="splash" id="splash" hidden>
   <div class="splash-card" role="dialog" aria-modal="true" aria-labelledby="splash-title">
     <h1 id="splash-title">Tornado Shelter Finder</h1>
-    <p>By continuing you agree that Survive-A-Storm makes no warranties and is not liable for the accuracy and completeness of the data provided.</p>
+    <!-- The Tornado Shelter Finder section of the Terms page that Settings > Terms of Use opens
+         (https://survive-a-storm.com/terms/#tornado-shelter-finder), copied word for word on 2026-11-12.
+         When that page changes, copy the section here again. -->
+    <div class="terms" id="splash-terms" role="region" aria-label="Terms of Use" tabindex="0">
+      <h2>Tornado Shelter Finder &amp; Community Submission Tool</h2>
+      <h3>Data</h3>
+      <p>Shelter locations shown on this map are provided for <i><strong>informational purposes only</strong></i>. Survive-A-Storm Shelters does not own, operate, maintain, or guarantee the availability of any third-party or publicly listed shelter. Availability, access, and operating hours may change without notice; <i><strong>we cannot and do not guarantee</strong></i> that any location listed in this app is currently open, unlocked, staffed, or safe to occupy. Always have a personal emergency plan and do not rely solely on this app during a tornado warning or any other severe, extreme, or hazardous weather event.</p>
+      <h3>Proprietary Rights:</h3>
+      <p>Survive-A-Storm Shelters grants you a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to access and use the app for your personal shelter-finding purposes. This license does not permit you to: (a) copy, modify, or create derivative works of the Service; (b) reverse engineer, decompile, or disassemble any part of the Service, except to the extent this restriction is prohibited by applicable law; (c) extract, scrape, harvest, or re-utilize all or a substantial part of the contents of the Service or any database within it, whether by automated means or otherwise; (d) use the Service to build a competing product or service; or (e) remove or obscure any proprietary notice. The app makes available information sourced from public records, publicly accessible sources, and third parties ("Public Information"). Survive-A-Storm Shelters does not claim ownership of, and asserts no intellectual property rights in, the underlying Public Information itself. All rights in Public Information remain with the applicable rights holders or, where applicable, reside in the public domain. Nothing in these Terms transfers to you any rights in Public Information beyond those you may already hold at law. Survive-A-Storm’s Proprietary Rights extend only to our compilation, selection, arrangement, enrichment, and presentation of that information and to the app through which it is delivered. We make no representation that Public Information is accurate, complete, current, or fit for any purpose, and your use of it is at your own risk.</p>
+      <h3>Disclaimer &amp; Warranties</h3>
+      <p><i><strong>The Survive-A-Storm Shelter Finder aggregates shelter location data from public sources and unverified user submissions</strong></i>. Listings may include shelters that are privately owned, government-operated, or maintained by third parties not affiliated with Survive-A-Storm Shelters.. By using this app, you acknowledge that <i><strong>shelter locations are provided without verification, guarantee or warranty of any kind</strong></i>, and that <i><strong>Survive-A-Storm Shelters, its officers, employees, and affiliates are not liable for any injury, loss, or damage</strong></i> arising from the use of, or reliance on, this app or the information it contains. This tool is not a substitute for monitoring official weather alerts or following instructions from local emergency management and public safety officials. In the event of a tornado warning or any other severe, extreme, or hazardous weather event, always follow guidance from local authorities and the National Weather Service. Users should verify shelter availability locally and follow guidance from local emergency management officials.</p>
+      <h3>Contact Information</h3>
+      <p>Should you expect illegal behaviors, activities or general misuse of The Tornado Shelter Finder, please <a href="https://survive-a-storm.com/contact/" target="_blank" rel="noopener">contact</a> us immediately.</p>
+    </div>
+    <p>By continuing you agree to these terms.</p>
     <button class="btn red" type="button" id="agree" style="width:100%;justify-content:center">Find a Shelter Now</button>
     <button class="btn plain" type="button" id="agree-setup" style="width:100%;justify-content:center">Set Up Home &amp; Work</button>
     <p class="later">Tornado warnings for Home and Work. Takes a minute, or skip and do it later in Settings.</p>
@@ -733,12 +772,19 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     var h = vh();
     return { full: bandH(), half: Math.round(h * 0.5), peek: Math.round(h - head.offsetHeight - 6) };
   }
-  var safeTopPx = 0;
-  function bandH() { var h = $("#band").offsetHeight; document.documentElement.style.setProperty("--band-h", h + "px"); return h; }
+  var bandPx = -1;
+  function bandH() { var h = $("#band").offsetHeight; if (h !== bandPx) { bandPx = h; document.documentElement.style.setProperty("--band-h", h + "px"); } return h; }
   bandH();
+  // The phone can report its status bar a moment after the page starts (an app opened from a notification
+  // does), and it changes when the phone turns or unfolds: keep the map, the bars and the tray in step.
+  if (window.ResizeObserver) new ResizeObserver(function () {
+    var was = bandPx;
+    if (bandH() === was) return;
+    snapTo(snapName, false);
+    if (map) map.invalidateSize();
+  }).observe($("#band"));
   // the Survive-A-Storm logo at the top of the menu reuses the one already in the page
   $("#menu .brand").src = $(".splash img").src;
-  (function measureSafe() { var p = document.createElement("div"); p.style.cssText = "position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(p); safeTopPx = p.offsetHeight; p.remove(); })();
   function placeSheet(y, animate) {
     if (isWide()) {
       sheetY = vh(); sheet.classList.remove("anim"); sheet.style.transform = ""; body.style.paddingBottom = "";
@@ -757,7 +803,11 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   // X: on a search it goes back to the shelters near you; near you it lowers the tray, then hides
   // pages opened from the ☰ menu close with an X (top right), like the shelter list; details and Home & Work keep the back arrow
   var MENU_PANES = /^(saved|settings|feedback|profile|add)$/;
-  function closeVis() { $("#close").hidden = !(MENU_PANES.test(state.pane) || (state.pane === "list" && !(snapName === "peek" && state.label === "Near you"))); }
+  function closeVis() {
+    $("#close").hidden = !(MENU_PANES.test(state.pane) || (state.pane === "list" && !(snapName === "peek" && state.label === "Near you")));
+    // the side panel has no handle to drag: when it is closed down to its heading, a button opens it again
+    $("#open").hidden = !(isWide() && snapName === "peek");
+  }
   function snapTo(name, animate) {
     snapName = name; sheet.dataset.snap = name; closeVis();
     placeSheet(snaps()[name], animate !== false);
@@ -798,8 +848,13 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     sheet.addEventListener("pointercancel", function () { if (dragging) { dragging = false; if (moved) snapTo(snapName); } });
     sheet.addEventListener("click", function (e) { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
     $("#grab").addEventListener("click", function () { snapTo(snapName === "full" ? "half" : snapName === "half" ? "full" : "half"); });
+    // side panel closed down to its heading: its button, or a tap on the heading, opens it again
+    $("#open").addEventListener("click", function (e) { e.stopPropagation(); snapTo("half"); });
+    head.addEventListener("click", function (e) { if (isWide() && snapName === "peek" && !e.target.closest("button, a")) snapTo("half"); });
     window.addEventListener("resize", function () {
       var was = document.body.classList.contains("wide"); setWide();
+      // unfolding onto the wide screen: a lowered tray opens into the side panel, which has room for the list
+      if (!was && isWide() && snapName === "peek") snapName = "half";
       snapTo(snapName, false);
       if (map && was !== isWide()) setTimeout(function () { map.invalidateSize(); }, 0);
     });
@@ -1097,17 +1152,23 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   function shortArea(a) { return String(a || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3).join(", "); }
   function setLive(a) { live = a; save("liveAlert", a); if (a) { ended = null; save("liveEnded", null); } renderLive(); }
   // the warning is over: remember it for the green box, and let the red edge turn green and fade out
-  function endLive(area, test, id) {
-    var was = live;
-    ended = { area: area != null && area !== "" ? area : (was && was.area) || "", at: Date.now(), test: test != null ? test : !!(was && was.test), id: id || (was && was.id) || "" };
+  // (at: when it ended, for a warning that ran out while the app was closed; long ago means no green box at all)
+  function endLive(area, test, id, at) {
+    var was = live, when = at > 0 && at < Date.now() ? at : Date.now();
+    ended = { area: area != null && area !== "" ? area : (was && was.area) || "", at: when, test: test != null ? test : !!(was && was.test), id: id || (was && was.id) || "" };
     save("liveEnded", ended);
     live = null; save("liveAlert", null);
-    var f = $("#al-frame"); f.classList.remove("end"); void f.offsetWidth; f.classList.add("end"); f.hidden = false;
-    clearTimeout(fadeT); fadeT = setTimeout(function () { f.classList.remove("end"); renderLive(); }, 3100);
+    if (Date.now() - when < ENDED_MS) {
+      var f = $("#al-frame"); f.classList.remove("end"); void f.offsetWidth; f.classList.add("end"); f.hidden = false;
+      clearTimeout(fadeT); fadeT = setTimeout(function () { f.classList.remove("end"); renderLive(); }, 3100);
+    }
     renderLive();
+    // a Take Cover box still open for this warning turns into "Warning Ended"
+    var dlg = $("#alert-dialog");
+    if (was && dlg.open && dlg.dataset.kind === "warning" && dlg.dataset.alert === String(was.id || "")) showAlert({ kind: "tornado-clear", alert_id: ended.test ? (ended.id || "test") : ended.id, area: ended.test ? "TEST ONLY" : shortArea(ended.area) });
   }
   function renderLive() {
-    if (live && !(Date.parse(live.expires) > Date.now())) { endLive(); return; }
+    if (live && !(Date.parse(live.expires) > Date.now())) { endLive(null, null, null, Date.parse(live.expires)); return; }
     if (ended && !(Date.now() - ended.at < ENDED_MS)) { ended = null; save("liveEnded", null); }
     var f = $("#al-frame");
     f.hidden = !live && !f.classList.contains("end");
@@ -1636,10 +1697,12 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   // with sign-in live, adding a shelter needs a signed-in account plus My Details
   function signedIn(p) { return sb ? !!(p && p.uid) : profileReady(p); }
   function canAdd(p) { return signedIn(p) && profileReady(p); }
+  var pfT = null;
+  function pfNote(text, ok) { var m = $("#pf-msg"); m.textContent = text || ""; m.classList.toggle("ok", !!ok); }
   function renderProfile() {
     var p = profile(), on = signedIn(p);
     PF.forEach(function (k) { var el = $("#pf-" + k); el.value = p[k] || ""; el.removeAttribute("aria-invalid"); });
-    $("#pf-msg").textContent = "";
+    pfNote("");
     var st = $("#acct-state");
     st.textContent = on ? "Signed In" : "Signed Out"; st.classList.toggle("on", on);
     var who = (p.first ? p.first + " " + p.last : p.email || "").trim();
@@ -1693,12 +1756,13 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       resumeAfterSignIn();
     }, function () { resumeAfterSignIn(); });
   }
+  // saves My Details to the signed-in account; answers true or false once the account has (or hasn't) taken it
   function pushProfile(p) {
-    if (!sb || !p.uid) return;
+    if (!sb || !p.uid) return null;
     var row = { id: p.uid, updated_at: new Date().toISOString() };
     PF.forEach(function (k) { row[DB[k]] = p[k] || (k === "first" || k === "last" ? "" : null); });
     if (row.state && !/^[A-Z]{2}$/.test(row.state)) row.state = null;
-    sb.from("profiles").upsert(row).then(function (r) { if (r && r.error) console.warn("profile save", r.error.message); });
+    return sb.from("profiles").upsert(row).then(function (r) { if (r && r.error) { console.warn("profile save", r.error.message); return false; } return true; }, function () { return false; });
   }
   if (sb) {
     sb.auth.getSession().then(function (r) { if (r.data && r.data.session) adoptUser(r.data.session.user); });
@@ -1723,13 +1787,25 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       var ok = !!p[f[0]] && (f[0] !== "email" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email));
       $("#pf-" + f[0]).setAttribute("aria-invalid", String(!ok)); if (!ok && !bad) bad = f[1];
     });
-    if (bad) { $("#pf-msg").textContent = "Please add a valid " + bad + "."; return; }
+    if (bad) { pfNote("Please add a valid " + bad + "."); return; }
     p.saved_at = new Date().toISOString();
-    save("profile", p); pushProfile(p);
+    save("profile", p);
+    var sent = pushProfile(p);
     if (resumeAfterSignIn()) return;
     renderProfile();
     $("#acct-note").textContent = canAdd(p) ? "Profile saved. You can add shelters." : "Profile saved. Sign in above to add shelters.";
+    // say so right by the button too: the note above is out of sight by the time the form is filled in
+    var btn = $("#pf-save"), done = function (ok) {
+      btn.disabled = false; btn.textContent = ok ? "Saved" : "Save Profile";
+      pfNote(ok ? "Profile saved." : "Saved on this phone, but not to your account yet. Check your connection and tap Save Profile again.", ok);
+      clearTimeout(pfT); if (ok) pfT = setTimeout(function () { btn.textContent = "Save Profile"; }, 2500);
+    };
+    if (!sent) { done(true); return; }
+    btn.disabled = true; btn.textContent = "Saving…";
+    sent.then(done);
   });
+  // editing after a save clears the "Profile saved." note
+  $("#profile-form").addEventListener("input", function () { if ($("#pf-msg").classList.contains("ok")) pfNote(""); });
   $("#sso").addEventListener("click", function (e) {
     var b = e.target.closest("[data-sso]"); if (!b) return;
     var provider = b.dataset.sso;
@@ -2043,6 +2119,18 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
   document.addEventListener("sas:mapapps", refreshMapApps);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshMapApps(); });
   $("#set-map").addEventListener("change", function () { state.provider = this.value; save("provider", state.provider); refreshDirLinks(); });
+  // Appearance: "auto" follows the phone's own light or dark setting; Light and Dark hold the app to one look
+  // (data-theme on the page, which the colours at the top of the styles read). In the app the clock and
+  // battery at the top follow: dark on the light strip, white on the dark one.
+  function applyTheme() {
+    var t = load("theme", "auto");
+    if (t !== "light" && t !== "dark") t = "auto";
+    if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
+    if (APP.statusText) APP.statusText(t);
+    return t;
+  }
+  $("#set-theme").value = applyTheme();
+  $("#set-theme").addEventListener("change", function () { save("theme", this.value); applyTheme(); });
   $("#set-device").textContent = deviceLabel().replace((APP.name || "Shelter Finder website 2.0") + " on ", "");
   $("#set-os").textContent = osFromUA() || "Unknown";
   wirePerms();
@@ -2142,7 +2230,8 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     return APP.push.register().then(function (token) {
       save("pushToken", token);
       return sb.rpc("register_push_device", {
-        p_token: token, p_platform: APP.channel || "android",
+        // "android/2": an Android phone that has the alert channels with their own buzz (APP.push.alertKit)
+        p_token: token, p_platform: (APP.channel || "android") + (APP.push.alertKit ? "/" + APP.push.alertKit : ""),
         p_lat: state.here ? +state.here.lat.toFixed(3) : null, p_lng: state.here ? +state.here.lng.toFixed(3) : null,
         p_places: slim, p_warnings: true, p_watches: load("watches", false) === true
       });
@@ -2182,17 +2271,18 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     var key = "nws." + (ended ? "end." : "") + id, have = load(key, null);
     if (have) return Promise.resolve(have);
     var pick = function (p) { return { headline: p.headline || "", description: p.description || "", instruction: p.instruction || "", type: p.messageType || "", expires: p.expires || p.ends || "" }; };
-    var go = nwsFetch(id).then(function (p) {
-      if (!ended) return pick(p);
-      // follow the chain of updates to the newest message about this warning
-      var hop = function (q, n) {
-        var next = (q.replacedBy || "").split("/").pop();
-        if (!next || n > 4) return pick(q);
-        return nwsFetch(next).then(function (r) { return hop(r, n + 1); }, function () { return pick(q); });
-      };
-      return hop(p, 0).then(function (t) { if (t.type !== "Cancel") { t.ended = "expired"; } return t; });
-    });
+    var go = ended ? nwsNewest(id).then(function (q) { var t = pick(q); if (t.type !== "Cancel") { t.ended = "expired"; } return t; })
+      : nwsFetch(id).then(pick);
     return go.then(function (t) { save(key, t); return t; });
+  }
+  // The newest Weather Service message about a warning: updates and cancellations replace the first one (replacedBy).
+  function nwsNewest(id) {
+    var hop = function (q, n) {
+      var next = (q.replacedBy || "").split("/").pop();
+      if (!next || n > 4) return q;
+      return nwsFetch(next).then(function (r) { return hop(r, n + 1); }, function () { return q; });
+    };
+    return nwsFetch(id).then(function (p) { return hop(p, 0); });
   }
   function testText(clear) {
     var now = new Date(), until = new Date(now.getTime() + 3 * 60e3);
@@ -2218,10 +2308,25 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       $("#al-full").hidden = !any;
     }, function () {});
   }
+  // When a warning is over: a real one at the time the Weather Service gave; a test 3 minutes after it was
+  // sent (the alert server says when in "sent"; its older tests carry an expiry 30 minutes after sending).
+  var TEST_MS = 3 * 60e3;
+  function alertIsTest(d) { return /^test/.test(d.alert_id || "") || /^TEST ONLY/.test(d.area || ""); }
+  function alertEnds(d) {
+    var exp = Date.parse(d.expires);
+    if (d.fixed || !alertIsTest(d)) return exp || Date.now() + 45 * 60e3;
+    var sent = Date.parse(d.sent) || (exp ? exp - 30 * 60e3 : Date.now());
+    return Math.min(exp || Infinity, sent + TEST_MS);
+  }
+  // the warning on screen now, in the shape a notification has ("fixed": its end time is already worked out)
+  function liveAlert() { return { kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here", fixed: true }; }
+  var alertSeq = 0;
   function showAlert(d) {
+    var seq = ++alertSeq;   // a newer alert (or "Warning Ended") takes over from one still waiting for the phone's location
     if (d && d.kind === "tornado-clear") {
       var area = String(d.area || "").trim();
       if (live) endLive(area, /^test/.test(d.alert_id || "") || area === "TEST ONLY", d.alert_id);
+      $("#alert-dialog").dataset.kind = "ended"; $("#alert-dialog").dataset.alert = String(d.alert_id || "");
       $("#alert-dialog").classList.add("ended");
       $("#al-kicker").textContent = "Warning Ended";
       $("#al-title").textContent = "Tornado Warning Is Over";
@@ -2234,17 +2339,32 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
       return;
     }
     if (!d || d.kind !== "tornado") return;
-    $("#alert-dialog").classList.remove("ended");
-    var isTest = /^test/.test(d.alert_id || "") || /^TEST ONLY/.test(d.area || "");
-    showNwsText(isTest ? "" : String(d.alert_id || ""), isTest, false);
-    $("#al-shelters").hidden = false;
-    var isWarning = d.event !== "Tornado Watch", pl = places();
+    var isTest = alertIsTest(d), isWarning = d.event !== "Tornado Watch", pl = places(), aid = String(d.alert_id || "");
     if (isWarning) {
-      var test = isTest, exp = d.expires || new Date(Date.now() + 45 * 60e3).toISOString();
-      if (test) exp = new Date(Math.min(Date.parse(exp) || Infinity, Date.now() + 3 * 60e3)).toISOString(); // tests clear after 3 minutes
-      setLive({ id: d.alert_id || "", event: d.event || "Tornado Warning", area: d.area || "", expires: exp, test: test });
+      var ends = alertEnds(d);
+      if (!(ends > Date.now())) {
+        // an old notification: this warning is already over. A different warning in effect right now comes first.
+        if (live && live.id !== aid && Date.parse(live.expires) > Date.now()) { showAlert(liveAlert()); return; }
+        var over = function () { showAlert({ kind: "tornado-clear", alert_id: isTest ? (aid || "test") : aid, area: isTest ? "TEST ONLY" : shortArea(d.area) }); };
+        if (isTest || !aid || d.fixed) { over(); return; }
+        // the Weather Service may have extended it under a newer message: ask before saying it is over
+        var settled = false, settle = function (f) { if (!settled && seq === alertSeq) { settled = true; f(); } };
+        nwsNewest(aid).then(function (q) {
+          var exp = Date.parse(q.expires || q.ends);
+          if (q.messageType !== "Cancel" && exp > Date.now()) settle(function () { showAlert({ kind: "tornado", alert_id: String(q.id || aid), event: d.event, area: q.areaDesc || d.area, expires: new Date(exp).toISOString(), where: d.where, fixed: true }); });
+          else settle(over);
+        }, function () { settle(over); });
+        setTimeout(function () { settle(over); }, 4000);
+        return;
+      }
+      setLive({ id: aid, event: d.event || "Tornado Warning", area: d.area || "", expires: new Date(ends).toISOString(), test: isTest });
     }
+    $("#alert-dialog").dataset.kind = isWarning ? "warning" : "watch"; $("#alert-dialog").dataset.alert = aid;
+    $("#alert-dialog").classList.remove("ended");
+    showNwsText(isTest ? "" : aid, isTest, false);
+    $("#al-shelters").hidden = false;
     function decide(pos) {
+      if (seq !== alertSeq) return;
       var at = null;
       ["home", "work"].forEach(function (k) {
         var v = pl[k]; if (at || !v || v.lat == null) return;
@@ -2262,7 +2382,8 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
         $("#al-title").textContent = "Take Cover Now";
         $("#al-text").textContent = (name && pl[at].safe === "no" ? "You told us " + name + " has no safe room or basement. " : "") + "Go to the nearest shelter now. If you can't get there in time, go to the lowest floor, an interior room away from windows.";
       }
-      $("#al-area").textContent = (d.area ? d.area : "") + (d.expires ? (d.area ? " · " : "") + "Until " + fmtTime(new Date(d.expires)) : "") + " · National Weather Service";
+      var until = isWarning ? ends : Date.parse(d.expires);
+      $("#al-area").textContent = (d.area ? d.area : "") + (until ? (d.area ? " · " : "") + "Until " + fmtTime(new Date(until)) : "") + " · National Weather Service";
       $("#al-shelters").textContent = safe ? "Show Nearest Shelters Instead" : "Show Nearest Shelters";
       if (!$("#alert-dialog").open) { $("#alert-dialog").showModal(); $("#alert-dialog").focus(); }
       // unless they're sheltering at Home/Work, put the nearest shelters on screen right away
@@ -2288,23 +2409,29 @@ body.wide .area-btn { left: calc(12px + var(--panel-w) + (100vw - 12px - var(--p
     $("#alert-dialog").close();
   });
   $("#al-live").addEventListener("click", function () {
-    if (live) showAlert({ kind: "tornado", alert_id: live.id, event: live.event, area: live.area, expires: live.expires, where: "here" });
+    if (live) showAlert(liveAlert());
     else if (ended) showAlert({ kind: "tornado-clear", alert_id: ended.test ? "test" : (ended.id || ""), area: shortArea(ended.area) });
   });
   renderLive(); setInterval(renderLive, 30000);
   $("#al-shelters").addEventListener("click", function () { $("#alert-dialog").close(); showNearest(state.here); });
-  // The sounds: the notification plays them when the app is closed; when the app is open, play them here, once.
+  // The sounds and the buzz: the notification makes them when the app is closed; when the app is open, make them here, once.
   var sounds = {};
   function playSound(name) {
     try {
       var a = sounds[name] || (sounds[name] = new Audio("data/" + name + ".mp3"));
       a.currentTime = 0; a.play().catch(function () {});
     } catch (e) {}
+    try { if (APP.push && APP.push.buzz) APP.push.buzz(name); } catch (e) {}
   }
   if (APP.push) APP.push.onTap(function (d, foreground) {
-    if (foreground && d && d.kind === "tornado" && d.event !== "Tornado Watch") playSound("tornado-alarm");
+    if (foreground && d && d.kind === "tornado" && d.event !== "Tornado Watch" && alertEnds(d) > Date.now()) playSound("tornado-alarm");
     if (foreground && d && d.kind === "tornado-clear") playSound("tornado-ended");
     showAlert(d);
+    // an old warning notification, tapped after its "Warning Ended" notification came in: it is over
+    if (!foreground && d && d.kind === "tornado" && d.alert_id && APP.push.delivered) APP.push.delivered().then(function (list) {
+      var end = (list || []).filter(function (n) { return n && n.kind === "tornado-clear" && n.alert_id === d.alert_id; })[0];
+      if (end) showAlert(end);
+    }, function () {});
   });
 
   // startup tornado loop: stays until the map is ready and the agree card is closed

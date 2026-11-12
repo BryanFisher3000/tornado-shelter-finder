@@ -43,6 +43,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- the buzz for a tornado alert that arrives while the app is open -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <queries>
         <!-- maps apps the Settings page can offer for Directions -->

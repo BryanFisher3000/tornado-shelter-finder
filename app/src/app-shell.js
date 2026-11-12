@@ -18,6 +18,18 @@
   var Launcher = Cap.registerPlugin("AppLauncher");
   var Browser = Cap.registerPlugin("Browser");
   var Device = Cap.registerPlugin("Device");
+  // this app's own native helpers (iPhone: SasNativePlugin.swift, Android: SasNativePlugin.java)
+  var Native = Cap.registerPlugin("SasNative");
+  function native(method, options) {
+    if (!Native || !Native[method]) return Promise.reject(new Error("unavailable"));
+    try { return Promise.resolve(Native[method](options || {})); } catch (e) { return Promise.reject(e); }
+  }
+
+  // A web page shown inside the app (iPhone): a sheet on a phone. On a wide screen, such as an unfolded
+  // iPhone Duo, that "popover" style comes up as a small empty box, so there the page takes the whole screen.
+  function inAppPage(url) {
+    return Browser.open({ url: url, presentationStyle: window.innerWidth >= 600 ? "fullscreen" : "popover" });
+  }
 
   // Sign-in: open the Google/Apple/Facebook page in a browser sheet; it comes back to
   // com.surviveastorm.shelterfinder://auth?code=..., which Android/iOS hand to the app.
@@ -25,7 +37,7 @@
   var OAUTH_RETURN = "com.surviveastorm.shelterfinder://auth";
   window.SAS_APP.oauth = {
     redirect: OAUTH_RETURN,
-    open: function (url) { return Browser.open({ url: url, presentationStyle: "popover" }); },
+    open: function (url) { return inAppPage(url); },
     onReturn: function (cb) {
       AppPlugin.addListener("appUrlOpen", function (e) {
         if (!e || !e.url || e.url.indexOf(OAUTH_RETURN) !== 0) return;
@@ -77,6 +89,12 @@
   };
   // Tornado alert pushes (Firebase Cloud Messaging). register() resolves with this phone's push token.
   var Push = Cap.registerPlugin("PushNotifications");
+  // How the phone buzzes, as [wait, buzz, pause, buzz, ...] in milliseconds: a Tornado Warning is three
+  // long buzzes, twice over; Warning Ended is two short ones.
+  var BUZZ = {
+    "tornado-alarm": [0, 900, 300, 900, 300, 900, 900, 900, 300, 900, 300, 900],
+    "tornado-ended": [0, 250, 200, 250]
+  };
   var pushTap = [], pushPending = [];
   if (Push && Push.addListener) {
     // tapped a notification (the app may have been closed): hand its data to the page
@@ -97,6 +115,13 @@
           Push.createChannel({ id: "tornado-alarm", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, visibility: 1, vibration: true, lights: true, lightColor: "#D0021B", sound: "tornado_alarm.mp3" }),
           Push.createChannel({ id: "tornado-watches", name: "Tornado Watches", description: "Conditions are right for tornadoes", importance: 4, visibility: 1 }),
           Push.createChannel({ id: "tornado-ended", name: "Warning Ended", description: "A tornado warning you were sent has ended", importance: 4, visibility: 1, sound: "tornado_ended.mp3" }),
+          // Android: the same two with their own buzz (a channel's vibration can't change either, hence "-2").
+          // The alert server uses these for a phone that says it has them (alertKit below); the two above
+          // stay for the server that doesn't yet.
+          platform !== "android" ? null : Promise.all([
+            native("createAlertChannel", { id: "tornado-alarm-2", name: "Tornado Warnings", description: "A tornado warning at your location, Home or Work", importance: 5, lightColor: "#D0021B", sound: "tornado_alarm.mp3", vibration: BUZZ["tornado-alarm"] }),
+            native("createAlertChannel", { id: "tornado-ended-2", name: "Warning Ended", description: "A tornado warning you were sent has ended", importance: 4, sound: "tornado_ended.mp3", vibration: BUZZ["tornado-ended"] })
+          ]).then(function () { window.SAS_APP.push.alertKit = 2; }, function () {}),
           Push.deleteChannel ? Push.deleteChannel({ id: "tornado-warnings" }).catch(function () {}) : null,
           Push.deleteChannel ? Push.deleteChannel({ id: "tornado-updates" }).catch(function () {}) : null
         ]).catch(function () {}) : Promise.resolve();
@@ -111,7 +136,29 @@
         });
       });
     },
-    onTap: function (f) { pushTap.push(f); pushPending.splice(0).forEach(function (d) { f(d, false); }); }
+    onTap: function (f) { pushTap.push(f); pushPending.splice(0).forEach(function (d) { f(d, false); }); },
+    // Which set of alert sounds and buzzes this phone has, told to the alert server when the phone
+    // registers (2: the Android channels with their own buzz, set once they exist).
+    alertKit: 0,
+    // Buzzes the phone for an alert that arrives while the app is open: "tornado-alarm" or "tornado-ended".
+    // (A closed app gets the notification's own buzz: the channel's on Android, the standard one on iPhone.)
+    buzz: function (name) { if (BUZZ[name]) native("vibrate", { pattern: BUZZ[name] }).catch(function () {}); },
+    // the data of the alert notifications still listed on the phone (iPhone keeps a warning's notification
+    // next to its "Warning Ended" one; Android replaces it)
+    delivered: function () {
+      if (!Push.getDeliveredNotifications) return Promise.resolve([]);
+      return Push.getDeliveredNotifications().then(function (r) {
+        return ((r && r.notifications) || []).map(function (n) { return (n && n.data) || {}; });
+      }, function () { return []; });
+    }
+  };
+
+  // The clock and battery at the top of the screen, for the look picked in Settings > Appearance:
+  // "dark" makes them white (the strip behind them is dark), "light" dark, anything else follows the phone.
+  var StatusBar = Cap.registerPlugin("StatusBar");
+  window.SAS_APP.statusText = function (theme) {
+    if (!StatusBar || !StatusBar.setStyle) return;
+    try { Promise.resolve(StatusBar.setStyle({ style: theme === "dark" ? "DARK" : theme === "light" ? "LIGHT" : "DEFAULT" })).catch(function () {}); } catch (e) {}
   };
 
   // Opens this app's page in the phone's Settings, where a denied permission can be turned back on.
@@ -142,7 +189,8 @@
   // iPhone answers "yes" for maps:// even after Apple Maps has been removed from the phone, so the
   // only way to learn that it is missing is a Directions tap that fails to open it (openAppleMaps
   // below). That is remembered until the next app version, in case Maps has been put back.
-  var NO_APPLE = "sas.noAppleMaps", noAppleTag = JSON.stringify(String(window.SAS_APP.version || ""));
+  // ("/u": found out the quiet way, see openAppleMaps; a phone marked by the older maps:// check is asked once more.)
+  var NO_APPLE = "sas.noAppleMaps", noAppleTag = JSON.stringify(String(window.SAS_APP.version || "") + "/u");
   var appleGoneNow = false;
   function appleGone() {
     if (appleGoneNow) return true;
@@ -193,6 +241,11 @@
       return !!ok;
     });
   }
+  // true: the app that owns this https link opened it. false: no app on the phone took it, and the
+  // phone showed nothing. null: this build has no such helper.
+  function openInOwnApp(url) {
+    return native("openUniversalLink", { url: url }).then(function (r) { return !!(r && r.completed); }, function () { return null; });
+  }
   // Apple Maps, or on a phone that turns out not to have it, the same destination in a map app it does have.
   function openAppleMaps(app, url) {
     var dest = (url.match(/[?&]daddr=([^&]+)/) || [])[1];
@@ -205,13 +258,20 @@
       });
     }
     if (appleGone()) return other();   // a Directions link drawn before the list of map apps changed
-    return tryOpen(app).then(function (ok) {
-      if (ok) return true;
-      // "Nothing can open maps://" while this app is on screen means Apple Maps is not on the phone.
-      // It only counts once another map link does open: when nothing opens, the phone is blocking
-      // the switch to other apps and Apple Maps may well be there.
-      var missing = ok === false && document.visibilityState === "visible";
+    // "Nothing can open it" while this app is on screen means Apple Maps is not on the phone.
+    // It only counts once another map link does open: when nothing opens, the phone is blocking
+    // the switch to other apps and Apple Maps may well be there.
+    function elsewhere(missing) {
+      missing = missing && document.visibilityState === "visible";
       return other().then(function (opened) { if (missing && opened) markAppleGone(); return opened; });
+    }
+    // The quiet way first: hand the maps.apple.com link to the Maps app only. Without Maps the phone
+    // just answers no. Opening maps:// there makes iPhone put up its own "Restore Maps?" box, so that
+    // is left for a build without the helper.
+    return openInOwnApp(url).then(function (ok) {
+      if (ok) return true;
+      if (ok === false) return elsewhere(true);
+      return tryOpen(app).then(function (ok2) { return ok2 ? true : elsewhere(ok2 === false); });
     });
   }
   function openMapLink(url) {
@@ -229,7 +289,7 @@
       return openMapLink(url);
     }
     if (/^(mailto|tel|sms):/.test(url)) return openApp(url);
-    return Browser.open({ url: url, presentationStyle: "popover" });
+    return inAppPage(url);
   }
 
   // Google street map (Maps SDK for Android, free for apps). The Google map is drawn by Android
