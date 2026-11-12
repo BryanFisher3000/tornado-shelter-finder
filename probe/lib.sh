@@ -1,0 +1,33 @@
+# Shared by the steps of the one-off check: run the probe app in one mode, print its notes and screenshots.
+BID=com.surviveastorm.duoprobe
+shot() {
+  for d in 1 3; do
+    f="$1-d$d"
+    if xcrun simctl io "$UDID" screenshot --display=$d --type=png "$f.png" >/dev/null 2>shot.err; then
+      sips -s format jpeg -s formatOptions 42 -Z 1000 "$f.png" --out "$f.jpg" >/dev/null 2>&1 || { echo "no jpeg $f"; continue; }
+      size=$(stat -f %z "$f.jpg")
+      sum=$(md5 -q "$f.jpg")
+      if [ "$size" -lt 9000 ]; then echo "display $d for $1: blank ($size bytes)"; continue; fi
+      if [ "$d" = 3 ] && [ "$sum" = "$(cat last-d3.md5 2>/dev/null)" ]; then echo "display 3 for $1: unchanged"; continue; fi
+      [ "$d" = 3 ] && echo "$sum" > last-d3.md5
+      echo "===SHOT $f $(sips -g pixelWidth -g pixelHeight "$f.png" | tail -2 | tr '\n' ' ')==="; base64 -b 76 -i "$f.jpg"; echo "===END $f==="
+    else echo "display $d for $1: no screenshot: $(head -c 160 shot.err | tr '\n' ' ')"; fi
+  done
+}
+macshot() {
+  if screencapture -x "$1.png" 2>shot.err; then
+    sips -s format jpeg -s formatOptions 40 -Z 1500 "$1.png" --out "$1.jpg" >/dev/null 2>&1 || return 0
+    echo "===SHOT $1 $(sips -g pixelWidth -g pixelHeight "$1.png" | tail -2 | tr '\n' ' ')==="; base64 -b 76 -i "$1.jpg"; echo "===END $1==="
+  else echo "no Mac screenshot: $(head -c 200 shot.err)"; fi
+}
+run() {
+  label="$1"; shift
+  xcrun simctl terminate "$UDID" $BID 2>/dev/null || true
+  DATA=$(xcrun simctl get_app_container "$UDID" $BID data 2>/dev/null) && rm -f "$DATA/Documents/result.txt"
+  xcrun simctl launch "$UDID" $BID "$@" || echo "launch failed"
+  sleep "${WAIT:-9}"
+  DATA=$(xcrun simctl get_app_container "$UDID" $BID data)
+  echo "--- result $label"
+  grep -v -E "LayoutRegionWithCornerAdaptation|selectors |\[t\+0\.05\]|\[t\+1\.20\]|\[t\+6\.00\]|\"why\":\"(extra|after-extra|vv-resize)\"" "$DATA/Documents/result.txt" || echo "(no result file)"
+  shot "$label"
+}

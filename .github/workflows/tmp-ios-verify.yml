@@ -1,0 +1,108 @@
+# One-off check, not part of the app: compiles the iPhone app for Apple's simulator and looks at the
+# iPhone Duo fixes there. Runs only on pushes to the tmp-ios-maps-probe branch (a throwaway branch,
+# never merged).
+name: One-off check - iPhone build and iPhone Duo screens
+on:
+  push:
+    branches: [tmp-ios-maps-probe]
+jobs:
+  verify:
+    runs-on: xcode-27
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: Pick newest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|candidate' | sort -V | tail -1)
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
+      - name: Start the iPhone Duo simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          best = None
+          for rt, devs in json.load(sys.stdin)["devices"].items():
+              if "iOS" not in rt: continue
+              key = [int(n) for n in rt.split("iOS-")[-1].split("-") if n.isdigit()]
+              for d in devs:
+                  if d["name"] == "iPhone Duo" and (best is None or key > best[0]): best = (key, d["udid"])
+          print(best[1])')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+      - name: Build the web app
+        working-directory: app
+        run: npm ci --no-audit --no-fund >/dev/null && npm run build && npx cap sync ios | tail -n 25
+      - name: Compile the iPhone app for the simulator
+        working-directory: app/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO build > "$RUNNER_TEMP/build.log" 2>&1 || { echo "BUILD FAILED"; grep -n -E "error:|\.swift:[0-9]+:[0-9]+: (error|warning)" "$RUNNER_TEMP/build.log" | head -60; tail -n 40 "$RUNNER_TEMP/build.log"; exit 1; }
+          grep -E "warning: .*(SasNative|MainViewController|SceneDelegate)|\*\* BUILD" "$RUNNER_TEMP/build.log" | head -20
+          APP="$RUNNER_TEMP/dd/Build/Products/Debug-iphonesimulator/App.app"
+          ls "$APP" | grep -E "wav$|^public$|GoogleService|Info.plist"
+          ls -la "$APP"/*.wav
+          echo "APP=$APP" >> "$GITHUB_ENV"
+      - name: Build the probe app
+        if: always()
+        working-directory: probe
+        run: |
+          mkdir -p Probe.app
+          xcrun -sdk iphonesimulator clang -fobjc-arc -fmodules -Wno-deprecated-declarations -target arm64-apple-ios27.1-simulator Probe.m -o Probe.app/Probe -framework UIKit -framework WebKit -framework SafariServices
+          cp Info.plist test.html Probe.app/
+          cp -R ../app/www Probe.app/www
+          echo "[]" > Probe.app/candidates.json
+          codesign --force -s - Probe.app
+      - name: Outside screen
+        if: always()
+        run: |
+          source probe/lib.sh
+          xcrun simctl bootstatus "$UDID" -b | tail -3
+          xcrun simctl install "$UDID" probe/Probe.app
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 81 --cellularBars 3 --dataNetwork 5g || true
+          WAIT=13 run o-app app-nobar
+          WAIT=14 run o-menu app-nobar "eval:document.querySelector('#menu-btn').click()"
+          WAIT=14 run o-full app-nobar "eval:document.querySelector('#grab').click()"
+          if [ -n "$APP" ] && [ -d "$APP" ]; then
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl privacy "$UDID" grant location com.surviveastorm.shelterfinder || true
+            xcrun simctl location "$UDID" set 37.6872,-97.3301 || true
+            xcrun simctl launch "$UDID" com.surviveastorm.shelterfinder || echo "real app launch failed"
+            sleep 16
+            shot o-real
+            xcrun simctl terminate "$UDID" com.surviveastorm.shelterfinder || true
+          fi
+      - name: Try to unfold
+        if: always()
+        run: |
+          source probe/lib.sh
+          xcrun simctl io "$UDID" enumerate 2>&1 | grep -E "Port Identifier|Class:|Screen ID|Name:|Power state|UI Orientation" | head -60
+          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
+          sleep 14
+          macshot mac-before
+          perl -e 'alarm 420; exec @ARGV' python3 probe/unfold.py "$UDID" com.surviveastorm.duoprobe 2>&1 | tee unfold.log || true
+          macshot mac-after
+          if grep -q "UNFOLDED BY: (" unfold.log; then echo "UNFOLDED=1" >> "$GITHUB_ENV"; fi
+      - name: Inside screen
+        if: always() && env.UNFOLDED == '1'
+        run: |
+          source probe/lib.sh
+          run i-web web
+          run i-nobar web-nobar
+          WAIT=13 run i-app app
+          WAIT=13 run i-appnobar app-nobar
+          WAIT=14 run i-closed app-nobar "eval:(function(){var c=document.querySelector('#close');if(!c.hidden)c.click();})()"
+          WAIT=12 run i-safpop safari-popover
+          WAIT=12 run i-saffull safari-full
+          # sideways
+          osascript -e 'tell application "Simulator" to activate' -e 'tell application "System Events" to tell process "Simulator" to click menu item "Rotate Left" of menu 1 of menu bar item "Device" of menu bar 1' || true
+          sleep 5
+          run l-web web
+          WAIT=13 run l-app app
+          WAIT=13 run l-appnobar app-nobar
+          WAIT=12 run l-safpop safari-popover
+          WAIT=12 run l-saffull safari-full
+          macshot mac-end
