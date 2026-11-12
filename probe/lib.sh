@@ -25,8 +25,12 @@ run() {
   xcrun simctl terminate "$UDID" $BID 2>/dev/null || true
   DATA=$(xcrun simctl get_app_container "$UDID" $BID data 2>/dev/null) && rm -f "$DATA/Documents/result.txt"
   xcrun simctl launch "$UDID" $BID "$@" || echo "launch failed"
-  sleep "${WAIT:-9}"
   DATA=$(xcrun simctl get_app_container "$UDID" $BID data)
+  case "$*" in
+    *eval:*) # a page check: wait until the probe says it is done (the page can take a while to load on this Mac)
+      for i in $(seq 1 35); do sleep 2; grep -q "probe done" "$DATA/Documents/result.txt" 2>/dev/null && break; done;;
+    *) sleep "${WAIT:-9}";;
+  esac
   echo "--- result $label"
   grep -v -E "LayoutRegionWithCornerAdaptation|selectors |\[t\+0\.05\]|\[t\+1\.20\]|\[t\+6\.00\]|\"why\":\"(extra|after-extra|vv-resize)\"" "$DATA/Documents/result.txt" || echo "(no result file)"
   shot "$label"
@@ -47,7 +51,7 @@ size_now() { # "<width> <height>" in points of the screen the probe app was last
   local data; data=$(xcrun simctl get_app_container "$UDID" $BID data 2>/dev/null) || return 0
   sed -n -E 's/.* screen x[0-9.]+ y[0-9.]+ w([0-9]+)\.[0-9] h([0-9]+)\.[0-9] .*/\1 \2/p' "$data/Documents/result.txt" 2>/dev/null | tail -1
 }
-sideways() { set -- $(size_now); [ -n "$2" ] && [ "$1" -gt "$2" ]; }
+tall() { set -- $(size_now); [ -n "$2" ] && [ "$2" -gt "$1" ]; }   # the unfolded phone turned a quarter: 669 x 951
 hub() { # press one of Device Hub's buttons by its label (of several, the one next to the fold buttons); if it cannot be pressed, click it
   ./ax "$HUBPID" press "$1" "Partially Open" </dev/null && return 0
   open "$HUB" 2>/dev/null; sleep 2

@@ -1,6 +1,6 @@
 // One-off probe, not part of the app. Shows a full-screen web view the way the app does and writes
 // what the iPhone Duo simulator reports (safe areas, reserved regions, the vertical bar) to
-// Documents/result.txt. Launch arguments: <mode> [eval:<javascript>]
+// Documents/result.txt. Launch arguments: <mode> [eval:<javascript>] (the javascript runs 4 seconds after the page has loaded)
 //   web | web-nobar          ruler page; -nobar turns the vertical bar off
 //   app | app-nobar          the app page from the www folder; add the argument "first" to start on the first screen
 //   safari-popover | safari-full   in-app browser over the ruler page, the two ways the app can show it
@@ -71,6 +71,7 @@ static void listSelectors(Class cls, BOOL meta) {
 @property (nonatomic, copy) NSString *evalJS;
 @property (nonatomic) BOOL noBar;
 @property (nonatomic, copy) NSString *lastLayout;
+@property (nonatomic) BOOL evalStarted;
 @end
 
 @implementation ProbeVC
@@ -120,12 +121,6 @@ static void listSelectors(Class cls, BOOL meta) {
     }
     if ([self.mode hasPrefix:@"app"]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(7.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ [self appMetrics:@"app t+7"]; });
-    }
-    if (self.evalJS.length) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self.web evaluateJavaScript:self.evalJS completionHandler:^(id r, NSError *e) { plog([NSString stringWithFormat:@"eval -> %@ %@", r, e ? e.localizedDescription : @""]); }];
-        });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(11.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ [self appMetrics:@"app after eval"]; });
     }
 }
 - (void)appMetrics:(NSString *)tag {
@@ -204,7 +199,19 @@ static void listSelectors(Class cls, BOOL meta) {
     plog([NSString stringWithFormat:@"traits h%ld v%ld verticalBarEdge %ld", (long)self.traitCollection.horizontalSizeClass, (long)self.traitCollection.verticalSizeClass, (long)self.traitCollection.verticalBarEdge]);
 }
 - (void)userContentController:(WKUserContentController *)c didReceiveScriptMessage:(WKScriptMessage *)m { plog([NSString stringWithFormat:@"web: %@", m.body]); }
-- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation { plog(@"web didFinishNavigation"); }
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+    plog(@"web didFinishNavigation");
+    // the page check runs once the page is in, however long that took on this Mac; "probe done" tells the script to read the notes
+    if (self.evalJS.length == 0 || self.evalStarted) return;
+    self.evalStarted = YES;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self.web evaluateJavaScript:self.evalJS completionHandler:^(id r, NSError *e) { plog([NSString stringWithFormat:@"eval -> %@ %@", r, e ? e.localizedDescription : @""]); }];
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(7.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self appMetrics:@"app after eval"];
+        [self.web evaluateJavaScript:@"1" completionHandler:^(id r, NSError *e) { plog(@"probe done"); }];
+    });
+}
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error { plog([NSString stringWithFormat:@"web load failed: %@", error.localizedDescription]); }
 @end
 
