@@ -6,6 +6,9 @@
  * Edit form. The Formidable fields stay in the page, out of sight, and this script copies the person's answers into
  * them, so the spam check, the stored entry and the review queue (includes/formidable.php) work as before.
  * If anything here fails, the original fields are shown again and the form works as it did.
+ *
+ * Both forms sit behind the app's sign-in (shelter-account.js, loaded before this file): the form shows once the
+ * person is signed in, and its First Name, Last Name and Email fields are filled from the account, out of sight.
  */
 (function () {
   "use strict";
@@ -525,8 +528,29 @@
       if (m[1] === "39") finderWords(holder, Undo());
     });
   }
+  // ---------- sign-in ----------
+  // Adding or editing a shelter needs a signed-in account, as in the app. Each shelter form gets the sign-in box
+  // whether or not it could be redrawn, because the server asks for the account either way (includes/account.php).
+  var ACCOUNTS = [
+    { id: "form_shelter-feedback", info: ["field_sfb_first", "field_sfb_last", "field_sfb_email"], kind: function () { return value(D.getElementById("field_sfb_orig_name")) ? "edit" : "add"; } },
+    { id: "form_add-edit-tornado-shelter", info: ["field_1imzl", "field_sof1r", "field_k5ihj"], kind: function () { return "add"; } }
+  ];
+  function signIn() {
+    var account = W.sasShelterAccount;
+    if (!account || !account.gate) return;
+    ACCOUNTS.forEach(function (a) {
+      var form = D.getElementById(a.id);
+      if (!form) return;
+      try {
+        account.gate({ form: form, kind: a.kind(), info: { first: D.getElementById(a.info[0]), last: D.getElementById(a.info[1]), email: D.getElementById(a.info[2]) } });
+      } catch (e) {
+        if (W.console && W.console.warn) W.console.warn("Shelter form sign-in:", e);
+      }
+    });
+  }
   function start() {
     FORMS.forEach(redraw);
+    signIn();
     try { thank(); } catch (e) { /* Formidable's own message stays */ }
   }
   start();

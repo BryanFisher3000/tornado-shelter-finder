@@ -106,3 +106,66 @@
   .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc { flex-direction: column; align-items: flex-start; gap: 8px; }
   .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr { margin-left: 0; }
 }
+
+/* ---------- sign-in (shelter-account.js): the box in front of a shelter form ---------- */
+/* The form stays out of sight until the person is signed in; its name and email fields are filled from the account
+   and stay out of sight. (The form is folded away, not removed, so its spam check loads as it does further down
+   any page.) */
+.frm_forms form.sas-acct-locked { visibility: hidden !important; height: 0 !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; }
+.frm_forms .sas-acct-hide { display: none !important; }
+.frm_forms .sas-acct { display: grid; gap: 12px; margin: 0 0 16px; padding: 0; color: #1A1815; font-size: 16px; line-height: 1.4; text-align: left; }
+.frm_forms .sas-acct.sas-acct-on { margin-bottom: 12px; }
+.frm_forms .sas-acct *, .frm_forms .sas-acct *::before, .frm_forms .sas-acct *::after { box-sizing: border-box; }
+.frm_forms .sas-acct [hidden] { display: none !important; }
+.frm_forms .sas-acct p { margin: 0; padding: 0; font-size: inherit; font-weight: 400; line-height: inherit; color: inherit; text-align: left; }
+.frm_forms .sas-acct .sas-acct-out, .frm_forms .sas-acct .sas-acct-details { display: grid; gap: 12px; max-width: 420px; }
+.frm_forms .sas-acct .sas-acct-lead { font-size: 18px; line-height: 1.45; color: #4E4748; }
+.frm_forms .sas-acct .sas-acct-head { font-size: 18px; font-weight: 600; color: #1A1815; }
+.frm_forms .sas-acct .sas-acct-fine { font-size: 14.5px; line-height: 1.4; color: #4E4748; }
+.frm_forms .sas-acct .sas-acct-wait, .frm_forms .sas-acct .sas-acct-plain { font-size: 16px; color: #4E4748; }
+.frm_forms .sas-acct .sas-acct-note, .frm_forms .sas-acct .sas-acct-msg { font-size: 15px; line-height: 1.4; color: #96231A; }
+.frm_forms .sas-acct .sas-acct-note.sas-acct-soft { color: #4E4748; } /* (a line that only says what is going on) */
+.frm_forms .sas-acct .sas-acct-note:empty, .frm_forms .sas-acct .sas-acct-msg:empty { display: none; }
+
+/* Continue with Google, Apple, Facebook, Email: the app's buttons */
+.frm_forms .sas-acct .sas-acct-sso { display: grid; gap: 8px; }
+.frm_forms .sas-acct button.sas-acct-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: auto; min-height: 44px; margin: 0; padding: 10px 16px;
+  background: #fff; color: #1A1815; border: 1px solid #CDC8C3; border-radius: 6px; box-shadow: none;
+  font-family: inherit; font-size: 16px; font-weight: 500; line-height: 1.3; text-transform: none; letter-spacing: normal; text-decoration: none; cursor: pointer;
+}
+.frm_forms .sas-acct button.sas-acct-btn:hover, .frm_forms .sas-acct button.sas-acct-btn:focus { background: #F3F2F0; color: #1A1815; border-color: #CDC8C3; }
+.frm_forms .sas-acct button.sas-acct-btn svg { flex: none; width: 19px; height: 19px; }
+.frm_forms .sas-acct button.sas-acct-apple, .frm_forms .sas-acct button.sas-acct-apple:hover, .frm_forms .sas-acct button.sas-acct-apple:focus { background: #000; color: #fff; border-color: #000; }
+.frm_forms .sas-acct button.sas-acct-facebook, .frm_forms .sas-acct button.sas-acct-facebook:hover, .frm_forms .sas-acct button.sas-acct-facebook:focus { background: #1877F2; color: #fff; border-color: #1877F2; }
+.frm_forms .sas-acct button:focus-visible, .frm_forms .sas-acct a:focus-visible { outline: 2px solid #1A73E8; outline-offset: 2px; }
+
+/* the email boxes, and My Details */
+.frm_forms .sas-acct .sas-acct-em { display: grid; gap: 10px; padding-top: 2px; }
+.frm_forms .sas-acct .sas-acct-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.frm_forms .sas-acct label.sas-acct-field { display: grid; gap: 5px; float: none; width: auto; margin: 0; padding: 0; font-size: 15px; font-weight: 400; line-height: 1.3; color: #4E4748; text-transform: none; letter-spacing: normal; }
+.frm_forms .sas-acct label.sas-acct-field input {
+  display: block; width: 100%; max-width: 100%; height: auto; min-height: 42px; margin: 0; padding: 9px 10px;
+  background: #fff; color: #1A1815; border: 1px solid #CDC8C3; border-radius: 6px; box-shadow: none; outline: none;
+  font-family: inherit; font-size: 16px; font-weight: 400; line-height: 1.3;
+}
+.frm_forms .sas-acct label.sas-acct-field input::placeholder { color: #8A8580; opacity: 1; }
+.frm_forms .sas-acct label.sas-acct-field input:focus { background: #fff; color: #1A1815; border-color: #1A73E8; box-shadow: 0 0 0 1px #1A73E8; }
+.frm_forms .sas-acct label.sas-acct-field input[aria-invalid=true] { border-color: #C0392B; }
+.frm_forms .sas-acct label.sas-acct-field input[aria-invalid=true]:focus { border-color: #C0392B; box-shadow: 0 0 0 1px #C0392B; }
+/* Create Account, Sign In, Save: the colours of the form's own button */
+.frm_forms .sas-acct button.sas-acct-go {
+  justify-self: start; width: auto; height: auto; margin: 0; padding: 10px 22px; border: 1px solid var(--submit-border-color, #EA2627); border-radius: 6px;
+  background: var(--submit-bg-color, #EA2627); color: var(--submit-text-color, #fff); box-shadow: none;
+  font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.3; text-transform: none; letter-spacing: normal; cursor: pointer;
+}
+.frm_forms .sas-acct button.sas-acct-go:hover, .frm_forms .sas-acct button.sas-acct-go:focus { background: var(--submit-hover-bg-color, #9E1F23); border-color: var(--submit-hover-border-color, #9E1F23); color: var(--submit-hover-color, #fff); }
+.frm_forms .sas-acct button.sas-acct-go[disabled] { opacity: .6; cursor: default; }
+.frm_forms .sas-acct .sas-acct-btns { display: flex; align-items: center; gap: 16px; }
+/* Sign in, Create an account, Sign Out: words that act as links */
+.frm_forms .sas-acct button.sas-acct-link, .frm_forms .sas-acct button.sas-acct-link:hover, .frm_forms .sas-acct button.sas-acct-link:focus {
+  display: inline; width: auto; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  color: #114A9B; font-family: inherit; font-size: inherit; font-weight: 400; line-height: inherit; text-transform: none; letter-spacing: normal; text-decoration: underline; cursor: pointer;
+}
+.frm_forms .sas-acct a { color: #114A9B; text-decoration: underline; }
+.frm_forms .sas-acct .sas-acct-bar { font-size: 15px; color: #4E4748; }

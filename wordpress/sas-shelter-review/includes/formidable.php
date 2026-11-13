@@ -13,6 +13,9 @@
  * capacity as "Under 25", "Under 50" or "50 or more" (sas_forms_capacity), the three report
  * checkboxes as a first line "Reported: ..." of the message (sas_forms_note), and, on form 39,
  * the shelter's name and its Open choice inside the note (sas_forms_add_note).
+ *
+ * Both shelter forms need a signed-in account, the app's own (includes/account.php), so each of
+ * their rows carries submitter_id and the account's name and email.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,6 +56,15 @@ function sas_forms_after_entry( $entry_id, $form_id ) {
 	}
 	$row['channel']          = 'website-form';
 	$row['submitter_device'] = 'Formidable form ' . (int) $form_id . ', entry ' . (int) $entry_id;
+	// A shelter form is sent by someone signed in (includes/account.php): the review queue gets the
+	// account itself, as it does from the app, in place of the name and email fields.
+	if ( function_exists( 'sas_account_applies' ) && sas_account_applies( $form_id ) ) {
+		$acct = sas_account_current();
+		if ( ! is_wp_error( $acct ) ) {
+			$row['submitter_id'] = $acct['id'];
+			$row['submitter']    = sas_account_submitter( $acct );
+		}
+	}
 	$res                     = sas_review_supabase( 'POST', 'submissions', $row, array( 'Prefer' => 'return=minimal' ) );
 	if ( is_wp_error( $res ) ) {
 		error_log( 'SAS Shelter Review: could not add form entry ' . (int) $entry_id . ' to the review queue: ' . $res->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions

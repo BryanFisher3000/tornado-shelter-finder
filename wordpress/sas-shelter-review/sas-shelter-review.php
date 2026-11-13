@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: SAS Shelter Review
- * Description: Review dashboard for Tornado Shelter Finder submissions and the shelter list. Add the [sas_shelter_review] shortcode to a page; signed-in Editors and Administrators can approve or reject submissions from the app and website (approvals update the shelter list in Supabase), and edit shelters and county EM contacts directly. The [sas_county_contacts] shortcode shows the county EM contacts on a public page, and the website's Add a Shelter and Suggest an Edit forms (Formidable), which are drawn like the app's, go into the review queue.
- * Version: 1.4.1
+ * Description: Review dashboard for Tornado Shelter Finder submissions and the shelter list. Add the [sas_shelter_review] shortcode to a page; signed-in Editors and Administrators can approve or reject submissions from the app and website (approvals update the shelter list in Supabase), and edit shelters and county EM contacts directly. The [sas_county_contacts] shortcode shows the county EM contacts on a public page, and the website's Add a Shelter and Suggest an Edit forms (Formidable), which are drawn like the app's and ask for the app's sign-in, go into the review queue.
+ * Version: 1.5.0
  * Author: Survive-A-Storm
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SAS_REVIEW_VERSION', '1.4.1' );
+define( 'SAS_REVIEW_VERSION', '1.5.0' );
 if ( ! defined( 'SAS_SUPABASE_URL' ) ) {
 	define( 'SAS_SUPABASE_URL', 'https://svptjcclszprsmjoldaz.supabase.co' );
 }
@@ -25,6 +25,7 @@ if ( ! defined( 'SAS_SUPABASE_URL' ) ) {
 require_once __DIR__ . '/includes/shelters.php';
 require_once __DIR__ . '/includes/county-page.php';
 require_once __DIR__ . '/includes/formidable.php';
+require_once __DIR__ . '/includes/account.php';
 require_once __DIR__ . '/includes/public-forms.php';
 
 /** Who may review: Editors and above by default (they can edit other people's posts). */
