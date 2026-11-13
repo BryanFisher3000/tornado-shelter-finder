@@ -1,14 +1,16 @@
 /*
- * The website's two shelter forms, drawn like the app's Add a Shelter and Suggest an Edit forms.
+ * The website's shelter forms, like the app's Add a Shelter and Suggest an Edit forms.
  * shelter-forms.js builds the .sas-sf block inside the Formidable form and hides the fields it replaces.
  * The font and the red button are the site's own; the layout, labels and choices are the app's.
+ * The Add a Shelter page's own form (class sas-nf, further down) keeps its Formidable fields in sight.
  */
 
 /* Keep a form out of sight until the script has redrawn it (class sas-sf-on) or left it alone (sas-sf-off), so the
    old layout doesn't flash by. If the script never runs, the form shows itself after 4 seconds, untouched. */
 @keyframes sas-sf-show { to { visibility: visible; } }
 #form_shelter-feedback:not(.sas-sf-on):not(.sas-sf-off),
-#form_add-edit-tornado-shelter:not(.sas-sf-on):not(.sas-sf-off) { visibility: hidden; animation: sas-sf-show 0s linear 4s forwards; }
+#form_add-edit-tornado-shelter:not(.sas-sf-on):not(.sas-sf-off),
+#form_sas_add_shelter:not(.sas-sf-on):not(.sas-sf-off) { visibility: hidden; animation: sas-sf-show 0s linear 4s forwards; }
 
 /* The fields the redrawn form replaces stay in the page (their values are what is sent); they just aren't shown. */
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf-orig { display: none !important; }
@@ -18,7 +20,7 @@
 /* ---------- the redrawn part ---------- */
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf { grid-column: 1 / -1; display: grid; gap: 13px; margin: 0 0 18px; padding: 0; color: #1A1815; font-size: 16px; line-height: 1.35; text-align: left; }
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf *, .frm_forms.with_frm_style form.sas-sf-on .sas-sf-info { box-sizing: border-box; }
-.frm_forms.with_frm_style form.sas-sf-on .sas-sf [hidden] { display: none !important; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf [hidden], .frm_forms.with_frm_style form.sas-sf-on .sas-sf[hidden] { display: none !important; }
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf p { margin: 0; padding: 0; font-size: inherit; font-weight: inherit; line-height: inherit; color: inherit; text-align: left; }
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-lead { margin: 0 0 3px; font-size: 18px; line-height: 1.45; color: #4E4748; }
 
@@ -106,6 +108,77 @@
   .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc { flex-direction: column; align-items: flex-start; gap: 8px; }
   .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-addr { margin-left: 0; }
 }
+
+/* ---------- Add a Shelter on its own page (form.sas-nf): the Formidable form made for it, fields in sight ---------- */
+/* The fields are Formidable's own, so they take the look above from the variables set on form.sas-sf-on. What is
+   left is the app's layout: the opening line, City beside State, the four rows of choices and the map for the pin. */
+.frm_forms.with_frm_style form.sas-nf { --weight: 400; --check-font-size: 16px; --check-label-color: #1A1815; --check-weight: 400; --text-color: #1A1815; text-align: left; }
+.frm_forms.with_frm_style form.sas-nf fieldset > .frm_description { margin: 0 0 16px; padding: 0; }
+.frm_forms.with_frm_style form.sas-nf fieldset > .frm_description p { margin: 0; padding: 0; font-size: 18px; font-weight: 400; line-height: 1.45; letter-spacing: normal; color: #4E4748; text-align: left; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field label.frm_primary_label { line-height: 1.3; text-transform: none; letter-spacing: normal; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[type=text],
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[type=email],
+.frm_forms.with_frm_style form.sas-nf .frm_form_field select,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea { width: 100%; max-width: 100%; box-shadow: none; line-height: 1.3; }
+/* (a browser gives its own drop-down list a line height of its own, so the State box gets its height by number) */
+.frm_forms.with_frm_style form.sas-nf .frm_form_field select { height: var(--field-height, 42px); padding: 0 6px; -webkit-appearance: menulist; appearance: auto; background-image: none; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea { min-height: 104px; resize: vertical; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input::placeholder,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea::placeholder { color: #8A8580; opacity: 1; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[type=text]:focus,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[type=email]:focus,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field select:focus,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea:focus { border-color: #1A73E8; box-shadow: 0 0 0 1px #1A73E8; }
+/* a needed box left empty */
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[aria-invalid=true],
+.frm_forms.with_frm_style form.sas-nf .frm_form_field select[aria-invalid=true],
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea[aria-invalid=true] { border-color: #C0392B; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field input[aria-invalid=true]:focus,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field select[aria-invalid=true]:focus,
+.frm_forms.with_frm_style form.sas-nf .frm_form_field textarea[aria-invalid=true]:focus { border-color: #C0392B; box-shadow: 0 0 0 1px #C0392B; }
+/* City beside State, at every width (Formidable stacks its columns on a phone), and a short ZIP box */
+.frm_forms.with_frm_style form.sas-nf .frm_fields_container > .frm_form_field.sas-nf-city { grid-column: 1 / span 10 !important; }
+.frm_forms.with_frm_style form.sas-nf .frm_fields_container > .frm_form_field.sas-nf-state { grid-column: 11 / span 2 !important; }
+.frm_forms.with_frm_style form.sas-nf .frm_fields_container > .frm_form_field.sas-nf-zip { grid-column: 1 / span 12 !important; max-width: 160px; }
+@media (max-width: 782px) {
+  .frm_forms.with_frm_style form.sas-nf .frm_fields_container > .frm_form_field.sas-nf-city { grid-column: 1 / span 8 !important; }
+  .frm_forms.with_frm_style form.sas-nf .frm_fields_container > .frm_form_field.sas-nf-state { grid-column: 9 / span 4 !important; }
+}
+/* Capacity, Open, Wheelchair accessible, Pets allowed: a heading and a row of choices */
+.frm_forms.with_frm_style form.sas-nf .frm_form_field div.frm_primary_label { padding: 0 0 7px; font-size: 16px; font-weight: 600; line-height: 1.35; color: #1A1815; text-transform: none; letter-spacing: normal; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_opt_container { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_opt_container .frm_radio { display: block; margin: 0; padding: 0; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_radio label { display: flex; align-items: center; gap: 6px; float: none; width: auto; margin: 0; padding: 0; font-size: 16px; font-weight: 400; line-height: 1.35; color: #1A1815; text-transform: none; letter-spacing: normal; cursor: pointer; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_radio label input[type=radio] {
+  -webkit-appearance: auto; appearance: auto; flex: none; position: static; float: none;
+  width: 18px !important; min-width: 18px !important; height: 18px !important; min-height: 0; margin: 0; padding: 0; border: 0; box-shadow: none;
+  accent-color: #1A73E8; cursor: pointer;
+}
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_radio label input[type=radio]:before { content: none !important; display: none !important; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_radio label input[type=radio]:focus { box-shadow: none !important; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field .frm_radio label input[type=radio]:focus-visible { outline: 2px solid #1A73E8; outline-offset: 2px; }
+/* "My info", over the name and email fields (in sight only while the sign-in is switched off) */
+.frm_forms.with_frm_style form.sas-nf .frm_form_field.frm_html_container { margin: 4px 0 7px; padding: 0; }
+.frm_forms.with_frm_style form.sas-nf .frm_form_field.frm_html_container p { margin: 0; padding: 0; font-size: 16px; font-weight: 600; line-height: 1.35; letter-spacing: normal; color: #1A1815; text-align: left; }
+/* the map for the pin: its middle, marked by a cross, is where Use Map Center puts the pin */
+.frm_forms.with_frm_style form.sas-nf .sas-sf.sas-nf-pin { margin: 0 0 var(--field-margin, 13px); }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-mapwrap { position: relative; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map { position: relative; z-index: 0; height: 240px; border: 1px solid #CDC8C3; border-radius: 6px; overflow: hidden; background: #E8E6E3; font-family: inherit; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-cross { position: absolute; z-index: 1; top: 50%; left: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; pointer-events: none; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-cross::before,
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-cross::after { content: ""; position: absolute; background: #1A1815; box-shadow: 0 0 0 1px rgba(255, 255, 255, .85); }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-cross::before { top: 12px; left: 0; width: 26px; height: 2px; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-cross::after { top: 0; left: 12px; width: 2px; height: 26px; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-marker { box-sizing: border-box; border: 3px solid #fff; border-radius: 50%; background: #D93025; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
+/* (the site styles the links and pictures of a page's content; the map's own buttons, credit line and tiles keep theirs) */
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map img.leaflet-tile { margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-bar a,
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-bar a:hover,
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-bar a:focus { color: #1A1815; font-weight: 700; text-decoration: none; border-radius: 0; box-shadow: none; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-control-attribution { margin: 0; padding: 0 5px; font-size: 11px; line-height: 1.5; color: #4E4748; }
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-control-attribution a,
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-control-attribution a:hover,
+.frm_forms.with_frm_style form.sas-nf .sas-sf .sas-nf-map .leaflet-control-attribution a:focus { color: #114A9B; font-size: inherit; font-weight: 400; text-decoration: none; box-shadow: none; }
 
 /* ---------- sign-in (shelter-account.js): the box in front of a shelter form ---------- */
 /* The form stays out of sight until the person is signed in; its name and email fields are filled from the account

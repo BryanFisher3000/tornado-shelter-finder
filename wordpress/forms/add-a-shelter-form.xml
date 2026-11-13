@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<channel>
+	<title>Tornado Shelter Finder: Add a Shelter form</title>
+	<pubDate>Fri, 13 Nov 2026 04:00:00 +0000</pubDate>
+
+	<form>
+		<id>990000</id>
+		<form_key><![CDATA[sas_add_shelter]]></form_key>
+		<name><![CDATA[Add a Shelter]]></name>
+		<description><![CDATA[Our team reviews every new shelter before it shows up in the Tornado Shelter Finder.]]></description>
+		<created_at>2026-11-13 04:00:00</created_at>
+		<logged_in>0</logged_in>
+		<is_template>0</is_template>
+		<editable>0</editable>
+		<options><![CDATA[{"submit_value":"Add","success_action":"message","success_msg":"Thanks! We got the new shelter. Our team will review it before it shows up in the Tornado Shelter Finder.","show_form":0,"show_title":0,"show_description":1,"custom_style":"sas","antispam":1}]]></options>
+		<status><![CDATA[published]]></status>
+		<parent_form_id>0</parent_form_id>
+		<field>
+			<id>990001</id>
+			<field_key><![CDATA[sas_add_name]]></field_key>
+			<name><![CDATA[Location Name]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>1</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the location name.","placeholder":"e.g. First Baptist Church Safe Room","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990002</id>
+			<field_key><![CDATA[sas_add_street]]></field_key>
+			<name><![CDATA[Street Address]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>2</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the street address.","autocomplete":"off","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990003</id>
+			<field_key><![CDATA[sas_add_city]]></field_key>
+			<name><![CDATA[City]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>3</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the city.","classes":"frm8 frm_first","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990004</id>
+			<field_key><![CDATA[sas_add_state]]></field_key>
+			<name><![CDATA[State]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[select]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>4</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[["","AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the state.","classes":"frm4","placeholder":"State","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990005</id>
+			<field_key><![CDATA[sas_add_zip]]></field_key>
+			<name><![CDATA[ZIP]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>5</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"classes":"frm4 frm_first","max":"10"}]]></field_options>
+		</field>
+		<field>
+			<id>990006</id>
+			<field_key><![CDATA[sas_add_county]]></field_key>
+			<name><![CDATA[County]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[hidden]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>6</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{}]]></field_options>
+		</field>
+		<field>
+			<id>990007</id>
+			<field_key><![CDATA[sas_add_lat]]></field_key>
+			<name><![CDATA[Map pin latitude]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[hidden]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>7</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{}]]></field_options>
+		</field>
+		<field>
+			<id>990008</id>
+			<field_key><![CDATA[sas_add_lng]]></field_key>
+			<name><![CDATA[Map pin longitude]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[hidden]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>8</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{}]]></field_options>
+		</field>
+		<field>
+			<id>990009</id>
+			<field_key><![CDATA[sas_add_capacity]]></field_key>
+			<name><![CDATA[Capacity]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[radio]]></type>
+			<default_value><![CDATA[Unknown]]></default_value>
+			<field_order>9</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[["Unknown","Under 25","Under 50","50 or more"]]]></options>
+			<field_options><![CDATA[{"align":"inline"}]]></field_options>
+		</field>
+		<field>
+			<id>990010</id>
+			<field_key><![CDATA[sas_add_open]]></field_key>
+			<name><![CDATA[Open]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[radio]]></type>
+			<default_value><![CDATA[Unknown]]></default_value>
+			<field_order>10</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[["Unknown","During emergencies","Year-round"]]]></options>
+			<field_options><![CDATA[{"align":"inline"}]]></field_options>
+		</field>
+		<field>
+			<id>990011</id>
+			<field_key><![CDATA[sas_add_ada]]></field_key>
+			<name><![CDATA[Wheelchair accessible]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[radio]]></type>
+			<default_value><![CDATA[Unknown]]></default_value>
+			<field_order>11</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[["Unknown","Yes","No"]]]></options>
+			<field_options><![CDATA[{"align":"inline"}]]></field_options>
+		</field>
+		<field>
+			<id>990012</id>
+			<field_key><![CDATA[sas_add_pets]]></field_key>
+			<name><![CDATA[Pets allowed]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[radio]]></type>
+			<default_value><![CDATA[Unknown]]></default_value>
+			<field_order>12</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[["Unknown","Yes","No"]]]></options>
+			<field_options><![CDATA[{"align":"inline"}]]></field_options>
+		</field>
+		<field>
+			<id>990013</id>
+			<field_key><![CDATA[sas_add_note]]></field_key>
+			<name><![CDATA[Comments]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[textarea]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>13</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"label":"none","placeholder":"Anything to note","max":"4"}]]></field_options>
+		</field>
+		<field>
+			<id>990014</id>
+			<field_key><![CDATA[sas_add_info]]></field_key>
+			<name><![CDATA[My info]]></name>
+			<description><![CDATA[My info]]></description>
+			<type><![CDATA[html]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>14</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{}]]></field_options>
+		</field>
+		<field>
+			<id>990015</id>
+			<field_key><![CDATA[sas_add_first]]></field_key>
+			<name><![CDATA[First Name]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>15</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the first name.","classes":"frm6 frm_first","autocomplete":"given-name","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990016</id>
+			<field_key><![CDATA[sas_add_last]]></field_key>
+			<name><![CDATA[Last Name]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[text]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>16</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the last name.","classes":"frm6","autocomplete":"family-name","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990017</id>
+			<field_key><![CDATA[sas_add_email]]></field_key>
+			<name><![CDATA[Email]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[email]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>17</field_order>
+			<form_id>990000</form_id>
+			<required>1</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{"blank":"Please add the email.","invalid":"Please add a valid email.","autocomplete":"email","required_indicator":""}]]></field_options>
+		</field>
+		<field>
+			<id>990018</id>
+			<field_key><![CDATA[sas_add_submit]]></field_key>
+			<name><![CDATA[Add]]></name>
+			<description><![CDATA[]]></description>
+			<type><![CDATA[submit]]></type>
+			<default_value><![CDATA[]]></default_value>
+			<field_order>9999</field_order>
+			<form_id>990000</form_id>
+			<required>0</required>
+			<options><![CDATA[[]]]></options>
+			<field_options><![CDATA[{}]]></field_options>
+		</field>
+	</form>
+</channel>
