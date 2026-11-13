@@ -144,3 +144,60 @@
     After installing, try each way of signing in once on the live site, and send one real edit:
     the spam check (Cloudflare Turnstile) on the forms could not be tried together with the
     sign-in before going live.
+
+## Add a Shelter on its own page
+
+The page is `https://survive-a-storm.com/tornado-shelter-finder/add/`. Its form is a Formidable
+form made for it, with a field for each of the app's Add a Shelter form, so nothing is redrawn:
+the form builder's fields are what people see.
+
+27. Upload the plugin zip again (v1.6.0 or later).
+28. In WordPress, open Formidable → Import/Export, choose `wordpress/forms/add-a-shelter-form.xml`
+    and press "Upload file and import". A form named **Add a Shelter** (key `sas_add_shelter`)
+    appears in the form list. It uses the site's `sas` form style, shows no stars on its required
+    fields (as in the app) and thanks the sender with the app's words.
+29. Make a page titled "Add a Shelter" with the page "Tornado Shelter Finder" as its parent and
+    the slug `add`, and put the form on it with a shortcode element holding
+    `[formidable key="sas_add_shelter"]`. In Bricks, give the form's container a width of about
+    720 pixels; the form fills whatever width it is given.
+
+What the plugin adds to that form, wherever it is shown:
+
+- the app's sign-in in front of it, with the form's First Name, Last Name and Email filled from
+  the account and kept out of sight (the sign-in section above applies to it unchanged);
+- a map under the ZIP box for placing the pin, with "Use Map Center" as in the app. The map is
+  Leaflet 1.9.4 (`assets/vendor/leaflet.js`, BSD 2-Clause) with OpenStreetMap's map tiles, the
+  library and tiles `website/index.html` uses. It is fetched only once the form is in sight;
+- an address lookup: when the street, city and state are filled in, the address is looked up once
+  with OpenStreetMap's Nominatim. The map moves there, and when the building itself is found the
+  pin is set on it, the county is noted and an empty ZIP box is filled. Only the shelter's address
+  is sent, never the person's name or email. A pin set with Use Map Center is never moved;
+- each entry goes into the review queue as a new shelter with its address, county, pin, capacity,
+  Open, wheelchair and pets answers and the note, from the signed-in account
+  (`sas_forms_page_add_submission` in `includes/formidable.php`).
+
+Google's address suggestions under the street box, as in the app, are optional on this page. To
+switch them on, add a Google Maps browser key that has the Places library to `wp-config.php`:
+`define( 'SAS_GOOGLE_MAPS_KEY', '...' );`. Restrict the key to `survive-a-storm.com`. The key is
+never in the repository. Without it the street box is a plain box and the lookup above does the
+work.
+
+Changing the form in the form builder is fine: labels, help text, the order of fields, the
+thank-you message and the style are all Formidable's. Keep the field keys (`sas_add_name`,
+`sas_add_street`, `sas_add_city`, `sas_add_state`, `sas_add_zip`, `sas_add_county`,
+`sas_add_lat`, `sas_add_lng`, `sas_add_capacity`, `sas_add_open`, `sas_add_ada`, `sas_add_pets`,
+`sas_add_note`, `sas_add_first`, `sas_add_last`, `sas_add_email`) and the words of the choices
+("Unknown", "Under 25", "Under 50", "50 or more", "During emergencies", "Year-round", "Yes",
+"No"), because the plugin reads the entry by them. If the name, street, city or state field is
+taken out, the map and lookup are left off and the form shows as the form builder made it.
+Importing the file again puts the form back as the file has it: it updates the same form and
+removes fields that were added by hand. To change the form for good, edit
+`wordpress/forms/build-add-form.py` and write the file again.
+
+In the Bricks editor (and Visual Composer's) the plugin's scripts are left off, so the form looks
+there the way the form builder made it, with its name and email fields in sight.
+
+The import itself, the real page inside Bricks and the spam check could not be tried before going
+live: the form file was checked against how Formidable 7 reads an import, and the page against a
+stand-in built from the live site's own pages. After step 29, open the page signed out and signed
+in, and send one real shelter.

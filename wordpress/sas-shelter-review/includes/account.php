@@ -28,16 +28,19 @@ function sas_account_required() {
 /** The form fields that hold the sender's name and email, by field key: filled from the account. */
 function sas_account_info_keys() {
 	return array(
-		'sfb_first' => 'first',
-		'sfb_last'  => 'last',
-		'sfb_email' => 'email',
-		'1imzl'     => 'first',
-		'sof1r'     => 'last',
-		'k5ihj'     => 'email',
+		'sfb_first'     => 'first',
+		'sfb_last'      => 'last',
+		'sfb_email'     => 'email',
+		'1imzl'         => 'first',
+		'sof1r'         => 'last',
+		'k5ihj'         => 'email',
+		'sas_add_first' => 'first',
+		'sas_add_last'  => 'last',
+		'sas_add_email' => 'email',
 	);
 }
 
-/** True for the website's shelter forms (Suggest an Edit and Add a Shelter), told by their field keys. */
+/** True for the website's shelter forms (Suggest an Edit and the two Add a Shelter forms), told by their field keys. */
 function sas_account_is_shelter_form( $form_id ) {
 	static $known = array();
 	$form_id = (int) $form_id;
@@ -49,7 +52,7 @@ function sas_account_is_shelter_form( $form_id ) {
 		$add = array_flip( sas_forms_add_keys() );
 		foreach ( FrmField::get_all_for_form( $form_id ) as $f ) {
 			$key = isset( $f->field_key ) ? (string) $f->field_key : '';
-			if ( 'sfb_name' === $key || 'sfb_orig_name' === $key || isset( $add[ $key ] ) ) {
+			if ( 'sfb_name' === $key || 'sfb_orig_name' === $key || 'sas_add_name' === $key || 'sas_add_street' === $key || isset( $add[ $key ] ) ) {
 				$is = true;
 				break;
 			}

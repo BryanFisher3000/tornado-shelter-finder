@@ -3,18 +3,21 @@
  * Send the website's Formidable forms into the review queue.
  *
  * When someone submits the "Suggest an Edit" shelter form (fields keyed sfb_*, form 44), the
- * finder page's "Add a Shelter" form (form 39) or the county EM contact form (fields keyed
- * cemf_*, form 45), this adds a row to public.submissions so it shows on the review page and in
- * the daily digest, next to the app's submissions. The forms are recognised by their field keys,
- * not their ids, and Formidable still keeps its own copy of each entry.
+ * finder page's "Add a Shelter" form (form 39), the Add a Shelter page's own form (fields keyed
+ * sas_add_*, made from wordpress/forms/add-a-shelter-form.xml) or the county EM contact form
+ * (fields keyed cemf_*, form 45), this adds a row to public.submissions so it shows on the review
+ * page and in the daily digest, next to the app's submissions. The forms are recognised by their
+ * field keys, not their ids, and Formidable still keeps its own copy of each entry.
  *
  * The two shelter forms are drawn like the app's by assets/shelter-forms.js. That script puts the
  * person's answers into the Formidable fields in a few fixed spellings, which are read back here:
  * capacity as "Under 25", "Under 50" or "50 or more" (sas_forms_capacity), the three report
  * checkboxes as a first line "Reported: ..." of the message (sas_forms_note), and, on form 39,
- * the shelter's name and its Open choice inside the note (sas_forms_add_note).
+ * the shelter's name and its Open choice inside the note (sas_forms_add_note). The Add a Shelter
+ * page's form has a field for each of the app's, so nothing in it is packed: only its choices are
+ * read the same way ("Under 25", "Unknown").
  *
- * Both shelter forms need a signed-in account, the app's own (includes/account.php), so each of
+ * The shelter forms need a signed-in account, the app's own (includes/account.php), so each of
  * their rows carries submitter_id and the account's name and email.
  */
 
@@ -47,6 +50,8 @@ function sas_forms_after_entry( $entry_id, $form_id ) {
 	$v = sas_forms_values( $entry_id, $form_id );
 	if ( isset( $v['sfb_name'] ) || isset( $v['sfb_orig_name'] ) ) {
 		$row = sas_forms_shelter_submission( $v );
+	} elseif ( isset( $v['sas_add_name'] ) || isset( $v['sas_add_street'] ) ) {
+		$row = sas_forms_page_add_submission( $v );
 	} elseif ( array_intersect_key( $v, array_flip( sas_forms_add_keys() ) ) ) {
 		$row = sas_forms_add_submission( $v );
 	} elseif ( isset( $v['cemf_county'] ) || isset( $v['cemf_orig_county'] ) ) {
@@ -162,6 +167,14 @@ function sas_forms_capacity( $s ) {
 function sas_forms_text( $s ) {
 	$s = trim( (string) $s );
 	return 0 === strcasecmp( $s, '(blank)' ) ? '' : $s;
+}
+
+/** A map pin as the review queue keeps it, or null when the two numbers are not a place on the map. */
+function sas_forms_pin( $lat, $lng ) {
+	if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) || abs( (float) $lat ) > 90 || abs( (float) $lng ) > 180 ) {
+		return null;
+	}
+	return array( 'lat' => (float) $lat, 'lng' => (float) $lng );
 }
 
 /**
@@ -307,7 +320,7 @@ function sas_forms_shelter_submission( $v ) {
 		$row['proposed_shelter'] = array(
 			'name'           => $g( 'sfb_name' ),
 			'address'        => array( 'street' => $g( 'sfb_address' ), 'city' => $g( 'sfb_city' ), 'county' => $g( 'sfb_county' ), 'state' => sas_forms_state_code( $g( 'sfb_state' ) ), 'zip' => $g( 'sfb_zip' ) ),
-			'location'       => is_numeric( $g( 'sfb_lat' ) ) && is_numeric( $g( 'sfb_lng' ) ) ? array( 'lat' => (float) $g( 'sfb_lat' ), 'lng' => (float) $g( 'sfb_lng' ) ) : null,
+			'location'       => sas_forms_pin( $g( 'sfb_lat' ), $g( 'sfb_lng' ) ),
 			'capacity_label' => '' !== sas_forms_capacity( $g( 'sfb_capacity' ) ) ? sas_forms_capacity( $g( 'sfb_capacity' ) ) : null,
 			'ada_accessible' => sas_forms_tri( $g( 'sfb_ada' ) ),
 			'pets_allowed'   => sas_forms_tri( $g( 'sfb_pets' ) ),
@@ -331,15 +344,42 @@ function sas_forms_shelter_submission( $v ) {
 
 /** An entry of the finder page's "Add a Shelter" form (form 39) as a new shelter for the review queue. */
 function sas_forms_add_submission( $v ) {
-	$k = sas_forms_add_keys();
-	$g = function ( $f ) use ( $v, $k ) {
-		return sas_forms_g( $v, $k[ $f ] );
+	$in = array();
+	foreach ( sas_forms_add_keys() as $what => $key ) {
+		$in[ $what ] = sas_forms_g( $v, $key );
+	}
+	list( $in['name'], $in['open'], $in['note'] ) = sas_forms_add_note( $in['note'] );
+	return sas_forms_add_row( $in );
+}
+
+/** What the Add a Shelter page's own form asks for: each is a field keyed sas_add_ and the word here. */
+function sas_forms_page_add_fields() {
+	return array( 'name', 'street', 'city', 'county', 'state', 'zip', 'capacity', 'open', 'ada', 'pets', 'note', 'lat', 'lng', 'first', 'last', 'email' );
+}
+
+/** An entry of the Add a Shelter page's own form (fields keyed sas_add_*) as a new shelter for the review queue. */
+function sas_forms_page_add_submission( $v ) {
+	$in = array();
+	foreach ( sas_forms_page_add_fields() as $what ) {
+		$in[ $what ] = sas_forms_g( $v, 'sas_add_' . $what );
+	}
+	return sas_forms_add_row( $in );
+}
+
+/**
+ * A new shelter for the review queue from what an Add a Shelter form sent. $in holds, as typed:
+ * name, street, city, county, state, zip, lat, lng, capacity, ada, pets, open, note, first, last, email.
+ */
+function sas_forms_add_row( $in ) {
+	$g = function ( $f ) use ( $in ) {
+		return isset( $in[ $f ] ) ? trim( (string) $in[ $f ] ) : '';
 	};
-	list( $name, $open, $note ) = sas_forms_add_note( $g( 'note' ) );
-	$state                      = sas_forms_state_code( $g( 'state' ) );
-	$where                      = implode( ', ', array_filter( array( $g( 'street' ), $g( 'city' ), $state ) ) );
-	$capacity                   = sas_forms_capacity( $g( 'capacity' ) );
-	$row                        = array(
+	$name     = $g( 'name' );
+	$note     = trim( str_replace( array( "\r\n", "\r" ), "\n", $g( 'note' ) ) );
+	$state    = sas_forms_state_code( $g( 'state' ) );
+	$where    = implode( ', ', array_filter( array( $g( 'street' ), $g( 'city' ), $state ) ) );
+	$capacity = sas_forms_capacity( $g( 'capacity' ) );
+	$row      = array(
 		'status'           => 'pending',
 		'comment'          => $note,
 		'submitter'        => sas_forms_submitter( $g( 'first' ), $g( 'last' ), $g( 'email' ) ),
@@ -370,11 +410,12 @@ function sas_forms_add_submission( $v ) {
 	$row['proposed_shelter'] = array(
 		'name'           => $name,
 		'address'        => array( 'street' => $g( 'street' ), 'city' => $g( 'city' ), 'county' => $g( 'county' ), 'state' => $state, 'zip' => $g( 'zip' ) ),
-		'location'       => is_numeric( $g( 'lat' ) ) && is_numeric( $g( 'lng' ) ) ? array( 'lat' => (float) $g( 'lat' ), 'lng' => (float) $g( 'lng' ) ) : null,
+		'location'       => sas_forms_pin( $g( 'lat' ), $g( 'lng' ) ),
 		'capacity_label' => '' !== $capacity ? $capacity : null,
 		'ada_accessible' => sas_forms_tri( $g( 'ada' ) ),
 		'pets_allowed'   => sas_forms_tri( $g( 'pets' ) ),
-		'availability'   => sas_forms_open( $open ) ? sas_forms_open( $open ) : null,
+		// Unknown is sent as nothing, like the app; approving then lists it as open during emergencies.
+		'availability'   => sas_forms_open( $g( 'open' ) ) ? sas_forms_open( $g( 'open' ) ) : null,
 	);
 	return $row;
 }

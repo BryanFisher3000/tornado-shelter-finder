@@ -1,5 +1,5 @@
 /*
- * The website's two shelter forms, drawn like the app's.
+ * The website's shelter forms, like the app's.
  *
  * The finder page's "Add/Edit Shelter" form (Formidable form 39) becomes the app's Add a Shelter form, and the
  * "Suggest an Edit" form (Formidable form 44, opened in a pop-up from each shelter) becomes the app's Suggest an
@@ -7,14 +7,20 @@
  * them, so the spam check, the stored entry and the review queue (includes/formidable.php) work as before.
  * If anything here fails, the original fields are shown again and the form works as it did.
  *
- * Both forms sit behind the app's sign-in (shelter-account.js, loaded before this file): the form shows once the
+ * The Add a Shelter page has a Formidable form made for it (field keys sas_add_*), which already asks what the app
+ * asks. Its fields are shown as Formidable writes them; this adds the map for placing the pin, the address lookup
+ * that moves that map, and the app's one line over the button when something is missing.
+ *
+ * The forms sit behind the app's sign-in (shelter-account.js, loaded before this file): a form shows once the
  * person is signed in, and its First Name, Last Name and Email fields are filled from the account, out of sight.
  */
 (function () {
   "use strict";
 
   var D = document, W = window;
-  if (/[?&]vcv-/.test(W.location.search)) return; // the Visual Composer editor: leave the page as it is saved
+  // a page editor (Visual Composer, Bricks): leave the page as it is saved
+  if (/[?&](vcv-|bricks=)/.test(W.location.search)) return;
+  var CFG = W.sasShelterFormsConfig || {}; // where Leaflet is, and a Google Maps key if the site set one (public-forms.php)
 
   var STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
   var REASONS = ["Address is wrong", "No shelter at this location", "Not a public shelter"];
@@ -33,7 +39,11 @@
     edit: "Thanks! We got your suggestion. Our team will review it soon."
   };
   var PIN_HINT = "Use Map Center to move the pin to a more specific shelter location. Center the map above on that spot first.";
+  var PAGE_PIN_HINT = "Use Map Center to move the pin to a more specific shelter location. Center the map on that spot first.";
   var PIN_UNSET = "Map pin: not set";
+  var PIN_ZOOM = 15; // Use Map Center asks for at least this zoom: from further out the middle of the map is no place
+  var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+  var LOOKUP = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=us";
   var NO_NOTE = "(no note)"; // the Formidable message box is required, so an empty note is sent as this
   var BLANK = "(blank)";     // an address box the person emptied: Formidable would not keep an empty answer
 
@@ -135,6 +145,123 @@
       if (String(o.value).toLowerCase() === w) { select.value = o.value; return true; }
     }
     return false;
+  }
+
+  function warn(what, e) { if (W.console && W.console.warn) W.console.warn(what, e); }
+  /** A map pin from two numbers as text, or null when they are not a place on the map. */
+  function readPin(lat, lng) {
+    if (lat == null || lng == null || String(lat).trim() === "" || String(lng).trim() === "") return null;
+    lat = +lat; lng = +lng;
+    return isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat: lat, lng: lng } : null;
+  }
+
+  // ---------- address suggestions (Google Places) ----------
+  /** What a chosen suggestion says, in the parts the forms use. */
+  function placeParts(place) {
+    if (!place || !place.address_components) return null;
+    var part = {}, g = function (type, short) { return part[type] ? (short ? part[type].short_name : part[type].long_name) || "" : ""; };
+    place.address_components.forEach(function (c) { (c.types || []).forEach(function (t) { part[t] = c; }); });
+    var at = place.geometry && place.geometry.location;
+    return {
+      street: [g("street_number"), g("route", true)].filter(Boolean).join(" "),
+      city: g("locality") || g("sublocality") || g("postal_town") || g("administrative_area_level_3"),
+      state: g("administrative_area_level_1", true),
+      zip: g("postal_code"),
+      county: g("administrative_area_level_2").replace(/\s+(County|Parish|Borough|Census Area|Municipality)$/i, ""),
+      pin: at && typeof at.lat === "function" ? { lat: +at.lat(), lng: +at.lng() } : null
+    };
+  }
+  var placesWaiting = [], placesAsked = false;
+  /**
+   * Calls fn with Google's Places library: the page's own (the finder page has Google Maps), or, with mayLoad, one
+   * fetched with the key the site set (SAS_GOOGLE_MAPS_KEY). With neither, fn is not called.
+   */
+  function withPlaces(fn, mayLoad) {
+    var ready = function () { var p = W.google && W.google.maps && W.google.maps.places; return p && p.Autocomplete ? p : null; };
+    var have = ready();
+    if (have) { fn(have); return; }
+    if (!mayLoad || !CFG.mapsKey) return;
+    placesWaiting.push(fn);
+    if (placesAsked) return;
+    placesAsked = true;
+    var done = function () {
+      var p = ready();
+      if (p) placesWaiting.splice(0).forEach(function (f) { try { f(p); } catch (e) { /* that box stays plain */ } });
+      return !!p;
+    };
+    if ((W.google && W.google.maps) || D.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
+      // the page is fetching Google Maps itself: wait for that one, a second copy would break both
+      var tries = 0, timer = W.setInterval(function () { tries += 1; if (done() || tries > 40) W.clearInterval(timer); }, 250);
+      return;
+    }
+    W.sasShelterPlacesReady = function () { done(); };
+    var tag = D.createElement("script");
+    tag.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(CFG.mapsKey) + "&libraries=places&loading=async&callback=sasShelterPlacesReady";
+    tag.async = true;
+    (D.head || D.documentElement).appendChild(tag);
+  }
+  // When Google does not accept the page's key it switches its suggestion boxes off and writes "Oops! Something went
+  // wrong." in them. A street box must stay a box to type in, so each one is given back.
+  var suggestBoxes = [];
+  function keepBoxes() {
+    if (suggestBoxes.length !== 1) return; // (set up once, with the first box)
+    var was = W.gm_authFailure;
+    W.gm_authFailure = function () {
+      try { if (typeof was === "function") was.apply(this, arguments); } catch (e) { /* the page's own handler */ }
+      var free = function () {
+        suggestBoxes.forEach(function (b) {
+          b[0].disabled = false;
+          b[0].classList.remove("gm-err-autocomplete");
+          b[0].style.backgroundImage = "";
+          b[0].setAttribute("placeholder", b[1] == null ? "" : b[1]);
+        });
+      };
+      free(); W.setTimeout(free, 300); W.setTimeout(free, 1500);
+    };
+  }
+  /**
+   * Google's address suggestions under a street box; onPick gets the chosen address in parts (placeParts). Without
+   * Google Maps the box is a plain text box. Returns a function that gets the suggestions ready ahead of the first
+   * focus.
+   */
+  function suggest(street, onPick, undo, mayLoad) {
+    var on = false;
+    function attach(places) {
+      if (on) return;
+      on = true;
+      try {
+        suggestBoxes.push([street, street.getAttribute("placeholder")]);
+        keepBoxes();
+        var ac = new places.Autocomplete(street, { types: ["address"], componentRestrictions: { country: "us" }, fields: ["address_components", "geometry"] });
+        ac.addListener("place_changed", function () { try { var p = placeParts(ac.getPlace()); if (p) onPick(p); } catch (e) { /* keep what was typed */ } });
+      } catch (e) { /* a plain text box */ }
+    }
+    function ask() { if (!on) withPlaces(attach, mayLoad); }
+    function onKey(e) { // Enter picks the highlighted suggestion; it shouldn't also send the form
+      if (e.key !== "Enter") return;
+      var lists = D.querySelectorAll(".pac-container"), n;
+      for (n = 0; n < lists.length; n++) if (W.getComputedStyle(lists[n]).display !== "none") { e.preventDefault(); return; }
+    }
+    street.addEventListener("focus", ask);
+    street.addEventListener("keydown", onKey);
+    undo.add(function () { street.removeEventListener("focus", ask); street.removeEventListener("keydown", onKey); });
+    return ask;
+  }
+
+  // ---------- the map on the Add a Shelter page (Leaflet, fetched when a form needs it) ----------
+  var leafletWaiting = [], leafletAsked = false;
+  function withLeaflet(fn) {
+    if (W.L && W.L.map) { fn(); return; }
+    if (!CFG.leaflet || !CFG.leaflet.js || !CFG.leaflet.css) return;
+    leafletWaiting.push(fn);
+    if (leafletAsked) return;
+    leafletAsked = true;
+    var css = D.createElement("link"), js = D.createElement("script");
+    css.rel = "stylesheet"; css.href = CFG.leaflet.css;
+    js.src = CFG.leaflet.js; js.async = true;
+    js.onload = function () { if (W.L && W.L.map) leafletWaiting.splice(0).forEach(function (f) { f(); }); };
+    (D.head || D.documentElement).appendChild(css);
+    (D.head || D.documentElement).appendChild(js);
   }
 
   // ---------- the parts both forms share ----------
@@ -440,37 +567,15 @@
 
     // Address suggestions, with the page's own Google Maps (the search box above the map uses the same). Choosing one
     // fills the city, state and ZIP and sets the map pin. Without Google Maps the box is a plain text box.
-    var suggesting = false;
-    function usePlace(place) {
-      if (!place || !place.address_components) return;
-      var part = {}, g = function (type, short) { return part[type] ? (short ? part[type].short_name : part[type].long_name) || "" : ""; };
-      place.address_components.forEach(function (c) { (c.types || []).forEach(function (t) { part[t] = c; }); });
-      var line = [g("street_number"), g("route", true)].filter(Boolean).join(" ");
-      if (line) street.value = line;
-      var town = g("locality") || g("sublocality") || g("postal_town") || g("administrative_area_level_3");
-      if (town) city.value = town;
-      var st = g("administrative_area_level_1", true);
-      if (STATES.indexOf(st) >= 0) state.value = st;
-      if (g("postal_code")) zip.value = g("postal_code");
-      county = { name: g("administrative_area_level_2").replace(/\s+(County|Parish|Borough|Census Area|Municipality)$/i, ""), key: addressKey() };
-      var at = place.geometry && place.geometry.location;
-      if (at && typeof at.lat === "function") { pin = { lat: +at.lat(), lng: +at.lng() }; showPin(); }
+    suggest(street, function (p) {
+      if (p.street) street.value = p.street;
+      if (p.city) city.value = p.city;
+      if (STATES.indexOf(p.state) >= 0) state.value = p.state;
+      if (p.zip) zip.value = p.zip;
+      county = { name: p.county, key: addressKey() };
+      if (p.pin) { pin = p.pin; showPin(); }
       sync();
-    }
-    street.addEventListener("focus", function () {
-      var places = W.google && W.google.maps && W.google.maps.places;
-      if (suggesting || !places || !places.Autocomplete) return;
-      suggesting = true;
-      try {
-        var ac = new places.Autocomplete(street, { types: ["address"], componentRestrictions: { country: "us" }, fields: ["address_components", "geometry"] });
-        ac.addListener("place_changed", function () { try { usePlace(ac.getPlace()); } catch (e) { /* keep what was typed */ } });
-      } catch (e) { /* a plain text box */ }
-    });
-    street.addEventListener("keydown", function (e) { // Enter picks the highlighted suggestion; it shouldn't also send the form
-      if (e.key !== "Enter") return;
-      var lists = D.querySelectorAll(".pac-container"), n;
-      for (n = 0; n < lists.length; n++) if (W.getComputedStyle(lists[n]).display !== "none") { e.preventDefault(); return; }
-    });
+    }, undo);
 
     insertBefore(block, firstBox, undo);
     replaced.forEach(function (b) { hideBox(b, undo); });
@@ -495,13 +600,226 @@
     });
   }
 
+  // ---------- Add a Shelter on its own page: the Formidable form made for it (field keys sas_add_*) ----------
+  function findPageAddForm() { // (told by its fields, as formidable.php tells it: the form's own id is the builder's to choose)
+    var el = D.getElementById("field_sas_add_name") || D.getElementById("field_sas_add_street");
+    return el && el.closest ? el.closest("form") : null;
+  }
+  function setUpPageAddForm(form, undo) {
+    var f = function (k) { return D.getElementById("field_sas_add_" + k); };
+    var street = f("street"), city = f("city"), state = f("state"), zip = f("zip"), note = f("note");
+    var real = { county: f("county"), lat: f("lat"), lng: f("lng") };
+    var submit = form.querySelector(".frm_submit button, .frm_submit input[type=submit]");
+    if (!f("name") || !street || !city || !state || !form.querySelector(".frm_fields_container") || !submit) return false;
+    var holder = form.closest(".frm_forms"), holderId = holder && /^frm_form_(\d+)_container$/.exec(holder.id || "");
+
+    function mark(el, cls) {
+      if (!el || el.classList.contains(cls)) return;
+      el.classList.add(cls);
+      undo.add(function () { el.classList.remove(cls); });
+    }
+    function attr(el, name, to) {
+      var was = el.getAttribute(name);
+      el.setAttribute(name, to);
+      undo.add(function () { if (was == null) el.removeAttribute(name); else el.setAttribute(name, was); });
+    }
+    mark(form, "sas-nf");
+    mark(box(city), "sas-nf-city"); mark(box(state), "sas-nf-state"); mark(box(zip), "sas-nf-zip");
+    attr(street, "autocomplete", "off");
+    // (an empty placeholder keeps Google's suggestion box from writing "Enter a location" into the street box)
+    if (!street.hasAttribute("placeholder")) attr(street, "placeholder", "");
+    if (zip) {
+      attr(zip, "inputmode", "numeric");
+      if (!zip.hasAttribute("maxlength")) attr(zip, "maxlength", "10");
+    }
+    // (the name boxes show only while sign-in is switched off; Formidable gives them no autofill hint of its own)
+    if (f("first") && !f("first").hasAttribute("autocomplete")) attr(f("first"), "autocomplete", "given-name");
+    if (f("last") && !f("last").hasAttribute("autocomplete")) attr(f("last"), "autocomplete", "family-name");
+    if (note && !note.hasAttribute("aria-label")) { // its label may be switched off in the form builder
+      var noteLabel = D.getElementById("field_sas_add_note_label");
+      attr(note, "aria-label", (noteLabel ? noteLabel.textContent.replace(/\*/g, "").replace(/\s+/g, " ").trim() : "") || "Comments");
+    }
+    // Capacity reads as in the app. (The form keeps the choices as words, because "<25" does not survive a WordPress
+    // form field; formidable.php reads the words.)
+    var SHORT = { "under 25": "<25", "under 50": "<50", "50 or more": "50+" };
+    Array.prototype.forEach.call(form.querySelectorAll('input[type=radio][id^="field_sas_add_capacity-"]'), function (r) {
+      var to = SHORT[String(r.value).trim().toLowerCase()], label = r.closest("label"), n;
+      if (!to || !label) return;
+      for (n = label.lastChild; n; n = n.previousSibling) {
+        if (n.nodeType === 3 && n.nodeValue.trim()) {
+          (function (node, was) { node.nodeValue = " " + to; undo.add(function () { node.nodeValue = was; }); })(n, n.nodeValue);
+          return;
+        }
+      }
+    });
+
+    // ----- the map pin: from the address (a suggestion, or a lookup once it is typed), or from the middle of the map
+    function addressKey() { return [value(street), value(city), value(state)].join("|").toLowerCase(); }
+    // by: "hand" (Use Map Center), "auto" (found from the address in `key`) or "kept" (came back with the form)
+    var pin = null, by = "", key = "", county = { name: real.county ? value(real.county) : "", key: addressKey() };
+    var map = null, marker = null, parked = null, started = false, hasPin = !!(real.lat && real.lng);
+    var pinNote = "sasSfPin" + (holderId ? holderId[1] : "");
+    if (hasPin) {
+      pin = readPin(value(real.lat), value(real.lng));
+      if (pin) {
+        // The form came back from the server with its pin. How the pin was set is remembered in this tab, so that
+        // one found from the address still follows the address, and one set by hand still stays put.
+        by = "kept";
+        try {
+          var was = JSON.parse(W.sessionStorage.getItem(pinNote) || "null");
+          if (was && was.lat === pin.lat && was.lng === pin.lng && (was.by === "hand" || was.by === "auto")) { by = was.by; key = addressKey(); }
+        } catch (e) { /* private window: the pin is kept as it came */ }
+      }
+    }
+    // (role=status: a screen reader says where the pin is when Use Map Center or the address sets it)
+    var pinText = h("span", { role: "status" }, PIN_UNSET), pinButton = h("button", { type: "button", "aria-describedby": "sas-nf-pin-hint" }, "Use Map Center");
+    var mapBox = h("div", { "class": "sas-nf-map" });
+    var block = h("div", { "class": "sas-sf sas-nf-pin" }, h("div", { "class": "sas-sf-pin" },
+      h("p", { id: "sas-nf-pin-hint" }, PAGE_PIN_HINT),
+      h("div", { "class": "sas-nf-mapwrap" }, mapBox, h("div", { "class": "sas-nf-cross", "aria-hidden": "true" })),
+      h("div", { "class": "sas-sf-loc" }, pinText, pinButton)));
+    block.hidden = true; // until the map is there: without one, Use Map Center has nothing to go by
+
+    function showPin(more) {
+      pinText.textContent = (pin ? "Map pin: " + pin.lat.toFixed(5) + ", " + pin.lng.toFixed(5) : PIN_UNSET) + (more ? ". " + more : "");
+      if (!map) return;
+      if (!pin) { if (marker) { map.removeLayer(marker); marker = null; } return; }
+      if (marker) marker.setLatLng([pin.lat, pin.lng]);
+      else marker = W.L.marker([pin.lat, pin.lng], { icon: W.L.divIcon({ className: "sas-nf-marker", iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false, keyboard: false }).addTo(map);
+    }
+    function view(at, zoom) { if (map) map.setView([at.lat, at.lng], zoom); else parked = [at, zoom]; }
+    function sync() {
+      // a pin found from an address belongs to that address: it goes when the address is changed
+      if (pin && by === "auto" && key !== addressKey()) { pin = null; by = ""; showPin(); }
+      if (hasPin) { real.lat.value = pin ? String(pin.lat) : ""; real.lng.value = pin ? String(pin.lng) : ""; }
+      // (the county comes only from the address found, so it too is kept only while the address is that one)
+      if (real.county) real.county.value = county.name && county.key === addressKey() ? county.name : "";
+    }
+    function startMap() {
+      if (map || !W.L || !W.L.map) return;
+      block.hidden = false;
+      map = W.L.map(mapBox, { center: pin ? [pin.lat, pin.lng] : [39.5, -98.35], zoom: pin ? 17 : 4, scrollWheelZoom: false, worldCopyJump: true });
+      W.L.tileLayer(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' }).addTo(map);
+      if (map.attributionControl) map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+      if (parked) { map.setView([parked[0].lat, parked[0].lng], parked[1]); parked = null; }
+      showPin();
+      if (W.ResizeObserver) new W.ResizeObserver(function () { if (map) map.invalidateSize(); }).observe(mapBox);
+    }
+    pinButton.addEventListener("click", function () {
+      if (!map) return;
+      if (map.getZoom() < PIN_ZOOM) { showPin("Zoom in on the shelter first"); return; }
+      var c = map.getCenter().wrap();
+      pin = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) }; by = "hand";
+      showPin(); sync();
+    });
+
+    // Once the street, city and state are typed, the address is looked up (OpenStreetMap's Nominatim, once for each
+    // address, never while typing): the map moves there, and when the building itself is found the pin is set on it.
+    var looked = "", lookTimer = null;
+    function lookUp() {
+      var asked = addressKey();
+      if (!hasPin || !W.fetch || !value(street) || !value(city) || !value(state) || asked === looked) return;
+      looked = asked;
+      W.fetch(LOOKUP + "&street=" + encodeURIComponent(value(street)) + "&city=" + encodeURIComponent(value(city)) + "&state=" + encodeURIComponent(value(state)), { headers: { Accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (list) {
+          var hit = list && list[0], at = hit ? readPin(hit.lat, hit.lon) : null, a = (hit && hit.address) || {};
+          if (!at || asked !== addressKey()) return;                  // nothing found, or the person has moved on
+          var st = String(a["ISO3166-2-lvl4"] || "").replace(/^US-/, "");
+          if (st && st !== value(state).toUpperCase()) return;       // a place of that name in another state
+          var exact = !!a.house_number;
+          if (a.county) county = { name: String(a.county).replace(/\s+(County|Parish|Borough|Census Area|Municipality)$/i, ""), key: asked };
+          if (exact && zip && !value(zip) && a.postcode) zip.value = String(a.postcode).slice(0, 10);
+          if (by !== "hand") { // (a pin set by hand stays where it was put, and so does the map under it)
+            if (exact && by !== "kept") { pin = { lat: +at.lat.toFixed(6), lng: +at.lng.toFixed(6) }; by = "auto"; key = asked; }
+            showPin(); view(at, exact ? 17 : a.road ? 16 : 13);
+          }
+          sync();
+        })
+        .catch(function () { /* the map stays where it is */ });
+    }
+    function onChange(e) {
+      sync();
+      if (e.target !== street && e.target !== city && e.target !== state) return;
+      W.clearTimeout(lookTimer);
+      lookTimer = W.setTimeout(lookUp, 400);
+    }
+    form.addEventListener("change", onChange);
+    undo.add(function () { form.removeEventListener("change", onChange); W.clearTimeout(lookTimer); });
+
+    // Google's suggestions, where the page has Google Maps or the site set a key for it: choosing one fills the
+    // city, state and ZIP and sets the pin, as in the app.
+    var askPlaces = suggest(street, function (p) {
+      if (p.street) street.value = p.street;
+      if (p.city) city.value = p.city;
+      if (STATES.indexOf(p.state) >= 0) state.value = p.state;
+      if (p.zip && zip) zip.value = p.zip;
+      looked = addressKey(); // Google has placed it: no second lookup
+      W.clearTimeout(lookTimer);
+      county = { name: p.county, key: looked };
+      if (p.pin && hasPin) { pin = { lat: +p.pin.lat.toFixed(6), lng: +p.pin.lng.toFixed(6) }; by = "auto"; key = looked; showPin(); view(pin, 17); }
+      sync();
+    }, undo, true);
+
+    if (hasPin) {
+      var after = box(zip) || box(state);
+      after.parentNode.insertBefore(block, after.nextSibling);
+      undo.add(function () { if (block.parentNode) block.parentNode.removeChild(block); });
+      // The map is fetched when the form is in sight: right away, or once the person has signed in.
+      var begin = function () {
+        if (started || form.classList.contains("sas-acct-locked")) return;
+        started = true;
+        withLeaflet(function () { try { startMap(); } catch (e) { block.hidden = true; warn("Shelter form map:", e); } });
+        askPlaces();
+      };
+      W.setTimeout(begin, 0); // (after the sign-in box has had its turn to put the form away)
+      if (W.MutationObserver) {
+        var watch = new W.MutationObserver(begin);
+        watch.observe(form, { attributes: true, attributeFilter: ["class"] });
+        undo.add(function () { watch.disconnect(); });
+      }
+    }
+
+    // ----- the app's one line over the button when something is missing
+    var msg = h("p", { "class": "sas-sf-msg", "aria-live": "polite" });
+    insertBefore(msg, submit.closest(".frm_submit") || submit, undo);
+    function onSubmit(e) {
+      var missing = null;
+      try { sync(); missing = missingRequired(form); } catch (err) { return; } // let the form go as Formidable would send it
+      if (missing) {
+        e.preventDefault();
+        e.stopPropagation(); // Formidable listens on the document, so it never sees this try
+        missing.input.setAttribute("aria-invalid", "true");
+        msg.textContent = "Please add the " + missing.name + ".";
+        return;
+      }
+      msg.textContent = "";
+      if (holderId) remember(holderId[1], "own");
+      try {
+        if (pin && (by === "hand" || by === "auto")) W.sessionStorage.setItem(pinNote, JSON.stringify({ lat: pin.lat, lng: pin.lng, by: by }));
+        else if (!pin) W.sessionStorage.removeItem(pinNote);
+      } catch (err) { /* private window */ }
+    }
+    function onInput(e) {
+      var t = e.target;
+      if (t && t.getAttribute && t.getAttribute("aria-invalid") === "true" && value(t)) t.setAttribute("aria-invalid", "false");
+    }
+    form.addEventListener("submit", onSubmit);
+    form.addEventListener("input", onInput);
+    form.addEventListener("change", onInput);
+    undo.add(function () { form.removeEventListener("submit", onSubmit); form.removeEventListener("input", onInput); form.removeEventListener("change", onInput); });
+    sync();
+    return true;
+  }
+
   // ---------- start ----------
   var FORMS = [
     { id: "form_shelter-feedback", setUp: setUpFeedbackForm },
-    { id: "form_add-edit-tornado-shelter", setUp: setUpFinderAddForm, words: finderWords }
+    { id: "form_add-edit-tornado-shelter", setUp: setUpFinderAddForm, words: finderWords },
+    { find: findPageAddForm, setUp: setUpPageAddForm }
   ];
   function redraw(spec) {
-    var form = D.getElementById(spec.id);
+    var form = spec.find ? spec.find() : D.getElementById(spec.id);
     if (!form || form.classList.contains("sas-sf-on") || form.classList.contains("sas-sf-off")) return;
     var undo = Undo(), ok = false;
     try {
@@ -510,7 +828,7 @@
       if (ok && spec.words) spec.words(form.closest(".frm_forms") || form, undo);
     } catch (e) {
       ok = false;
-      if (W.console && W.console.warn) W.console.warn("Shelter form left as it was:", e);
+      warn("Shelter form left as it was:", e);
     }
     if (!ok) { undo.run(); form.classList.remove("sas-sf-on"); form.classList.add("sas-sf-off"); }
   }
@@ -521,7 +839,10 @@
       if (!m || el.classList.contains("sas-sf-thanks")) return;
       try { sent = W.sessionStorage.getItem("sasSf" + m[1]); W.sessionStorage.removeItem("sasSf" + m[1]); } catch (e) { /* private window */ }
       var parts = String(sent || "").split("|");
-      if (!THANKS[parts[0]] || !(Date.now() - (+parts[1]) < 15 * 60 * 1000)) return;
+      if (!(Date.now() - (+parts[1]) < 15 * 60 * 1000)) return;
+      // (the Add a Shelter page's form says its own thanks, set in the form builder: only the look changes)
+      if (parts[0] === "own") { el.classList.add("sas-sf-thanks"); return; }
+      if (!THANKS[parts[0]]) return;
       el.textContent = "";
       el.appendChild(h("p", null, THANKS[parts[0]]));
       el.classList.add("sas-sf-thanks");
@@ -533,18 +854,19 @@
   // whether or not it could be redrawn, because the server asks for the account either way (includes/account.php).
   var ACCOUNTS = [
     { id: "form_shelter-feedback", info: ["field_sfb_first", "field_sfb_last", "field_sfb_email"], kind: function () { return value(D.getElementById("field_sfb_orig_name")) ? "edit" : "add"; } },
-    { id: "form_add-edit-tornado-shelter", info: ["field_1imzl", "field_sof1r", "field_k5ihj"], kind: function () { return "add"; } }
+    { id: "form_add-edit-tornado-shelter", info: ["field_1imzl", "field_sof1r", "field_k5ihj"], kind: function () { return "add"; } },
+    { find: findPageAddForm, info: ["field_sas_add_first", "field_sas_add_last", "field_sas_add_email"], kind: function () { return "add"; } }
   ];
   function signIn() {
     var account = W.sasShelterAccount;
     if (!account || !account.gate) return;
     ACCOUNTS.forEach(function (a) {
-      var form = D.getElementById(a.id);
+      var form = a.find ? a.find() : D.getElementById(a.id);
       if (!form) return;
       try {
         account.gate({ form: form, kind: a.kind(), info: { first: D.getElementById(a.info[0]), last: D.getElementById(a.info[1]), email: D.getElementById(a.info[2]) } });
       } catch (e) {
-        if (W.console && W.console.warn) W.console.warn("Shelter form sign-in:", e);
+        warn("Shelter form sign-in:", e);
       }
     });
   }
