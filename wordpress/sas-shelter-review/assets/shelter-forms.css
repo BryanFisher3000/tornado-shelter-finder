@@ -117,15 +117,17 @@
 .frm_forms .sas-acct.sas-acct-on { margin-bottom: 12px; }
 .frm_forms .sas-acct *, .frm_forms .sas-acct *::before, .frm_forms .sas-acct *::after { box-sizing: border-box; }
 .frm_forms .sas-acct [hidden] { display: none !important; }
-.frm_forms .sas-acct p { margin: 0; padding: 0; font-size: inherit; font-weight: 400; line-height: inherit; color: inherit; text-align: left; }
+/* (the site styles every paragraph of a page's content by a rule three classes deep, so the lines of the box are
+   named four deep: the doubled .sas-acct.sas-acct and p[class] are there for that weight alone) */
+.frm_forms .sas-acct.sas-acct p[class] { margin: 0; padding: 0; font-size: inherit; font-weight: 400; line-height: inherit; letter-spacing: normal; color: inherit; text-align: left; }
 .frm_forms .sas-acct .sas-acct-out, .frm_forms .sas-acct .sas-acct-details { display: grid; gap: 12px; max-width: 420px; }
-.frm_forms .sas-acct .sas-acct-lead { font-size: 18px; line-height: 1.45; color: #4E4748; }
-.frm_forms .sas-acct .sas-acct-head { font-size: 18px; font-weight: 600; color: #1A1815; }
-.frm_forms .sas-acct .sas-acct-fine { font-size: 14.5px; line-height: 1.4; color: #4E4748; }
-.frm_forms .sas-acct .sas-acct-wait, .frm_forms .sas-acct .sas-acct-plain { font-size: 16px; color: #4E4748; }
-.frm_forms .sas-acct .sas-acct-note, .frm_forms .sas-acct .sas-acct-msg { font-size: 15px; line-height: 1.4; color: #96231A; }
-.frm_forms .sas-acct .sas-acct-note.sas-acct-soft { color: #4E4748; } /* (a line that only says what is going on) */
-.frm_forms .sas-acct .sas-acct-note:empty, .frm_forms .sas-acct .sas-acct-msg:empty { display: none; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-lead { font-size: 18px; line-height: 1.45; color: #4E4748; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-head { font-size: 18px; font-weight: 600; color: #1A1815; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-fine { font-size: 14.5px; line-height: 1.4; color: #4E4748; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-wait, .frm_forms .sas-acct.sas-acct p.sas-acct-plain { font-size: 16px; color: #4E4748; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-note, .frm_forms .sas-acct.sas-acct p.sas-acct-msg { font-size: 15px; line-height: 1.4; color: #96231A; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-note.sas-acct-soft { color: #4E4748; } /* (a line that only says what is going on) */
+.frm_forms .sas-acct.sas-acct p.sas-acct-note:empty, .frm_forms .sas-acct.sas-acct p.sas-acct-msg:empty { display: none; }
 
 /* Continue with Google, Apple, Facebook, Email: the app's buttons */
 .frm_forms .sas-acct .sas-acct-sso { display: grid; gap: 8px; }
@@ -167,5 +169,5 @@
   display: inline; width: auto; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
   color: #114A9B; font-family: inherit; font-size: inherit; font-weight: 400; line-height: inherit; text-transform: none; letter-spacing: normal; text-decoration: underline; cursor: pointer;
 }
-.frm_forms .sas-acct a { color: #114A9B; text-decoration: underline; }
-.frm_forms .sas-acct .sas-acct-bar { font-size: 15px; color: #4E4748; }
+.frm_forms .sas-acct.sas-acct p[class] a, .frm_forms .sas-acct.sas-acct p[class] a:hover, .frm_forms .sas-acct.sas-acct p[class] a:focus { color: #114A9B; font-weight: 400; text-decoration: underline; }
+.frm_forms .sas-acct.sas-acct p.sas-acct-bar { font-size: 15px; color: #4E4748; }
