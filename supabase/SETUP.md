@@ -105,3 +105,42 @@
     the filters `sas_shelter_forms_page_ids` and `sas_shelter_forms_paths` change that. Address
     suggestions and the "Use Map Center" button use the Google map that is already on the finder
     page.
+
+## Sign-in on the website's shelter forms
+
+25. In Supabase, open Authentication → URL Configuration. Check that **Site URL** is
+    `https://survive-a-storm.com`, and under **Redirect URLs** add
+    `https://survive-a-storm.com/tornado-shelter-finder/**`. That lets a sign-in (and the link in
+    a confirmation email) come back to the page the form is on. Without it, Supabase sends the
+    person to the Site URL instead and the form stays closed.
+26. Upload the plugin zip again (v1.5.0 or later). From then on the website's two shelter forms
+    ask for the app's sign-in, as the app does before adding a shelter or suggesting an edit:
+    - where a shelter form is, the page shows "Continue with Google / Apple / Facebook / Email"
+      (a provider that is switched off in Supabase is left out) and opens the form once the
+      person is signed in. They are the app's accounts, so someone signed up in the app signs in
+      with the same account here;
+    - an account without a first name, last name and email is asked for them once, in "My
+      Details", and they are kept in `profiles`, where the app reads them too;
+    - the form's own First Name, Last Name and Email fields are filled from the account and kept
+      out of sight;
+    - the sign-in goes with the form, and the plugin checks it with Supabase before Formidable
+      accepts the entry (`includes/account.php`). An entry without a good sign-in is refused, and
+      the queue row gets the account in `submitter_id` and the account's name and email in
+      `submitter`, the same as a submission from the app. The sign-in itself is never stored;
+    - in the Suggest an Edit pop-up, Google, Apple and Facebook open in a new tab (their pages
+      refuse to load inside a pop-up), which closes itself when the person is signed in;
+    - Sign Out on the website signs out that browser only. The person stays signed in on their
+      phone.
+
+    Entries typed in the WordPress dashboard by a reviewer, or by someone allowed to add
+    Formidable entries, are not asked for a sign-in. The county contact form is not changed.
+
+    The plugin carries the Supabase library the app uses (`assets/vendor/supabase.js`, supabase-js
+    2.119.0, MIT) and loads it only on a page that has a shelter form. It uses the app's public
+    key, which is in `includes/account.php` (define `SAS_SUPABASE_PUBLISHABLE_KEY` in
+    `wp-config.php` to use another). To switch the sign-in off without removing the plugin:
+    `add_filter( 'sas_forms_require_signin', '__return_false' );`.
+
+    After installing, try each way of signing in once on the live site, and send one real edit:
+    the spam check (Cloudflare Turnstile) on the forms could not be tried together with the
+    sign-in before going live.
