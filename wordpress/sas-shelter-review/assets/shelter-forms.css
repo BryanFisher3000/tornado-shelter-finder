@@ -73,7 +73,9 @@
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=radio]:focus-visible,
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf input[type=checkbox]:focus-visible { outline: 2px solid #1A73E8; outline-offset: 2px; }
 
-/* Add a Shelter: the map pin row */
+/* Add a Shelter: what the Use Map Center button is for, then the pin row */
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-pin { display: grid; gap: 7px; }
+.frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-pin p { font-size: 15px; line-height: 1.4; color: #4E4748; }
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc { display: flex; align-items: center; justify-content: space-between; gap: 13px; font-size: 15px; line-height: 1.35; color: #4E4748; }
 .frm_forms.with_frm_style form.sas-sf-on .sas-sf .sas-sf-loc button {
   flex: none; width: auto; height: auto; margin: 0; padding: 7px 13px; border: 0; border-radius: 6px; background: #ECEAE7; color: #1A1815;

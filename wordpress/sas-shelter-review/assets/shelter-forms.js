@@ -29,7 +29,8 @@
     add: "Thanks! We got the new shelter. Our team will review it before it shows up in the Tornado Shelter Finder.",
     edit: "Thanks! We got your suggestion. Our team will review it soon."
   };
-  var PIN_UNSET = "Map pin: not set. Move the map above so the shelter is in the center, then tap.";
+  var PIN_HINT = "Use Map Center to move the pin to a more specific shelter location. Center the map above on that spot first.";
+  var PIN_UNSET = "Map pin: not set";
   var NO_NOTE = "(no note)"; // the Formidable message box is required, so an empty note is sent as this
   var BLANK = "(blank)";     // an address box the person emptied: Formidable would not keep an empty answer
 
@@ -390,8 +391,8 @@
     });
 
     // the map pin: from an address suggestion, or from the middle of the map
-    var pin = null, pinText = h("span", null, PIN_UNSET), pinButton = h("button", { type: "button" }, "Use Map Center");
-    var pinRow = h("div", { "class": "sas-sf-loc" }, pinText, pinButton);
+    var pin = null, pinText = h("span", null, PIN_UNSET), pinButton = h("button", { type: "button", "aria-describedby": "sas-sf-pin-hint" }, "Use Map Center");
+    var pinRow = h("div", { "class": "sas-sf-pin" }, h("p", { id: "sas-sf-pin-hint" }, PIN_HINT), h("div", { "class": "sas-sf-loc" }, pinText, pinButton));
     if (real.lat && real.lng && value(real.lat) && value(real.lng) && isFinite(+value(real.lat)) && isFinite(+value(real.lng))) pin = { lat: +value(real.lat), lng: +value(real.lng) };
     function showPin() { pinText.textContent = pin ? "Map pin: " + pin.lat.toFixed(5) + ", " + pin.lng.toFixed(5) : PIN_UNSET; }
     function mapCenter() { // the map's Google link carries the middle of the map as ll=lat,lng
