@@ -957,7 +957,10 @@ a.set-row:not([href="#"]) .v::after { content: "›"; font-size: 1.3em; color: v
 .acct-form.em-auth[hidden] { display: none; }
 .acct-form.em-auth .btns .btn { width: 100%; justify-content: center; }
 button.link { background: none; border: 0; padding: 0; font: inherit; color: var(--act); text-decoration: underline; cursor: pointer; }
+.loc { display: grid; gap: .45rem; }
+.loc-hint { margin: 0; font-size: .92rem; line-height: 1.4; color: var(--ink-2); }
 .loc-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .92rem; color: var(--ink-2); }
+.loc-row .btn { flex: none; white-space: nowrap; }
 .btn.sm { padding: .4rem .8rem; font-size: .9rem; }
 .gate { text-align: center; padding: 1.6rem .4rem 2rem; display: grid; gap: .8rem; justify-items: center; }
 .gate h3 { margin: 0; font-size: 1.3rem; font-weight: 600; }
@@ -1184,7 +1187,7 @@ try { var sasTheme = JSON.parse(localStorage.getItem("sas.theme") || "null"); if
         <div class="ac-wrap"><label>Street Address<input id="as-street" required autocomplete="off"></label><ul class="ac-list" id="as-ac" hidden></ul></div>
         <div class="row2 city"><label>City<input id="as-city" required></label><label>State<select id="as-state" required></select></label></div>
         <label class="zip">ZIP<input id="as-zip" inputmode="numeric" maxlength="10"></label>
-        <div class="loc-row"><span id="as-loc">Map pin: not set. Move the map so the shelter is in the center, then tap.</span><button type="button" class="btn plain sm" id="as-pin">Use Map Center</button></div>
+        <div class="loc"><p class="loc-hint" id="as-loc-hint">Use Map Center to move the pin to a more specific shelter location. Center the map on that spot first.</p><div class="loc-row"><span id="as-loc">Map pin: not set</span><button type="button" class="btn plain sm" id="as-pin" aria-describedby="as-loc-hint">Use Map Center</button></div></div>
         <div class="grp" role="radiogroup" aria-labelledby="as-cap-l"><div class="glabel" id="as-cap-l">Capacity</div><div class="radios"><label><input type="radio" name="as-cap" value="" checked>Unknown</label><label><input type="radio" name="as-cap" value="<25">&lt;25</label><label><input type="radio" name="as-cap" value="<50">&lt;50</label><label><input type="radio" name="as-cap" value="50+">50+</label></div></div>
         <div class="grp" role="radiogroup" aria-labelledby="as-open-l"><div class="glabel" id="as-open-l">Open</div><div class="radios"><label><input type="radio" name="as-open" value="" checked>Unknown</label><label><input type="radio" name="as-open" value="emergencies_only">During emergencies</label><label><input type="radio" name="as-open" value="always">Year-round</label></div></div>
         <div class="grp" role="radiogroup" aria-labelledby="as-ada-l"><div class="glabel" id="as-ada-l">Wheelchair accessible</div><div class="radios"><label><input type="radio" name="as-ada" value="" checked>Unknown</label><label><input type="radio" name="as-ada" value="yes">Yes</label><label><input type="radio" name="as-ada" value="no">No</label></div></div>
@@ -2593,7 +2596,7 @@ try { var sasTheme = JSON.parse(localStorage.getItem("sas.theme") || "null"); if
     var ready = canAdd(profile());
     $("#add-gate").hidden = ready; $("#add-form").hidden = !ready;
     $("#as-msg").textContent = "";
-    $("#as-loc").textContent = addPin ? "Map pin: " + addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "Map pin: not set. Move the map so the shelter is in the center, then tap.";
+    $("#as-loc").textContent = addPin ? "Map pin: " + addPin.lat.toFixed(5) + ", " + addPin.lng.toFixed(5) : "Map pin: not set";
   }
   $("#add-signin").addEventListener("click", function () { state.afterProfile = "add"; state.addFrom = state.prevPane; showPane("profile", { snap: "full" }); });
   // Street Address: Google Places suggestions (Places API, key APP.googlePlacesKey). Picking one fills
