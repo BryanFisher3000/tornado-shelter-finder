@@ -483,7 +483,11 @@
       if (/^add\s*\/\s*edit shelter$/i.test(el.textContent.trim())) setText(el, "Add a Shelter", undo);
     });
     Array.prototype.forEach.call(row.querySelectorAll("p"), function (el) {
-      if (/^none of these fields are required/i.test(el.textContent.trim())) hideBox(el, undo, "sas-sf-hide");
+      if (!/^none of these fields are required/i.test(el.textContent.trim())) return;
+      hideBox(el, undo, "sas-sf-hide");
+      // the empty line the page keeps above it would leave a hole between the words and the form
+      var gap = el.previousElementSibling;
+      if (gap && gap.tagName === "P" && !gap.textContent.trim() && !gap.querySelector(":not(br)")) hideBox(gap, undo, "sas-sf-hide");
     });
   }
 
